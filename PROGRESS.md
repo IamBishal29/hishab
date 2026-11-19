@@ -2,10 +2,13 @@
 
 ## Current
 - Milestone: M1 Foundation
-- Issue: #4 done, PR #41 open (waiting for Syed's review)
-- Branch: feat/4-logging-problem-details
-- Next step: Syed merges PR #41, then `/next-task` picks #5 "Shop sign-up and login
-  with phone number and OTP".
+- Issue: #5 in progress, split in two PRs. PR A (#42, domain rules) open for review.
+- Branch: feat/5-otp-domain (PR A). PR B will be feat/5-otp-endpoints from main.
+- Next step: Syed merges PR #42; then `/next-task` resumes #5 with PR B: Identity user
+  (TenantId, role, unique phone) + Shop entity + migration, HMAC `IOtpHasher` (secret
+  from user-secrets, `ValidateOnStart`), dev `IOtpSender`, `POST /auth/otp` and
+  `/auth/otp/verify`, rate limiting per phone and IP, uniform failure responses,
+  integration tests (sign-up, lockout, expiry, cross-tenant for Shop/User). Closes #5.
 
 ## Done
 - Product discovery: PRD written (docs/PRD.md); name chosen: Hishab
@@ -25,14 +28,15 @@
   (merged)
 - #4 Logging + errors (PR #41): Serilog (options, console/Seq), correlation ID
   middleware, TenantId/UserId log context, PhoneMasker + redaction enricher, domain
-  exceptions -> ProblemDetails; 42 tests passing; learning note 02
+  exceptions -> ProblemDetails; 42 tests passing; learning note 02 (merged)
+- #5 PR A (#42): ADR 0006 one shop per user, Phone value object, OtpChallenge rules,
+  OTP contracts; 72 tests passing; learning note 03
 
 ## Decisions waiting for Syed
 - `GETTING-STARTED.md` says to delete it in the first PR; the permission check blocked
   the deletion. Delete it, or say so and I'll do it in the next PR.
-- PR size: #40 (~610) and #41 (~800) were over the ~300-line guideline, mostly tests.
-  Plan for #5: split OTP into (a) Phone value object + OTP domain rules and (b) the
-  endpoints + rate limiting, unless Syed prefers bigger PRs.
+- PR size: #40 (~610) and #41 (~800) were over the ~300-line guideline; #5 is split
+  into two PRs (#42 ~480 incl. ADR + note). Say if you prefer one PR per issue.
 - Before #25 (labels/PDF): QuestPDF (free community licence, not open source) or an
   open-source alternative.
 - Before #34 (AI chat-to-order): a Gemini free-tier API key (stays in user-secrets).
@@ -42,4 +46,5 @@
 - 2026-11-19: PRD and agent kit created
 - 2026-11-19: Kickoff done; PRs #1 and #2 open; backlog created
 - 2026-11-19: #3 implemented, PR #40 open (merged)
-- 2026-11-19: #4 implemented, PR #41 open
+- 2026-11-19: #4 implemented, PR #41 open (merged)
+- 2026-11-19: #5 PR A opened (#42); user<->shop decided (ADR 0006)
