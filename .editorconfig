@@ -38,3 +38,8 @@ dotnet_naming_style.underscore_camel.capitalization = camel_case
 # Tests: underscores in behaviour-style names are intended
 [tests/**.cs]
 dotnet_diagnostic.CA1707.severity = none
+
+# EF Core migrations are generated; never hand-format them
+[**/Migrations/*.cs]
+generated_code = true
+dotnet_analyzer_diagnostic.severity = none
