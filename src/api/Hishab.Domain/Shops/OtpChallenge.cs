@@ -31,6 +31,13 @@ public sealed class OtpChallenge
 
     public static readonly TimeSpan Lifetime = TimeSpan.FromMinutes(5);
 
+    // For EF Core materialisation only; domain code uses Issue().
+    private OtpChallenge()
+    {
+        Phone = null!;
+        CodeHash = null!;
+    }
+
     private OtpChallenge(Phone phone, string codeHash, DateTimeOffset now)
     {
         Id = Guid.NewGuid();
