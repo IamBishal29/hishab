@@ -40,7 +40,9 @@ docker compose up -d
 dotnet user-secrets set "Database:ConnectionString" \
   "Host=localhost;Port=5432;Database=hishab;Username=hishab;Password=<your password>" \
   --project src/api/Hishab.Api
-dotnet run --project src/api/Hishab.Api
+# OTP hashing key: any random 32+ bytes, base64 (PowerShell: [Convert]::ToBase64String((1..32 | % { Get-Random -Max 256 })))
+dotnet user-secrets set "Otp:HashKey" "$(openssl rand -base64 32)" --project src/api/Hishab.Api
+dotnet run --project src/api/Hishab.Api           # dev OTP codes appear in the console log
 
 # 3. Web  ->  http://localhost:5173
 cd src/web && npm ci && npm run dev
