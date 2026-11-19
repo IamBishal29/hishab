@@ -123,7 +123,18 @@ Never read, print or commit `.env`, user-secrets, tokens or keys. Put placeholde
 - Stack: .NET 10 (LTS) ASP.NET Core Web API, EF Core + PostgreSQL, Hangfire, React +
   TypeScript + Vite, Docker Compose, GitHub Actions.
 - Layout: `src/api` (solution), `src/web` (React), `tests`, `docs`.
-- Setup: (kickoff fills in)
-- Run: (kickoff fills in)
-- Test: (kickoff fills in)
-- Lint / format: (kickoff fills in)
+- Choices (ADRs 0003-0005): controllers (not minimal APIs), npm, Fake courier first then
+  Pathao sandbox. Syed has 4+ hours a day: issues stay ~300 lines, two per sitting.
+- Build config at repo root (applies to src/api and tests): `Directory.Build.props`,
+  `Directory.Packages.props` (central versions), `global.json` (Microsoft.Testing.Platform
+  runner), `nuget.config` (nuget.org only), `.editorconfig`, `.gitattributes` (LF).
+- Tests: xUnit v3 on Microsoft.Testing.Platform; integration tests need Docker running.
+- Web: TypeScript pinned to 6.0 until typescript-eslint supports TS 7.
+- Setup: `cp .env.example .env` (set POSTGRES_PASSWORD); `docker compose up -d`;
+  `dotnet user-secrets set "Database:ConnectionString" "..." --project src/api/Hishab.Api`;
+  `cd src/web && npm ci`.
+- Run: `dotnet run --project src/api/Hishab.Api` (http://localhost:5125, `/health`,
+  `/scalar`); `cd src/web && npm run dev` (http://localhost:5173).
+- Test: `cd src/api && dotnet test`; `cd src/web && npm test`.
+- Lint / format: `cd src/api && dotnet format --verify-no-changes`;
+  `cd src/web && npm run format:check && npm run lint && npm run typecheck`.

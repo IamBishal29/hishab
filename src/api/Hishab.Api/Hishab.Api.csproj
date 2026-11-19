@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <UserSecretsId>hishab-api</UserSecretsId>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+    <PackageReference Include="Scalar.AspNetCore" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Hishab.Application\Hishab.Application.csproj" />
+    <ProjectReference Include="..\Hishab.Infrastructure\Hishab.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>
