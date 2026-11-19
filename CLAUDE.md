@@ -129,6 +129,11 @@ Never read, print or commit `.env`, user-secrets, tokens or keys. Put placeholde
   `Directory.Packages.props` (central versions), `global.json` (Microsoft.Testing.Platform
   runner), `nuget.config` (nuget.org only), `.editorconfig`, `.gitattributes` (LF).
 - Tests: xUnit v3 on Microsoft.Testing.Platform; integration tests need Docker running.
+  New tenant-owned entity: implement `ITenantOwned` (Domain) and add a test using
+  `CrossTenantAssert.IsIsolatedAsync` (IntegrationTests/Tenancy).
+- Migrations: `dotnet tool restore`, then from `src/api`:
+  `dotnet ef migrations add <Name> -p Hishab.Infrastructure -s Hishab.Infrastructure -o Persistence/Migrations`.
+  Applied on startup in Development only.
 - Web: TypeScript pinned to 6.0 until typescript-eslint supports TS 7.
 - Setup: `cp .env.example .env` (set POSTGRES_PASSWORD); `docker compose up -d`;
   `dotnet user-secrets set "Database:ConnectionString" "..." --project src/api/Hishab.Api`;
