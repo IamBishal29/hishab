@@ -2,10 +2,10 @@
 
 ## Current
 - Milestone: M1 Foundation
-- Issue: #3 done, PR #40 open (waiting for Syed's review)
-- Branch: feat/3-persistence-tenant-filter
-- Next step: Syed merges PR #40, then `/next-task` picks #4 "Structured logging,
-  correlation IDs and ProblemDetails errors".
+- Issue: #4 done, PR #41 open (waiting for Syed's review)
+- Branch: feat/4-logging-problem-details
+- Next step: Syed merges PR #41, then `/next-task` picks #5 "Shop sign-up and login
+  with phone number and OTP".
 
 ## Done
 - Product discovery: PRD written (docs/PRD.md); name chosen: Hishab
@@ -22,10 +22,17 @@
 - #3 Persistence + tenant isolation (PR #40): HishabDbContext, named tenant filter by
   convention, SaveChanges tenant rules, baseline migration, DbContext health check,
   CrossTenantAssert helper, model guard tests; 17 tests passing; learning note 01
+  (merged)
+- #4 Logging + errors (PR #41): Serilog (options, console/Seq), correlation ID
+  middleware, TenantId/UserId log context, PhoneMasker + redaction enricher, domain
+  exceptions -> ProblemDetails; 42 tests passing; learning note 02
 
 ## Decisions waiting for Syed
 - `GETTING-STARTED.md` says to delete it in the first PR; the permission check blocked
   the deletion. Delete it, or say so and I'll do it in the next PR.
+- PR size: #40 (~610) and #41 (~800) were over the ~300-line guideline, mostly tests.
+  Plan for #5: split OTP into (a) Phone value object + OTP domain rules and (b) the
+  endpoints + rate limiting, unless Syed prefers bigger PRs.
 - Before #25 (labels/PDF): QuestPDF (free community licence, not open source) or an
   open-source alternative.
 - Before #34 (AI chat-to-order): a Gemini free-tier API key (stays in user-secrets).
@@ -34,4 +41,5 @@
 ## Log
 - 2026-11-19: PRD and agent kit created
 - 2026-11-19: Kickoff done; PRs #1 and #2 open; backlog created
-- 2026-11-19: #3 implemented, PR #40 open
+- 2026-11-19: #3 implemented, PR #40 open (merged)
+- 2026-11-19: #4 implemented, PR #41 open
