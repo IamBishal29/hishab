@@ -1,12 +1,19 @@
 using System.Linq.Expressions;
 using Hishab.Application.Common.Tenancy;
 using Hishab.Domain.Common;
+using Hishab.Domain.Shops;
+using Hishab.Infrastructure.Identity;
 using Hishab.Infrastructure.Persistence.Tenancy;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace Hishab.Infrastructure.Persistence;
 
-public class HishabDbContext : DbContext
+/// <summary>
+/// The application database. Built on Identity's user-only context (no role tables: one
+/// role per user, ADR 0006).
+/// </summary>
+public class HishabDbContext : IdentityUserContext<HishabUser, Guid>
 {
     /// <summary>Name of the global query filter that isolates tenants.</summary>
     public const string TenantFilter = "Tenant";
@@ -31,10 +38,15 @@ public class HishabDbContext : DbContext
     /// </summary>
     public Guid? CurrentTenantId => _tenantContext.TenantId;
 
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    public DbSet<Shop> Shops => Set<Shop>();
+
+    public DbSet<OtpChallenge> OtpChallenges => Set<OtpChallenge>();
+
+    protected override void OnModelCreating(ModelBuilder builder)
     {
-        modelBuilder.ApplyConfigurationsFromAssembly(typeof(HishabDbContext).Assembly);
-        ApplyTenantConventions(modelBuilder);
+        base.OnModelCreating(builder); // Identity's own mapping first, ours on top
+        builder.ApplyConfigurationsFromAssembly(typeof(HishabDbContext).Assembly);
+        ApplyTenantConventions(builder);
     }
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
