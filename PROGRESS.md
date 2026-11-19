@@ -2,10 +2,10 @@
 
 ## Current
 - Milestone: M1 Foundation
-- Issue: none in progress
-- Branch: main
-- Next step: Syed merges PR #1 (docs) and PR #2 (scaffold), then runs `/next-task`,
-  which picks #3 "Persistence: EF Core, PostgreSQL and the tenant query filter".
+- Issue: #3 done, PR #40 open (waiting for Syed's review)
+- Branch: feat/3-persistence-tenant-filter
+- Next step: Syed merges PR #40, then `/next-task` picks #4 "Structured logging,
+  correlation IDs and ProblemDetails errors".
 
 ## Done
 - Product discovery: PRD written (docs/PRD.md); name chosen: Hishab
@@ -18,6 +18,10 @@
     React app (Vite, Tailwind, shadcn/ui, i18next en+bn, Vitest), docker compose
     (postgres, seq), CI (api + web jobs, green), PR template, README
   - Backlog: 5 milestones, 37 issues (#3-#39), area and module labels
+  - PRs #1 and #2 merged
+- #3 Persistence + tenant isolation (PR #40): HishabDbContext, named tenant filter by
+  convention, SaveChanges tenant rules, baseline migration, DbContext health check,
+  CrossTenantAssert helper, model guard tests; 17 tests passing; learning note 01
 
 ## Decisions waiting for Syed
 - `GETTING-STARTED.md` says to delete it in the first PR; the permission check blocked
@@ -30,3 +34,4 @@
 ## Log
 - 2026-11-19: PRD and agent kit created
 - 2026-11-19: Kickoff done; PRs #1 and #2 open; backlog created
+- 2026-11-19: #3 implemented, PR #40 open
