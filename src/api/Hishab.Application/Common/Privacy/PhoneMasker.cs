@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using Hishab.Domain.Common;
 
 namespace Hishab.Application.Common.Privacy;
 
@@ -22,15 +23,13 @@ public static partial class PhoneMasker
             return string.Empty;
         }
 
-        var digits = new string([.. phone.Where(char.IsAsciiDigit)]);
-        if (digits.StartsWith("880", StringComparison.Ordinal) && digits.Length == 13)
+        if (Phone.TryParse(phone, out var parsed))
         {
-            digits = digits[2..]; // 8801712345678 -> 01712345678
+            return parsed.Masked; // one masking rule, owned by the Phone value object
         }
 
-        return digits.Length == 11
-            ? string.Concat(digits.AsSpan(0, 5), Stars, digits.AsSpan(9, 2))
-            : string.Concat(Stars, digits.Length >= 2 ? digits[^2..] : string.Empty);
+        var digits = new string([.. phone.Where(char.IsAsciiDigit)]);
+        return string.Concat(Stars, digits.Length >= 2 ? digits[^2..] : string.Empty);
     }
 
     /// <summary>Masks every BD mobile number found inside a longer text.</summary>
