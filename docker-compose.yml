@@ -1,0 +1,33 @@
+# Local infrastructure. The api and web services are added with their own issues.
+name: hishab
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: hishab
+      POSTGRES_USER: hishab
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env (see .env.example)}
+    ports:
+      - "127.0.0.1:5432:5432" # localhost only, never the LAN
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hishab -d hishab"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  seq:
+    image: datalust/seq:2025.2
+    environment:
+      ACCEPT_EULA: "Y"
+      SEQ_FIRSTRUN_NOAUTHENTICATION: "true" # local dev only
+    ports:
+      - "127.0.0.1:5341:80" # UI and ingestion
+    volumes:
+      - seq-data:/data
+
+volumes:
+  postgres-data:
+  seq-data:
