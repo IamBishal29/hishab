@@ -1,6 +1,8 @@
+using System.Text.Json.Serialization;
 using Hishab.Api.Errors;
 using Hishab.Api.Logging;
 using Hishab.Api.Middleware;
+using Hishab.Api.RateLimiting;
 using Hishab.Infrastructure;
 using Hishab.Infrastructure.Persistence;
 using Scalar.AspNetCore;
@@ -10,7 +12,9 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddHishabLogging();
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter())); // "Owner", not 0
+builder.Services.AddHishabRateLimiting(builder.Configuration);
 builder.Services.AddOpenApi();
 builder.Services.AddAuthentication(); // schemes arrive with JWT (#6); tests register their own
 builder.Services.AddAuthorization();
@@ -40,6 +44,7 @@ if (app.Environment.IsDevelopment())
 app.UseAuthentication();
 app.UseMiddleware<UserLogContextMiddleware>();
 app.UseAuthorization();
+app.UseRateLimiter();
 
 app.MapControllers();
 app.MapHealthChecks("/health");

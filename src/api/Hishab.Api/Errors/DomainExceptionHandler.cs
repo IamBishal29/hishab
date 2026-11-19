@@ -25,6 +25,7 @@ public sealed partial class DomainExceptionHandler(
             NotFoundException => (StatusCodes.Status404NotFound, "Resource not found"),
             ConflictException => (StatusCodes.Status409Conflict, "Conflict with current state"),
             DomainValidationException => (StatusCodes.Status400BadRequest, "Validation failed"),
+            TooManyRequestsException => (StatusCodes.Status429TooManyRequests, "Too many requests"),
             _ => (StatusCodes.Status422UnprocessableEntity, "Business rule violated"),
         };
 
@@ -40,6 +41,11 @@ public sealed partial class DomainExceptionHandler(
         LogDomainException(logger, exceptionType, status);
 
         httpContext.Response.StatusCode = status;
+        if (domainException is TooManyRequestsException tooMany)
+        {
+            httpContext.Response.Headers.RetryAfter = RetryAfterSeconds(tooMany.RetryAfter);
+        }
+
         return await problemDetails.TryWriteAsync(new ProblemDetailsContext
         {
             HttpContext = httpContext,
@@ -47,6 +53,10 @@ public sealed partial class DomainExceptionHandler(
             Exception = exception,
         });
     }
+
+    /// <summary>Whole seconds, rounded up, never below 1 (Retry-After: 0 invites a hot retry loop).</summary>
+    internal static string RetryAfterSeconds(TimeSpan retryAfter) =>
+        Math.Max(1, (int)Math.Ceiling(retryAfter.TotalSeconds)).ToString(System.Globalization.CultureInfo.InvariantCulture);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Request failed with {ExceptionType}, returning {StatusCode}")]
     private static partial void LogDomainException(ILogger logger, string exceptionType, int statusCode);
