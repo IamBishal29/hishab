@@ -1,4 +1,7 @@
+using Hishab.Application.Common.Tenancy;
 using Hishab.Infrastructure.Persistence;
+using Hishab.Infrastructure.Persistence.Tenancy;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -14,8 +17,15 @@ public static class DependencyInjection
             .Validate(o => !string.IsNullOrWhiteSpace(o.ConnectionString), "Database:ConnectionString is required.")
             .ValidateOnStart();
 
+        services.AddScoped<ITenantContext, TenantContext>();
+
+        services.AddDbContext<HishabDbContext>((sp, options) => options
+            .UseNpgsql(sp.GetRequiredService<IOptions<DatabaseOptions>>().Value.ConnectionString)
+            .UseSnakeCaseNamingConvention());
+
+        // Same DbContext and connection string as the app, so "healthy" means the app can really reach its data.
         services.AddHealthChecks()
-            .AddNpgSql(sp => sp.GetRequiredService<IOptions<DatabaseOptions>>().Value.ConnectionString, name: "postgres");
+            .AddDbContextCheck<HishabDbContext>("postgres");
 
         return services;
     }

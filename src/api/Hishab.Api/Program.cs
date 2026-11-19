@@ -1,4 +1,5 @@
 using Hishab.Infrastructure;
+using Hishab.Infrastructure.Persistence;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -15,6 +16,8 @@ app.UseStatusCodePages();
 
 if (app.Environment.IsDevelopment())
 {
+    // Other environments migrate as a separate deployment step (no startup races between instances).
+    await app.Services.MigrateDatabaseAsync();
     app.MapOpenApi();
     app.MapScalarApiReference();
 }
@@ -24,4 +27,4 @@ app.UseAuthorization();
 app.MapControllers();
 app.MapHealthChecks("/health");
 
-app.Run();
+await app.RunAsync();

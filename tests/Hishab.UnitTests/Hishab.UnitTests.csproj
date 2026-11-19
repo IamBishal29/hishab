@@ -9,6 +9,7 @@
     <PackageReference Include="NSubstitute" />
     <ProjectReference Include="..\..\src\api\Hishab.Domain\Hishab.Domain.csproj" />
     <ProjectReference Include="..\..\src\api\Hishab.Application\Hishab.Application.csproj" />
+    <ProjectReference Include="..\..\src\api\Hishab.Infrastructure\Hishab.Infrastructure.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Using Include="Shouldly" />
