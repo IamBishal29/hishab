@@ -24,7 +24,9 @@ public static class LoggingSetup
         var options = builder.Configuration.GetSection(ObservabilityOptions.SectionName).Get<ObservabilityOptions>()
             ?? new ObservabilityOptions();
 
-        builder.Services.AddSerilog((services, logger) =>
+        // preserveStaticLogger: each host owns its logger and never overwrites the global
+        // Log.Logger, so request logging cannot write to another host's sinks (tests, workers).
+        builder.Services.AddSerilog(preserveStaticLogger: true, configureLogger: (services, logger) =>
         {
             logger
                 .ReadFrom.Configuration(builder.Configuration)

@@ -23,7 +23,9 @@ var app = builder.Build();
 
 // Order matters: correlation ID outermost, so every log line and error response carries it.
 app.UseMiddleware<CorrelationIdMiddleware>();
-app.UseSerilogRequestLogging();
+// Pass this host's logger: the middleware otherwise falls back to the static Log.Logger,
+// which we deliberately leave unset (preserveStaticLogger), so summaries would vanish.
+app.UseSerilogRequestLogging(options => options.Logger = app.Services.GetRequiredService<Serilog.ILogger>());
 app.UseExceptionHandler();
 app.UseStatusCodePages();
 
