@@ -131,6 +131,12 @@ Never read, print or commit `.env`, user-secrets, tokens or keys. Put placeholde
 - Tests: xUnit v3 on Microsoft.Testing.Platform; integration tests need Docker running.
   New tenant-owned entity: implement `ITenantOwned` (Domain) and add a test using
   `CrossTenantAssert.IsIsolatedAsync` (IntegrationTests/Tenancy).
+- Errors: throw `NotFoundException` / `ConflictException` / `DomainValidationException`
+  (Domain/Common); `DomainExceptionHandler` maps them to ProblemDetails with `correlationId`.
+  Exception messages are shown to users: no personal data in them.
+- Logging: Serilog via `AddHishabLogging`; log IDs, never names/phones (`PhoneMasker`;
+  a redaction enricher is only the safety net). No static `Log.` usage (host logger only).
+  Integration tests read logs via `factory.Logs.WaitForAsync(correlationId, ...)`.
 - Migrations: `dotnet tool restore`, then from `src/api`:
   `dotnet ef migrations add <Name> -p Hishab.Infrastructure -s Hishab.Infrastructure -o Persistence/Migrations`.
   Applied on startup in Development only.
