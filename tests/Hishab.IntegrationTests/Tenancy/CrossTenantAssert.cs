@@ -12,15 +12,18 @@ public static class CrossTenantAssert
 {
     /// <param name="createContext">Creates a context whose tenant context is set to the given tenant.</param>
     /// <param name="newEntity">Creates a valid, unsaved entity (TenantId left empty).</param>
+    /// <param name="newTenant">Creates a tenant and returns its id, e.g. a real shop row when the entity has a foreign key to shops. Defaults to a random id.</param>
     public static async Task IsIsolatedAsync<TContext, TEntity>(
         Func<Guid, TContext> createContext,
         Func<TEntity> newEntity,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        Func<Task<Guid>>? newTenant = null)
         where TContext : DbContext
         where TEntity : class, ITenantOwned
     {
-        var tenantA = Guid.NewGuid();
-        var tenantB = Guid.NewGuid();
+        newTenant ??= () => Task.FromResult(Guid.NewGuid());
+        var tenantA = await newTenant();
+        var tenantB = await newTenant();
 
         object?[] key;
         TEntity seeded;
