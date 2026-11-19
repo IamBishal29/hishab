@@ -1,16 +1,29 @@
+using Hishab.Api.Errors;
+using Hishab.Api.Logging;
+using Hishab.Api.Middleware;
 using Hishab.Infrastructure;
 using Hishab.Infrastructure.Persistence;
 using Scalar.AspNetCore;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.AddHishabLogging();
+
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
-builder.Services.AddProblemDetails();
+builder.Services.AddAuthentication(); // schemes arrive with JWT (#6); tests register their own
+builder.Services.AddAuthorization();
+builder.Services.AddExceptionHandler<DomainExceptionHandler>();
+builder.Services.AddProblemDetails(options => options.CustomizeProblemDetails = context =>
+    context.ProblemDetails.Extensions["correlationId"] = context.HttpContext.TraceIdentifier);
 builder.Services.AddInfrastructure(builder.Configuration);
 
 var app = builder.Build();
 
+// Order matters: correlation ID outermost, so every log line and error response carries it.
+app.UseMiddleware<CorrelationIdMiddleware>();
+app.UseSerilogRequestLogging();
 app.UseExceptionHandler();
 app.UseStatusCodePages();
 
@@ -22,6 +35,8 @@ if (app.Environment.IsDevelopment())
     app.MapScalarApiReference();
 }
 
+app.UseAuthentication();
+app.UseMiddleware<UserLogContextMiddleware>();
 app.UseAuthorization();
 
 app.MapControllers();
