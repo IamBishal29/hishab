@@ -31,4 +31,6 @@ internal sealed class NoRequestContext : IRequestContext
     public Guid? UserId => null;
 
     public string? CorrelationId => null;
+
+    public bool Has(Domain.Shops.Permission permission) => false;
 }

@@ -26,7 +26,7 @@ public sealed class FluentValidationFilter(IServiceProvider services) : IAsyncAc
             var result = await validator.ValidateAsync(new ValidationContext<object>(argument), context.HttpContext.RequestAborted);
             foreach (var failure in result.Errors)
             {
-                context.ModelState.AddModelError(JsonNamingPolicy.CamelCase.ConvertName(failure.PropertyName), failure.ErrorMessage);
+                context.ModelState.AddModelError(ToJsonPath(failure.PropertyName), failure.ErrorMessage);
             }
         }
 
@@ -38,4 +38,8 @@ public sealed class FluentValidationFilter(IServiceProvider services) : IAsyncAc
 
         await next();
     }
+
+    /// <summary>"Variants[0].CostPrice" becomes "variants[0].costPrice": every segment, like the JSON the client sent.</summary>
+    internal static string ToJsonPath(string propertyName) =>
+        string.Join('.', propertyName.Split('.').Select(JsonNamingPolicy.CamelCase.ConvertName));
 }

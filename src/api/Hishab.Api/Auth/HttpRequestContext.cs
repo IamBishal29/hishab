@@ -10,4 +10,9 @@ public sealed class HttpRequestContext(IHttpContextAccessor accessor) : IRequest
         Guid.TryParse(accessor.HttpContext?.User.FindFirst(HishabClaimTypes.UserId)?.Value, out var id) ? id : null;
 
     public string? CorrelationId => accessor.HttpContext?.TraceIdentifier;
+
+    public bool Has(Hishab.Domain.Shops.Permission permission) =>
+        Enum.TryParse<Hishab.Domain.Shops.ShopRole>(accessor.HttpContext?.User.FindFirst(HishabClaimTypes.Role)?.Value, out var role)
+        && Enum.IsDefined(role)
+        && Hishab.Domain.Shops.RolePermissions.Has(role, permission);
 }

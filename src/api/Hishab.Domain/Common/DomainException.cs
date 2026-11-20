@@ -33,3 +33,6 @@ public sealed class TooManyRequestsException(string message, TimeSpan retryAfter
 
 /// <summary>The caller's credentials (e.g. a refresh token) are missing, invalid or expired (HTTP 401).</summary>
 public sealed class AuthenticationFailedException(string message) : DomainException(message);
+
+/// <summary>The caller may use the endpoint but not this particular field or action, e.g. setting cost prices (HTTP 403).</summary>
+public sealed class ForbiddenException(string message) : DomainException(message);

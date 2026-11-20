@@ -49,6 +49,10 @@ public sealed class PolicyProbeController : ControllerBase
     [Microsoft.AspNetCore.Authorization.Authorize(Policy = Hishab.Api.Auth.Policies.CanManageStaff)]
     public IActionResult ManageStaff() => Ok();
 
+    [HttpGet("manage-products")]
+    [Microsoft.AspNetCore.Authorization.Authorize(Policy = Hishab.Api.Auth.Policies.CanManageProducts)]
+    public IActionResult ManageProducts() => Ok();
+
     [HttpGet("enter-orders")]
     [Microsoft.AspNetCore.Authorization.Authorize(Policy = Hishab.Api.Auth.Policies.CanEnterOrders)]
     public IActionResult EnterOrders() => Ok();

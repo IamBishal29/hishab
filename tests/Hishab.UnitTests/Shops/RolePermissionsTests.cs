@@ -11,7 +11,7 @@ public class RolePermissionsTests
     }
 
     [Theory]
-    [InlineData(ShopRole.Manager, new[] { Permission.ManageShop, Permission.EnterOrders, Permission.Pack })]
+    [InlineData(ShopRole.Manager, new[] { Permission.ManageShop, Permission.ManageProducts, Permission.EnterOrders, Permission.Pack })]
     [InlineData(ShopRole.Moderator, new[] { Permission.EnterOrders })]
     [InlineData(ShopRole.Packer, new[] { Permission.Pack })]
     public void Staff_roles_get_only_what_their_job_needs(ShopRole role, Permission[] expected)

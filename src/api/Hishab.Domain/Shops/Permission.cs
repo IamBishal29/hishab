@@ -12,6 +12,9 @@ public enum Permission
     /// <summary>Invite, re-role and remove staff.</summary>
     ManageStaff,
 
+    /// <summary>Create, edit and delete products and variants (cost prices still need <see cref="SeeProfit"/>).</summary>
+    ManageProducts,
+
     /// <summary>Create and edit orders and customers.</summary>
     EnterOrders,
 
@@ -35,7 +38,7 @@ public static class RolePermissions
     private static readonly Dictionary<ShopRole, HashSet<Permission>> _map = new()
     {
         [ShopRole.Owner] = [.. Enum.GetValues<Permission>()],
-        [ShopRole.Manager] = [Permission.ManageShop, Permission.EnterOrders, Permission.Pack],
+        [ShopRole.Manager] = [Permission.ManageShop, Permission.ManageProducts, Permission.EnterOrders, Permission.Pack],
         [ShopRole.Moderator] = [Permission.EnterOrders],
         [ShopRole.Packer] = [Permission.Pack],
     };

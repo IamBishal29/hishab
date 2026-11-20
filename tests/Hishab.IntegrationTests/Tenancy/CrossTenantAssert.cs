@@ -45,7 +45,9 @@ public static class CrossTenantAssert
             (await db.Set<TEntity>().FindAsync(key, cancellationToken))
                 .ShouldBeNull($"tenant B must not find tenant A's {typeof(TEntity).Name} by key");
 
-            db.Remove(seeded);
+            // Track only this row as deleted (Remove would walk an aggregate's children first); the
+            // tenant guard must refuse it before anything reaches the database.
+            db.Entry(seeded).State = EntityState.Deleted;
             await Should.ThrowAsync<CrossTenantWriteException>(() => db.SaveChangesAsync(cancellationToken));
         }
 

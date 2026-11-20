@@ -1,5 +1,6 @@
 using System.Globalization;
 using Hishab.Domain.Common;
+using Hishab.Domain.Products;
 using Hishab.Domain.Shops;
 using Hishab.Infrastructure.Identity;
 using Hishab.Infrastructure.Persistence;
@@ -96,6 +97,26 @@ public class TenantIsolationTests(TenancyDatabaseFixture fixture) : IClassFixtur
             id => fixture.CreateContext(id),
             () => new UsageCounter("2026-11", UsageMetric.Orders, 42),
             Ct);
+    }
+
+    [Fact]
+    public async Task Products_and_their_variants_are_isolated_between_shops()
+    {
+        Guid? tenantA = null;
+        await CrossTenantAssert.IsIsolatedAsync(
+            id =>
+            {
+                tenantA ??= id;
+                return fixture.CreateContext(id);
+            },
+            () => Product.Create("Polo", null, [new VariantDetails("ISO-" + Guid.NewGuid().ToString("N")[..8], "M", null, Money.Bdt(650m), Money.Bdt(400m))], DateTimeOffset.UtcNow),
+            Ct);
+
+        // Variants are tenant-owned rows of their own: shop B cannot list shop A's variants directly.
+        await using var other = fixture.CreateContext(Guid.NewGuid());
+        (await other.Set<ProductVariant>().AnyAsync(v => v.TenantId == tenantA, Ct)).ShouldBeFalse();
+        await using var owner = fixture.CreateContext(tenantA);
+        (await owner.Set<ProductVariant>().AnyAsync(Ct)).ShouldBeTrue();
     }
 
     [Fact]

@@ -183,6 +183,13 @@ Never read, print or commit `.env`, user-secrets, tokens or keys. Put placeholde
   `sessionQuery` (refresh cookie -> /api/auth/me); orval mutator `api/http.ts` (single-flight
   refresh, `ApiProblem`); `applyProblem` maps server field errors to RHF. Tests: MSW handlers in
   `src/test/server.ts` (unhandled requests fail). Vite proxies `/api` to :5125.
+- Soft delete: implement `ISoftDeletable` (Domain/Common); the named `SoftDelete` filter hides
+  deleted rows by convention; opt out with `IgnoreQueryFilters([HishabDbContext.SoftDeleteFilter])`.
+  Uniqueness among active rows = partial unique index (`HasFilter("deleted_at IS NULL")`).
+- Products: `Product` aggregate owns `ProductVariant`s (change variants only via Product).
+  Cost prices: services check `IRequestContext.Has(Permission.SeeProfit)` (reads return null,
+  writes without it -> `ForbiddenException` 403). Order lines must snapshot name/SKU/price.
+- Field-level rules belong in services via `IRequestContext.Has(permission)`, not only in controllers.
 - Audit: mark entities `IAuditable` (Domain); `AuditInterceptor` writes `AuditEntry` rows in the
   same SaveChanges. In EF config mark personal fields `.IsPersonalData(PersonalDataKind.Phone|Text)`
   and noise `.IsNotAudited()`. Do not use ExecuteUpdate/ExecuteDelete on auditable entities.

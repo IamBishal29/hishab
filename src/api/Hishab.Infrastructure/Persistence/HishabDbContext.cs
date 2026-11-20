@@ -1,6 +1,7 @@
 using System.Linq.Expressions;
 using Hishab.Application.Common.Tenancy;
 using Hishab.Domain.Common;
+using Hishab.Domain.Products;
 using Hishab.Domain.Shops;
 using Hishab.Infrastructure.Identity;
 using Hishab.Infrastructure.Persistence.Tenancy;
@@ -17,6 +18,9 @@ public class HishabDbContext : IdentityUserContext<HishabUser, Guid>
 {
     /// <summary>Name of the global query filter that isolates tenants.</summary>
     public const string TenantFilter = "Tenant";
+
+    /// <summary>Name of the global query filter that hides soft-deleted rows.</summary>
+    public const string SoftDeleteFilter = "SoftDelete";
 
     private readonly ITenantContext _tenantContext;
 
@@ -48,11 +52,14 @@ public class HishabDbContext : IdentityUserContext<HishabUser, Guid>
 
     public DbSet<UsageCounter> UsageCounters => Set<UsageCounter>();
 
+    public DbSet<Product> Products => Set<Product>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder); // Identity's own mapping first, ours on top
         builder.ApplyConfigurationsFromAssembly(typeof(HishabDbContext).Assembly);
         ApplyTenantConventions(builder);
+        ApplySoftDeleteConvention(builder);
 
         // The shop is the tenant itself (not ITenantOwned): the same named filter keeps every
         // shop query to the caller's own shop, so no endpoint can read another shop by id.
@@ -102,6 +109,24 @@ public class HishabDbContext : IdentityUserContext<HishabUser, Guid>
             builder.HasQueryFilter(TenantFilter, Expression.Lambda(body, entity));
             builder.Property(nameof(ITenantOwned.TenantId)).IsRequired();
             builder.HasIndex(nameof(ITenantOwned.TenantId));
+        }
+    }
+
+    /// <summary>Every root entity implementing <see cref="ISoftDeletable"/> hides deleted rows unless a query opts out by name.</summary>
+    private static void ApplySoftDeleteConvention(ModelBuilder modelBuilder)
+    {
+        var softDeletable = modelBuilder.Model.GetEntityTypes()
+            .Where(t => typeof(ISoftDeletable).IsAssignableFrom(t.ClrType) && t.BaseType is null && !t.IsOwned())
+            .ToList();
+
+        foreach (var entityType in softDeletable)
+        {
+            // e => e.DeletedAt == null
+            var entity = Expression.Parameter(entityType.ClrType, "e");
+            var body = Expression.Equal(
+                Expression.Property(entity, nameof(ISoftDeletable.DeletedAt)),
+                Expression.Constant(null, typeof(DateTimeOffset?)));
+            modelBuilder.Entity(entityType.ClrType).HasQueryFilter(SoftDeleteFilter, Expression.Lambda(body, entity));
         }
     }
 
