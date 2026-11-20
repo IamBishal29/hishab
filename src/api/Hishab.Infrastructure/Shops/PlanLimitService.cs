@@ -1,5 +1,6 @@
 using Hishab.Application.Common.Tenancy;
 using Hishab.Application.Shops;
+using Hishab.Domain.Couriers;
 using Hishab.Domain.Shops;
 using Hishab.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -51,6 +52,30 @@ internal sealed class PlanLimitService(HishabDbContext db, ITenantContext tenant
         if (users >= shop.Limits.MaxUsers)
         {
             throw PlanLimitExceededException.Users(shop.Plan, shop.Limits.MaxUsers);
+        }
+    }
+
+    public async Task EnsureCanConnectCourierAsync(CourierProvider provider, CancellationToken cancellationToken)
+    {
+        if (db.Database.CurrentTransaction is null)
+        {
+            throw new InvalidOperationException("EnsureCanConnectCourierAsync must run inside the transaction that connects the courier.");
+        }
+
+        // Same lock as staff invites: parallel connects are checked one after another.
+        var shop = await db.Shops
+            .FromSql($"SELECT * FROM shops WHERE id = {TenantId} FOR UPDATE")
+            .SingleAsync(cancellationToken);
+
+        if (shop.Limits.MaxCouriers is not { } max
+            || await db.CourierAccounts.AnyAsync(a => a.Provider == provider, cancellationToken))
+        {
+            return; // unlimited, or new keys for a courier the shop already has
+        }
+
+        if (await db.CourierAccounts.CountAsync(cancellationToken) >= max)
+        {
+            throw PlanLimitExceededException.Couriers(shop.Plan, max);
         }
     }
 

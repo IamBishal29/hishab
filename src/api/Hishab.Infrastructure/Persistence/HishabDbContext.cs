@@ -1,12 +1,14 @@
 using System.Linq.Expressions;
 using Hishab.Application.Common.Tenancy;
 using Hishab.Domain.Common;
+using Hishab.Domain.Couriers;
 using Hishab.Domain.Customers;
 using Hishab.Domain.Orders;
 using Hishab.Domain.Products;
 using Hishab.Domain.Shops;
 using Hishab.Infrastructure.Identity;
 using Hishab.Infrastructure.Persistence.Tenancy;
+using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,7 +18,7 @@ namespace Hishab.Infrastructure.Persistence;
 /// The application database. Built on Identity's user-only context (no role tables: one
 /// role per user, ADR 0006).
 /// </summary>
-public class HishabDbContext : IdentityUserContext<HishabUser, Guid>
+public class HishabDbContext : IdentityUserContext<HishabUser, Guid>, IDataProtectionKeyContext
 {
     /// <summary>Name of the global query filter that isolates tenants.</summary>
     public const string TenantFilter = "Tenant";
@@ -61,6 +63,11 @@ public class HishabDbContext : IdentityUserContext<HishabUser, Guid>
     public DbSet<Order> Orders => Set<Order>();
 
     public DbSet<IdempotencyRecord> IdempotencyRecords => Set<IdempotencyRecord>();
+
+    public DbSet<CourierAccount> CourierAccounts => Set<CourierAccount>();
+
+    /// <summary>The Data Protection key ring, each key wrapped by the certificate (ADR 0007). Not tenant-owned.</summary>
+    public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

@@ -44,6 +44,13 @@ dotnet user-secrets set "Database:ConnectionString" \
 dotnet user-secrets set "Otp:HashKey" "$(openssl rand -base64 32)" --project src/api/Hishab.Api
 # JWT signing key: another, different random 32+ bytes, base64
 dotnet user-secrets set "Jwt:SigningKey" "$(openssl rand -base64 32)" --project src/api/Hishab.Api
+# Data Protection certificate: wraps the key ring that encrypts courier API keys (ADR 0007).
+# Development only (self-signed). MSYS_NO_PATHCONV stops Git Bash on Windows rewriting "/CN=...".
+MSYS_NO_PATHCONV=1 openssl req -x509 -newkey rsa:2048 -nodes -days 730 \
+  -subj "/CN=Hishab dev Data Protection" -keyout dp.key -out dp.crt
+openssl pkcs12 -export -inkey dp.key -in dp.crt -out dp.pfx -passout pass:
+dotnet user-secrets set "DataProtection:CertificateBase64" "$(base64 -w0 dp.pfx)" --project src/api/Hishab.Api
+rm dp.key dp.crt dp.pfx   # keep a backup elsewhere in production: losing it means sellers reconnect couriers
 dotnet run --project src/api/Hishab.Api           # dev OTP codes appear in the console log
 
 # 3. Web  ->  http://localhost:5173 (proxies /api to the API, so run both)

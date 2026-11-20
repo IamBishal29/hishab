@@ -1,11 +1,14 @@
 using Hishab.Application.Common.Auditing;
 using Hishab.Application.Common.Tenancy;
+using Hishab.Application.Couriers;
 using Hishab.Application.Customers;
 using Hishab.Application.Orders;
 using Hishab.Application.Products;
 using Hishab.Application.Shops;
 using Hishab.Application.Shops.Auth;
 using Hishab.Application.Shops.Staff;
+using Hishab.Infrastructure.Couriers;
+using Hishab.Infrastructure.Couriers.Fake;
 using Hishab.Infrastructure.Customers;
 using Hishab.Infrastructure.Identity;
 using Hishab.Infrastructure.Orders;
@@ -15,6 +18,9 @@ using Hishab.Infrastructure.Persistence.Tenancy;
 using Hishab.Infrastructure.Products;
 using Hishab.Infrastructure.Shops;
 using Hishab.Infrastructure.Shops.Auth;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.DataProtection.KeyManagement;
+using Microsoft.AspNetCore.DataProtection.XmlEncryption;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -56,6 +62,7 @@ public static class DependencyInjection
         services.AddScoped<ICustomerService, CustomerService>();
         services.AddScoped<IOrderService, OrderService>();
         services.AddScoped<ICustomerOrderHistory, CustomerOrderHistoryQuery>();
+        AddCouriers(services, configuration);
 
         // Same DbContext and connection string as the app, so "healthy" means the app can really reach its data.
         services.AddHealthChecks()
@@ -75,6 +82,26 @@ public static class DependencyInjection
         services.AddSingleton<IOtpHasher, HmacOtpHasher>();
         services.AddSingleton<IOtpSender, LogOtpSender>();
         services.AddScoped<IOtpAuthService, OtpAuthService>();
+    }
+
+    private static void AddCouriers(IServiceCollection services, IConfiguration configuration)
+    {
+        // ADR 0007: key ring in Postgres, every key wrapped by a certificate from secrets.
+        services.AddOptions<DataProtectionKeyOptions>()
+            .Bind(configuration.GetSection(DataProtectionKeyOptions.SectionName))
+            .Validate(o => o.TryLoadCertificate() is not null, "DataProtection:CertificateBase64 must be a base64 PFX with an RSA private key (set it with user-secrets; see README).")
+            .ValidateOnStart();
+        services.AddDataProtection()
+            .SetApplicationName("Hishab") // all API instances share one key ring
+            .PersistKeysToDbContext<HishabDbContext>();
+        services.AddSingleton<IConfigureOptions<KeyManagementOptions>, CertificateKeyEncryption>();
+        services.AddSingleton<ICertificateResolver, ConfiguredCertificateResolver>();
+
+        services.AddSingleton<FakeCourierControl>();
+        services.AddSingleton<ICourierProvider, FakeCourierProvider>();
+        services.AddSingleton<ICourierProviderRegistry, CourierProviderRegistry>();
+        services.AddSingleton<ICourierCredentialProtector, CourierCredentialProtector>();
+        services.AddScoped<ICourierAccountService, CourierAccountService>();
     }
 
     private static void AddTokens(IServiceCollection services, IConfiguration configuration)

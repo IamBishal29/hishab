@@ -23,6 +23,14 @@ public interface IPlanLimitService
     /// <exception cref="PlanLimitExceededException">The plan's user limit is reached.</exception>
     Task EnsureCanAddStaffAsync(CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Locks the shop row and checks the courier limit for connecting <paramref name="provider"/>.
+    /// Replacing the keys of an already connected courier is always allowed (even after a
+    /// downgrade), so a leaked key can be rotated. Must run inside the connecting transaction.
+    /// </summary>
+    /// <exception cref="PlanLimitExceededException">The plan allows no more couriers.</exception>
+    Task EnsureCanConnectCourierAsync(Domain.Couriers.CourierProvider provider, CancellationToken cancellationToken);
+
     Task<ShopUsage> GetUsageAsync(CancellationToken cancellationToken);
 }
 

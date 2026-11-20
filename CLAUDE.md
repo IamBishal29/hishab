@@ -145,6 +145,7 @@ Never read, print or commit `.env`, user-secrets, tokens or keys. Put placeholde
   `dotnet user-secrets set "Database:ConnectionString" "..." --project src/api/Hishab.Api`;
   `dotnet user-secrets set "Otp:HashKey" "<base64 of 32+ random bytes>" --project src/api/Hishab.Api`;
   `dotnet user-secrets set "Jwt:SigningKey" "<another base64 of 32+ random bytes>" --project src/api/Hishab.Api`;
+  `DataProtection:CertificateBase64` (base64 PFX with an RSA key; README shows the openssl steps);
   `cd src/web && npm ci`. Dev OTP codes are logged (`Otp:Delivery=Log` in Development only).
 - Auth: `HishabUser` (Identity, tenant-owned, one shop per user, ADR 0006). The only
   cross-tenant queries (named filter off) are the login lookup in `OtpAuthService`, the
@@ -228,6 +229,17 @@ Never read, print or commit `.env`, user-secrets, tokens or keys. Put placeholde
   every customer mutation calls `afterCustomerChange(queryClient, updated)` (writes this page,
   invalidates order lists, order details and quick-order lookups). New screens that show customer
   data must be added there.
+- Couriers: adapters implement `ICourierProvider` (Application/Couriers) and register as
+  `ICourierProvider` singletons; `ICourierProviderRegistry` finds them by `CourierProvider` code.
+  Fake courier (`Infrastructure/Couriers/Fake`): same merchant reference = same consignment ID,
+  phone ending `0000` fails booking, apiKey `invalid` is rejected, statuses move via the
+  `FakeCourierControl` singleton. Connections: `ICourierAccountService` (one `CourierAccount` per
+  shop and courier; keys checked with the courier before the transaction; Free plan = 1 courier
+  via `IPlanLimitService.EnsureCanConnectCourierAsync`; replacing keys always allowed). Read keys
+  only via `GetCredentialsAsync` and never return them. Encryption: ADR 0007 (Data Protection,
+  key ring in `data_protection_keys`, wrapped by the certificate; purpose includes the shop ID).
+  Endpoints `/api/couriers` (GET all staff; PUT/DELETE `{provider}` need `CanManageShop`).
+  Integration tests migrate before the host starts (hosted services read tables at startup).
 - Screenshots for UI PRs live in `docs/screenshots/NN-*.png` (390 px wide, headless Chrome).
 - Field-level rules belong in services via `IRequestContext.Has(permission)`, not only in controllers.
 - Audit: mark entities `IAuditable` (Domain); `AuditInterceptor` writes `AuditEntry` rows in the

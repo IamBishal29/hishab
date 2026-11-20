@@ -130,6 +130,57 @@ namespace Hishab.Infrastructure.Persistence.Migrations
                     b.ToTable("idempotency_keys", (string)null);
                 });
 
+            modelBuilder.Entity("Hishab.Domain.Couriers.CourierAccount", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("ConnectedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("connected_at");
+
+                    b.Property<string>("CredentialHint")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("credential_hint");
+
+                    b.Property<string>("ProtectedCredentials")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)")
+                        .HasColumnName("protected_credentials")
+                        .HasAnnotation("Hishab:Audit:Ignore", true);
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("provider");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_courier_accounts");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_courier_accounts_tenant_id");
+
+                    b.HasIndex("TenantId", "Provider")
+                        .IsUnique()
+                        .HasDatabaseName("ix_courier_accounts_tenant_id_provider");
+
+                    b.ToTable("courier_accounts", (string)null);
+                });
+
             modelBuilder.Entity("Hishab.Domain.Customers.Customer", b =>
                 {
                     b.Property<Guid>("Id")
@@ -712,6 +763,29 @@ namespace Hishab.Infrastructure.Persistence.Migrations
                     b.ToTable("users", (string)null);
                 });
 
+            modelBuilder.Entity("Microsoft.AspNetCore.DataProtection.EntityFrameworkCore.DataProtectionKey", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("FriendlyName")
+                        .HasColumnType("text")
+                        .HasColumnName("friendly_name");
+
+                    b.Property<string>("Xml")
+                        .HasColumnType("text")
+                        .HasColumnName("xml");
+
+                    b.HasKey("Id")
+                        .HasName("pk_data_protection_keys");
+
+                    b.ToTable("data_protection_keys", (string)null);
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<System.Guid>", b =>
                 {
                     b.Property<int>("Id")
@@ -791,6 +865,16 @@ namespace Hishab.Infrastructure.Persistence.Migrations
                         .HasName("pk_user_tokens");
 
                     b.ToTable("user_tokens", (string)null);
+                });
+
+            modelBuilder.Entity("Hishab.Domain.Couriers.CourierAccount", b =>
+                {
+                    b.HasOne("Hishab.Domain.Shops.Shop", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_courier_accounts_shops_tenant_id");
                 });
 
             modelBuilder.Entity("Hishab.Domain.Orders.Order", b =>
