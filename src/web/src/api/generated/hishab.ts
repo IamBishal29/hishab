@@ -60,6 +60,44 @@ export interface BlockCustomerRequest {
   reason?: string | null;
 }
 
+export type OrderStatus = typeof OrderStatus[keyof typeof OrderStatus];
+
+
+export const OrderStatus = {
+  New: 'New',
+  Confirmed: 'Confirmed',
+  Cancelled: 'Cancelled',
+  Booked: 'Booked',
+  InTransit: 'InTransit',
+  Delivered: 'Delivered',
+  Returned: 'Returned',
+  CodSettled: 'CodSettled',
+  ReceivedBack: 'ReceivedBack',
+} as const;
+
+export interface BulkItemResult {
+  orderId: string;
+  succeeded: boolean;
+  status: null | OrderStatus;
+  /** @nullable */
+  error: string | null;
+  /** @nullable */
+  message: string | null;
+}
+
+export interface BulkActionResult {
+  succeeded: number;
+  failed: number;
+  results: BulkItemResult[];
+}
+
+export interface BulkOrderActionRequest {
+  /** Up to 100 order IDs; each succeeds or fails on its own. */
+  orderIds: string[];
+  /** @nullable */
+  note?: string | null;
+}
+
 export type ShopRole = typeof ShopRole[keyof typeof ShopRole];
 
 
@@ -228,20 +266,13 @@ export interface MeResponse {
   role: string;
 }
 
-export type OrderStatus = typeof OrderStatus[keyof typeof OrderStatus];
-
-
-export const OrderStatus = {
-  New: 'New',
-  Confirmed: 'Confirmed',
-  Cancelled: 'Cancelled',
-  Booked: 'Booked',
-  InTransit: 'InTransit',
-  Delivered: 'Delivered',
-  Returned: 'Returned',
-  CodSettled: 'CodSettled',
-  ReceivedBack: 'ReceivedBack',
-} as const;
+export interface OrderActionRequest {
+  /**
+     * Why, e.g. a cancellation reason; saved in the order's history.
+     * @nullable
+     */
+  note?: string | null;
+}
 
 export interface OrderLineDto {
   /** @nullable */
@@ -292,6 +323,28 @@ export interface OrderDetails {
   order: OrderDto;
   customer: CustomerSummary;
   warnings: string[];
+}
+
+export interface OrderListItem {
+  id: string;
+  number: number;
+  status: OrderStatus;
+  source: OrderSource;
+  isInsideDhaka: boolean;
+  customerId: string;
+  customerPhone: string;
+  /** @nullable */
+  customerName: string | null;
+  itemCount: number;
+  total: number;
+  codAmount: number;
+  createdAt: string;
+}
+
+export interface OrderListPage {
+  items: OrderListItem[];
+  /** @nullable */
+  nextCursor: string | null;
 }
 
 export interface OtpSent {
@@ -501,6 +554,23 @@ export type GetApiCustomersParams = {
   Search?: string;
   Page?: number;
   PageSize?: number;
+};
+
+export type GetApiOrdersParams = {
+  /** One or more statuses; repeat the parameter for several (status=New, then status=Confirmed). */
+  Status?: OrderStatus[];
+  /** First day (Asia/Dhaka), inclusive. */
+  From?: string;
+  /** Last day (Asia/Dhaka), inclusive. */
+  To?: string;
+  /** Area: true for inside Dhaka, false for outside. */
+  IsInsideDhaka?: boolean;
+  Source?: OrderSource;
+  /** Order number ("#1043"), part of the customer's name, or 3+ digits of their phone. */
+  Search?: string;
+  /** The `nextCursor` of the previous page; omit for the first page. */
+  Cursor?: string;
+  Limit?: number;
 };
 
 export type GetApiProductsParams = {
@@ -1686,6 +1756,135 @@ export const usePostApiOrders = <TError = ValidationProblemDetails | ProblemDeta
       return useMutation(getPostApiOrdersMutationOptions(options), queryClient);
     }
 
+export const getGetApiOrdersUrl = (params?: GetApiOrdersParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = ["Status"];
+
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? 'null' : String(v));
+      });
+      return;
+    }
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/orders?${stringifiedParams}` : `/api/orders`
+}
+
+/**
+ * @summary The shop's orders, newest first. Filters combine with AND. Keyset paging: pass the
+returned `nextCursor` to get the next page; it is null on the last page.
+ */
+export const getApiOrders = async (params?: GetApiOrdersParams, options?: Parameters<typeof apiFetch>[1]): Promise<OrderListPage> => {
+
+  return apiFetch<OrderListPage>(getGetApiOrdersUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetApiOrdersQueryKey = (params?: GetApiOrdersParams,) => {
+    return [
+    `/api/orders`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetApiOrdersQueryOptions = <TData = Awaited<ReturnType<typeof getApiOrders>>, TError = ValidationProblemDetails | ProblemDetails>(params?: GetApiOrdersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiOrders>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiOrdersQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiOrders>>> = ({ signal }) => getApiOrders(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiOrders>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetApiOrdersQueryResult = NonNullable<Awaited<ReturnType<typeof getApiOrders>>>
+export type GetApiOrdersQueryError = ValidationProblemDetails | ProblemDetails
+
+
+/**
+ * @summary The shop's orders, newest first. Filters combine with AND. Keyset paging: pass the
+returned `nextCursor` to get the next page; it is null on the last page.
+ */
+export function useGetApiOrders<TData = Awaited<ReturnType<typeof getApiOrders>>, TError = ValidationProblemDetails | ProblemDetails>(
+ params: undefined |  GetApiOrdersParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiOrders>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getApiOrders>>,
+          TError,
+          Awaited<ReturnType<typeof getApiOrders>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary The shop's orders, newest first. Filters combine with AND. Keyset paging: pass the
+returned `nextCursor` to get the next page; it is null on the last page.
+ */
+export function useGetApiOrders<TData = Awaited<ReturnType<typeof getApiOrders>>, TError = ValidationProblemDetails | ProblemDetails>(
+ params?: GetApiOrdersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiOrders>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getApiOrders>>,
+          TError,
+          Awaited<ReturnType<typeof getApiOrders>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary The shop's orders, newest first. Filters combine with AND. Keyset paging: pass the
+returned `nextCursor` to get the next page; it is null on the last page.
+ */
+export function useGetApiOrders<TData = Awaited<ReturnType<typeof getApiOrders>>, TError = ValidationProblemDetails | ProblemDetails>(
+ params?: GetApiOrdersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiOrders>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary The shop's orders, newest first. Filters combine with AND. Keyset paging: pass the
+returned `nextCursor` to get the next page; it is null on the last page.
+ */
+export function useGetApiOrders<TData = Awaited<ReturnType<typeof getApiOrders>>, TError = ValidationProblemDetails | ProblemDetails>(
+ params?: GetApiOrdersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiOrders>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetApiOrdersQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
 export const getGetApiOrdersIdUrl = (id: string,) => {
 
 
@@ -1786,6 +1985,300 @@ export function useGetApiOrdersId<TData = Awaited<ReturnType<typeof getApiOrders
 
 
 
+
+export const getPostApiOrdersIdConfirmUrl = (id: string,) => {
+
+
+
+
+  return `/api/orders/${id}/confirm`
+}
+
+/**
+ * @summary Confirms a New order (the buyer said yes on the phone). 409 if it is not New or changed meanwhile.
+ */
+export const postApiOrdersIdConfirm = async (id: string,
+    nullOrderActionRequest?: null | OrderActionRequest, options?: Parameters<typeof apiFetch>[1]): Promise<OrderDetails> => {
+
+  return apiFetch<OrderDetails>(getPostApiOrdersIdConfirmUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: getHeaders({ 'Content-Type': 'application/json' }, options?.headers),
+    body: JSON.stringify(nullOrderActionRequest)
+  }
+);}
+
+
+
+
+
+export const getPostApiOrdersIdConfirmMutationKey = () => ['postApiOrdersIdConfirm'] as const;
+
+export const getPostApiOrdersIdConfirmMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiOrdersIdConfirm>>, TError,PostApiOrdersIdConfirmMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiOrdersIdConfirm>>, TError,PostApiOrdersIdConfirmMutationVariables, TContext> => {
+
+const mutationKey = getPostApiOrdersIdConfirmMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiOrdersIdConfirm>>, PostApiOrdersIdConfirmMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  postApiOrdersIdConfirm(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiOrdersIdConfirmMutationResult = NonNullable<Awaited<ReturnType<typeof postApiOrdersIdConfirm>>>
+    export type PostApiOrdersIdConfirmMutationBody = null | OrderActionRequest | undefined
+    export type PostApiOrdersIdConfirmMutationError = ProblemDetails
+    export type PostApiOrdersIdConfirmMutationVariables = {id: string;data?: null | OrderActionRequest}
+
+    /** @summary Confirms a New order (the buyer said yes on the phone). 409 if it is not New or changed meanwhile. */
+export const usePostApiOrdersIdConfirm = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiOrdersIdConfirm>>, TError,PostApiOrdersIdConfirmMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof postApiOrdersIdConfirm>>,
+        TError,
+        PostApiOrdersIdConfirmMutationVariables,
+        TContext
+      > => {
+      return useMutation(getPostApiOrdersIdConfirmMutationOptions(options), queryClient);
+    }
+
+export const getPostApiOrdersIdCancelUrl = (id: string,) => {
+
+
+
+
+  return `/api/orders/${id}/cancel`
+}
+
+/**
+ * @summary Cancels a New or Confirmed order. 409 once it is booked with a courier or changed meanwhile.
+ */
+export const postApiOrdersIdCancel = async (id: string,
+    nullOrderActionRequest?: null | OrderActionRequest, options?: Parameters<typeof apiFetch>[1]): Promise<OrderDetails> => {
+
+  return apiFetch<OrderDetails>(getPostApiOrdersIdCancelUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: getHeaders({ 'Content-Type': 'application/json' }, options?.headers),
+    body: JSON.stringify(nullOrderActionRequest)
+  }
+);}
+
+
+
+
+
+export const getPostApiOrdersIdCancelMutationKey = () => ['postApiOrdersIdCancel'] as const;
+
+export const getPostApiOrdersIdCancelMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiOrdersIdCancel>>, TError,PostApiOrdersIdCancelMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiOrdersIdCancel>>, TError,PostApiOrdersIdCancelMutationVariables, TContext> => {
+
+const mutationKey = getPostApiOrdersIdCancelMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiOrdersIdCancel>>, PostApiOrdersIdCancelMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  postApiOrdersIdCancel(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiOrdersIdCancelMutationResult = NonNullable<Awaited<ReturnType<typeof postApiOrdersIdCancel>>>
+    export type PostApiOrdersIdCancelMutationBody = null | OrderActionRequest | undefined
+    export type PostApiOrdersIdCancelMutationError = ProblemDetails
+    export type PostApiOrdersIdCancelMutationVariables = {id: string;data?: null | OrderActionRequest}
+
+    /** @summary Cancels a New or Confirmed order. 409 once it is booked with a courier or changed meanwhile. */
+export const usePostApiOrdersIdCancel = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiOrdersIdCancel>>, TError,PostApiOrdersIdCancelMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof postApiOrdersIdCancel>>,
+        TError,
+        PostApiOrdersIdCancelMutationVariables,
+        TContext
+      > => {
+      return useMutation(getPostApiOrdersIdCancelMutationOptions(options), queryClient);
+    }
+
+export const getPostApiOrdersBulkConfirmUrl = () => {
+
+
+
+
+  return `/api/orders/bulk/confirm`
+}
+
+/**
+ * @summary Confirms many orders. Always 200 with one result per order: check `failed` and each
+result's `error`; successful orders stay confirmed even when others fail.
+ */
+export const postApiOrdersBulkConfirm = async (bulkOrderActionRequest: BulkOrderActionRequest, options?: Parameters<typeof apiFetch>[1]): Promise<BulkActionResult> => {
+
+  return apiFetch<BulkActionResult>(getPostApiOrdersBulkConfirmUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: getHeaders({ 'Content-Type': 'application/json' }, options?.headers),
+    body: JSON.stringify(bulkOrderActionRequest)
+  }
+);}
+
+
+
+
+
+export const getPostApiOrdersBulkConfirmMutationKey = () => ['postApiOrdersBulkConfirm'] as const;
+
+export const getPostApiOrdersBulkConfirmMutationOptions = <TError = ValidationProblemDetails | ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiOrdersBulkConfirm>>, TError,PostApiOrdersBulkConfirmMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiOrdersBulkConfirm>>, TError,PostApiOrdersBulkConfirmMutationVariables, TContext> => {
+
+const mutationKey = getPostApiOrdersBulkConfirmMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiOrdersBulkConfirm>>, PostApiOrdersBulkConfirmMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  postApiOrdersBulkConfirm(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiOrdersBulkConfirmMutationResult = NonNullable<Awaited<ReturnType<typeof postApiOrdersBulkConfirm>>>
+    export type PostApiOrdersBulkConfirmMutationBody = BulkOrderActionRequest
+    export type PostApiOrdersBulkConfirmMutationError = ValidationProblemDetails | ProblemDetails
+    export type PostApiOrdersBulkConfirmMutationVariables = {data: BulkOrderActionRequest}
+
+    /**
+ * @summary Confirms many orders. Always 200 with one result per order: check `failed` and each
+result's `error`; successful orders stay confirmed even when others fail.
+ */
+export const usePostApiOrdersBulkConfirm = <TError = ValidationProblemDetails | ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiOrdersBulkConfirm>>, TError,PostApiOrdersBulkConfirmMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof postApiOrdersBulkConfirm>>,
+        TError,
+        PostApiOrdersBulkConfirmMutationVariables,
+        TContext
+      > => {
+      return useMutation(getPostApiOrdersBulkConfirmMutationOptions(options), queryClient);
+    }
+
+export const getPostApiOrdersBulkCancelUrl = () => {
+
+
+
+
+  return `/api/orders/bulk/cancel`
+}
+
+/**
+ * @summary Cancels many orders, each on its own (see bulk confirm).
+ */
+export const postApiOrdersBulkCancel = async (bulkOrderActionRequest: BulkOrderActionRequest, options?: Parameters<typeof apiFetch>[1]): Promise<BulkActionResult> => {
+
+  return apiFetch<BulkActionResult>(getPostApiOrdersBulkCancelUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: getHeaders({ 'Content-Type': 'application/json' }, options?.headers),
+    body: JSON.stringify(bulkOrderActionRequest)
+  }
+);}
+
+
+
+
+
+export const getPostApiOrdersBulkCancelMutationKey = () => ['postApiOrdersBulkCancel'] as const;
+
+export const getPostApiOrdersBulkCancelMutationOptions = <TError = ValidationProblemDetails | ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiOrdersBulkCancel>>, TError,PostApiOrdersBulkCancelMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiOrdersBulkCancel>>, TError,PostApiOrdersBulkCancelMutationVariables, TContext> => {
+
+const mutationKey = getPostApiOrdersBulkCancelMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiOrdersBulkCancel>>, PostApiOrdersBulkCancelMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  postApiOrdersBulkCancel(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiOrdersBulkCancelMutationResult = NonNullable<Awaited<ReturnType<typeof postApiOrdersBulkCancel>>>
+    export type PostApiOrdersBulkCancelMutationBody = BulkOrderActionRequest
+    export type PostApiOrdersBulkCancelMutationError = ValidationProblemDetails | ProblemDetails
+    export type PostApiOrdersBulkCancelMutationVariables = {data: BulkOrderActionRequest}
+
+    /** @summary Cancels many orders, each on its own (see bulk confirm). */
+export const usePostApiOrdersBulkCancel = <TError = ValidationProblemDetails | ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiOrdersBulkCancel>>, TError,PostApiOrdersBulkCancelMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof postApiOrdersBulkCancel>>,
+        TError,
+        PostApiOrdersBulkCancelMutationVariables,
+        TContext
+      > => {
+      return useMutation(getPostApiOrdersBulkCancelMutationOptions(options), queryClient);
+    }
 
 export const getGetApiProductsUrl = (params?: GetApiProductsParams,) => {
   const normalizedParams = new URLSearchParams();
