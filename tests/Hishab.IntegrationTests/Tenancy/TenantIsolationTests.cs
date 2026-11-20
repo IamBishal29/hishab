@@ -189,6 +189,39 @@ public class TenantIsolationTests(TenancyDatabaseFixture fixture) : IClassFixtur
     }
 
     [Fact]
+    public async Task Shipments_are_isolated_between_shops()
+    {
+        var orders = new List<Guid>();
+        await CrossTenantAssert.IsIsolatedAsync(
+            id => fixture.CreateContext(id),
+            () => Shipment.Request(orders[0], CourierProvider.Fake, DateTimeOffset.UtcNow),
+            Ct,
+            newTenant: async () =>
+            {
+                var tenant = Guid.NewGuid(); // shipments have a foreign key to orders, orders to customers
+                await using var db = fixture.CreateContext(tenant);
+                var customer = Customer.Create(Phone.Parse("01912345678"), null, null, DateTimeOffset.UtcNow);
+                db.Add(customer);
+                var order = Order.Create(
+                    1,
+                    customer.Id,
+                    "Mirpur",
+                    true,
+                    OrderSource.Phone,
+                    [new OrderLineDetails(null, "Polo", null, "P1", Money.Bdt(650m), null, 1)],
+                    Money.Bdt(60m),
+                    Money.Zero,
+                    null,
+                    null,
+                    DateTimeOffset.UtcNow);
+                db.Add(order);
+                await db.SaveChangesAsync(Ct);
+                orders.Add(order.Id); // the shipment is created for tenant A, the first one
+                return tenant;
+            });
+    }
+
+    [Fact]
     public async Task Queries_return_nothing_when_no_tenant_is_set()
     {
         await using (var db = fixture.CreateContext(Guid.NewGuid()))
