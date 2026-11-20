@@ -16,7 +16,7 @@ namespace Hishab.Api.Controllers;
 public sealed class UpdateShopRequest
 {
     /// <example>Rahim Fashion</example>
-    public string Name { get; init; } = string.Empty;
+    public required string Name { get; init; }
 
     /// <summary>Absolute http(s) URL of the logo image.</summary>
     /// <example>https://example.com/rahim-fashion-logo.png</example>
@@ -32,11 +32,11 @@ public sealed class UpdateShopRequest
 
     /// <summary>BDT, up to 2 decimal places.</summary>
     /// <example>60</example>
-    public decimal DeliveryChargeInsideDhaka { get; init; }
+    public required decimal DeliveryChargeInsideDhaka { get; init; }
 
     /// <summary>BDT, up to 2 decimal places.</summary>
     /// <example>120</example>
-    public decimal DeliveryChargeOutsideDhaka { get; init; }
+    public required decimal DeliveryChargeOutsideDhaka { get; init; }
 }
 
 public sealed class UpdateShopRequestValidator : AbstractValidator<UpdateShopRequest>

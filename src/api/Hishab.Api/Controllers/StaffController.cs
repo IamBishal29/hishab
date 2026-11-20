@@ -11,18 +11,18 @@ public sealed class InviteStaffRequest
 {
     /// <summary>Bangladeshi mobile number, any common spelling.</summary>
     /// <example>01712345678</example>
-    public string Phone { get; init; } = string.Empty;
+    public required string Phone { get; init; }
 
     /// <summary>Manager, Moderator or Packer.</summary>
     /// <example>Moderator</example>
-    public ShopRole Role { get; init; }
+    public required ShopRole Role { get; init; }
 }
 
 public sealed class ChangeStaffRoleRequest
 {
     /// <summary>Manager, Moderator or Packer.</summary>
     /// <example>Packer</example>
-    public ShopRole Role { get; init; }
+    public required ShopRole Role { get; init; }
 }
 
 public sealed class InviteStaffRequestValidator : AbstractValidator<InviteStaffRequest>

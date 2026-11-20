@@ -17,11 +17,7 @@
             "in": "query",
             "description": "Starts at 1.",
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
+              "type": "integer",
               "format": "int32"
             },
             "example": 1
@@ -31,11 +27,7 @@
             "in": "query",
             "description": "1 to 100.",
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
+              "type": "integer",
               "format": "int32"
             },
             "example": 20
@@ -1152,7 +1144,11 @@
   "components": {
     "schemas": {
       "AuditAction": {
-        "type": "integer"
+        "enum": [
+          "Created",
+          "Updated",
+          "Deleted"
+        ]
       },
       "AuditPage": {
         "required": [
@@ -1170,27 +1166,15 @@
             }
           },
           "page": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "pageSize": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "totalCount": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           }
         }
@@ -1244,6 +1228,9 @@
         }
       },
       "ChangeStaffRoleRequest": {
+        "required": [
+          "role"
+        ],
         "type": "object",
         "properties": {
           "role": {
@@ -1256,9 +1243,18 @@
         }
       },
       "CourierProvider": {
-        "type": "integer"
+        "enum": [
+          "Fake",
+          "Pathao",
+          "Steadfast",
+          null
+        ]
       },
       "InviteStaffRequest": {
+        "required": [
+          "phone",
+          "role"
+        ],
         "type": "object",
         "properties": {
           "phone": {
@@ -1353,19 +1349,11 @@
         "type": "object",
         "properties": {
           "expiresInSeconds": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           },
           "resendAfterSeconds": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
+            "type": "integer",
             "format": "int32"
           }
         }
@@ -1386,11 +1374,9 @@
             ]
           },
           "status": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
             "type": [
               "null",
-              "integer",
-              "string"
+              "integer"
             ],
             "format": "int32"
           },
@@ -1476,19 +1462,11 @@
             ]
           },
           "deliveryChargeInsideDhaka": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": [
-              "number",
-              "string"
-            ],
+            "type": "number",
             "format": "double"
           },
           "deliveryChargeOutsideDhaka": {
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": [
-              "number",
-              "string"
-            ],
+            "type": "number",
             "format": "double"
           },
           "currency": {
@@ -1504,7 +1482,12 @@
         "description": "The shop profile. Amounts are in string ShopResponse.Currency."
       },
       "ShopRole": {
-        "type": "integer"
+        "enum": [
+          "Owner",
+          "Manager",
+          "Moderator",
+          "Packer"
+        ]
       },
       "StaffMember": {
         "required": [
@@ -1536,12 +1519,18 @@
         }
       },
       "StaffStatus": {
-        "type": "integer"
+        "enum": [
+          "Invited",
+          "Active"
+        ]
       },
       "TokenDelivery": {
-        "type": "integer",
+        "enum": [
+          "Cookie",
+          "Body"
+        ],
         "description": "Where the refresh token goes. Browsers use the HttpOnly cookie; other clients ask for the body.",
-        "default": 0
+        "default": "Cookie"
       },
       "TokenResponse": {
         "required": [
@@ -1572,6 +1561,11 @@
         }
       },
       "UpdateShopRequest": {
+        "required": [
+          "name",
+          "deliveryChargeInsideDhaka",
+          "deliveryChargeOutsideDhaka"
+        ],
         "type": "object",
         "properties": {
           "name": {
@@ -1618,11 +1612,7 @@
             "examples": [
               60
             ],
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": [
-              "number",
-              "string"
-            ],
+            "type": "number",
             "description": "BDT, up to 2 decimal places.",
             "format": "double"
           },
@@ -1630,11 +1620,7 @@
             "examples": [
               120
             ],
-            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
-            "type": [
-              "number",
-              "string"
-            ],
+            "type": "number",
             "description": "BDT, up to 2 decimal places.",
             "format": "double"
           }
@@ -1657,11 +1643,9 @@
             ]
           },
           "status": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
             "type": [
               "null",
-              "integer",
-              "string"
+              "integer"
             ],
             "format": "int32"
           },

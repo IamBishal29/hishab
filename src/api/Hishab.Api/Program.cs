@@ -22,7 +22,11 @@ builder.Services.AddControllers(options =>
         options.Filters.Add<FluentValidationFilter>();
         options.Conventions.Add(new ApiRoutePrefixConvention()); // every controller under /api
     })
-    .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter())); // "Owner", not 0
+    .AddJsonOptions(o => ConfigureJson(o.JsonSerializerOptions));
+
+// The OpenAPI generator reads these (HTTP) options, not MVC's: both must match, or the
+// documented contract (and the generated web client) differs from what the API really sends.
+builder.Services.ConfigureHttpJsonOptions(o => ConfigureJson(o.SerializerOptions));
 builder.Services.AddHishabRateLimiting(builder.Configuration);
 builder.Services.AddOpenApi();
 builder.Services.AddHishabJwtAuthentication();
@@ -63,3 +67,10 @@ app.MapControllers();
 app.MapHealthChecks("/health");
 
 await app.RunAsync();
+
+// "Owner" not 0; numbers as JSON numbers only ("60" is rejected, so money is typed number, not number | string).
+static void ConfigureJson(System.Text.Json.JsonSerializerOptions options)
+{
+    options.Converters.Add(new JsonStringEnumConverter());
+    options.NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.Strict;
+}
