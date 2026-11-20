@@ -40,7 +40,7 @@ public sealed class CouriersController(ICourierAccountService couriers) : Contro
 
     /// <summary>
     /// Connects a courier, or replaces its keys. The keys are checked with the courier first
-    /// (400 if rejected). A new courier counts against the plan (402 on the Free plan's second courier). Owner only.
+    /// (400 if rejected). A new courier counts against the plan (402 on the Free plan's second courier). Owner and Manager (ManageShop).
     /// </summary>
     [HttpPut("{provider}")]
     [Authorize(Policy = Policies.CanManageShop)]
@@ -51,7 +51,7 @@ public sealed class CouriersController(ICourierAccountService couriers) : Contro
         CourierProvider provider, ConnectCourierRequest request, CancellationToken cancellationToken) =>
         Ok(await couriers.ConnectAsync(provider, request.Credentials, cancellationToken));
 
-    /// <summary>Disconnects a courier and deletes its keys. Owner only.</summary>
+    /// <summary>Disconnects a courier and deletes its keys. Owner and Manager (ManageShop).</summary>
     [HttpDelete("{provider}")]
     [Authorize(Policy = Policies.CanManageShop)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
