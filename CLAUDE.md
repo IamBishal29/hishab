@@ -143,7 +143,11 @@ Never read, print or commit `.env`, user-secrets, tokens or keys. Put placeholde
 - Web: TypeScript pinned to 6.0 until typescript-eslint supports TS 7.
 - Setup: `cp .env.example .env` (set POSTGRES_PASSWORD); `docker compose up -d`;
   `dotnet user-secrets set "Database:ConnectionString" "..." --project src/api/Hishab.Api`;
-  `cd src/web && npm ci`.
+  `dotnet user-secrets set "Otp:HashKey" "<base64 of 32+ random bytes>" --project src/api/Hishab.Api`;
+  `cd src/web && npm ci`. Dev OTP codes are logged (`Otp:Delivery=Log` in Development only).
+- Auth: `HishabUser` (Identity, tenant-owned, one shop per user, ADR 0006). The only
+  cross-tenant user query is the login lookup in `OtpAuthService` (named filter off).
+  Entities with a FK to shops: pass `newTenant` to `CrossTenantAssert` to create real shops.
 - Run: `dotnet run --project src/api/Hishab.Api` (http://localhost:5125, `/health`,
   `/scalar`); `cd src/web && npm run dev` (http://localhost:5173).
 - Test: `cd src/api && dotnet test`; `cd src/web && npm test`.

@@ -24,3 +24,9 @@ public sealed class DomainValidationException(IReadOnlyDictionary<string, string
     {
     }
 }
+
+/// <summary>The caller must wait before trying again, e.g. resending an OTP (HTTP 429).</summary>
+public sealed class TooManyRequestsException(string message, TimeSpan retryAfter) : DomainException(message)
+{
+    public TimeSpan RetryAfter { get; } = retryAfter;
+}

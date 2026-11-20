@@ -1,3 +1,6 @@
+using System.Globalization;
+using Hishab.Domain.Shops;
+using Hishab.Infrastructure.Identity;
 using Hishab.Infrastructure.Persistence;
 using Hishab.Infrastructure.Persistence.Tenancy;
 using Microsoft.EntityFrameworkCore;
@@ -23,6 +26,27 @@ public class TenantIsolationTests(TenancyDatabaseFixture fixture) : IClassFixtur
             id => fixture.CreateContext(id),
             () => new TestNote { Text = "Order from Mirpur" },
             Ct);
+    }
+
+    [Fact]
+    public async Task Users_are_isolated_between_shops()
+    {
+        await CrossTenantAssert.IsIsolatedAsync(
+            id => fixture.CreateContext(id),
+            () =>
+            {
+                var phone = "+8801" + Random.Shared.Next(300_000_000, 999_999_999).ToString(CultureInfo.InvariantCulture);
+                return new HishabUser { Id = Guid.NewGuid(), UserName = phone, NormalizedUserName = phone, PhoneNumber = phone, Role = ShopRole.Owner };
+            },
+            Ct,
+            newTenant: async () =>
+            {
+                var shop = Shop.Create(DateTimeOffset.UtcNow); // users have a foreign key to shops
+                await using var db = fixture.CreateContext(tenantId: null);
+                db.Shops.Add(shop);
+                await db.SaveChangesAsync(Ct);
+                return shop.Id;
+            });
     }
 
     [Fact]
