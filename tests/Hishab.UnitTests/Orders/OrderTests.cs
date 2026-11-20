@@ -108,6 +108,7 @@ public class OrderTests
 
     internal static Order NewOrder(decimal delivery = 60m, decimal advance = 0m, params OrderLineDetails[] lines) =>
         Order.Create(
+            1,
             Guid.NewGuid(),
             "House 4, Road 2, Mirpur",
             isInsideDhaka: true,
@@ -169,7 +170,7 @@ public class OrderTests
     public void An_order_needs_lines_with_positive_quantities()
     {
         Should.Throw<DomainValidationException>(() =>
-                Order.Create(Guid.NewGuid(), null, true, OrderSource.Phone, [], Money.Zero, Money.Zero, null, null, _now))
+                Order.Create(1, Guid.NewGuid(), null, true, OrderSource.Phone, [], Money.Zero, Money.Zero, null, null, _now))
             .Errors.Keys.ShouldBe(["lines"]);
 
         Should.Throw<DomainValidationException>(() => NewOrder(lines: Line(650m, 0)))

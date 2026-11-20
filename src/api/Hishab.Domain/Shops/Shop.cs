@@ -60,6 +60,9 @@ public sealed class Shop : IAuditable
 
     public PlanLimits Limits => Plans.LimitsFor(Plan);
 
+    /// <summary>The last order number handed out; incremented atomically in the order's transaction.</summary>
+    public int LastOrderNumber { get; private set; }
+
     public void ChangePlan(Plan plan)
     {
         _ = Plans.LimitsFor(plan); // unknown plans are rejected

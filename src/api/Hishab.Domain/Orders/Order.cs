@@ -24,6 +24,9 @@ public sealed class Order : ITenantOwned, IAuditable
 
     public Guid TenantId { get; set; }
 
+    /// <summary>Short per-shop number (1, 2, 3...) for phone calls and courier references: "#1043".</summary>
+    public int Number { get; private set; }
+
     public Guid CustomerId { get; private set; }
 
     /// <summary>The address this parcel goes to, copied at order time (the customer's address may change later).</summary>
@@ -59,6 +62,7 @@ public sealed class Order : ITenantOwned, IAuditable
 
     /// <exception cref="DomainValidationException">A rule is broken; errors keyed by field.</exception>
     public static Order Create(
+        int number,
         Guid customerId,
         string? deliveryAddress,
         bool isInsideDhaka,
@@ -73,6 +77,11 @@ public sealed class Order : ITenantOwned, IAuditable
         var errors = new Dictionary<string, string[]>();
         deliveryAddress = Clean(deliveryAddress);
         note = Clean(note);
+
+        if (number < 1)
+        {
+            errors["number"] = ["Order numbers start at 1."];
+        }
 
         if (customerId == Guid.Empty)
         {
@@ -107,6 +116,7 @@ public sealed class Order : ITenantOwned, IAuditable
         var order = new Order
         {
             Id = Guid.NewGuid(),
+            Number = number,
             CustomerId = customerId,
             DeliveryAddress = deliveryAddress,
             IsInsideDhaka = isInsideDhaka,

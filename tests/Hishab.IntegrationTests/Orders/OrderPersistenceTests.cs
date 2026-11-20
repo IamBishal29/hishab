@@ -36,6 +36,7 @@ public class OrderPersistenceTests(HishabApiFactory factory) : IClassFixture<His
             var customer = Customer.Create(Phone.Parse(phone), "Rahima", "Mirpur", _now);
             db.Customers.Add(customer);
             var order = Order.Create(
+                1,
                 customer.Id,
                 "House 4, Road 2, Mirpur",
                 isInsideDhaka: true,

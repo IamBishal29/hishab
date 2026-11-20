@@ -137,6 +137,7 @@ public class TenantIsolationTests(TenancyDatabaseFixture fixture) : IClassFixtur
         await CrossTenantAssert.IsIsolatedAsync(
             id => fixture.CreateContext(id),
             () => Order.Create(
+                1,
                 customers[0],
                 "Mirpur",
                 true,

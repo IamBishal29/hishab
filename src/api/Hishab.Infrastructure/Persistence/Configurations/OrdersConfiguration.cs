@@ -21,6 +21,7 @@ internal sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
 
         builder.HasOne<Customer>().WithMany().HasForeignKey(o => o.CustomerId).OnDelete(DeleteBehavior.Restrict);
         builder.HasIndex(o => new { o.TenantId, o.CreatedAt }); // newest first per shop; #16 adds filter indexes
+        builder.HasIndex(o => new { o.TenantId, o.Number }).IsUnique(); // "#1043" means one order per shop
 
         // Optimistic concurrency: every transition updates this row, so of two packers changing
         // the same order, the second save fails instead of silently overwriting the first.
@@ -52,5 +53,20 @@ internal sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
             change.HasIndex("OrderId", nameof(OrderStatusChange.Sequence)).IsUnique(); // one step per position
         });
         builder.Navigation(o => o.History).UsePropertyAccessMode(PropertyAccessMode.Field);
+    }
+}
+
+internal sealed class IdempotencyRecordConfiguration : IEntityTypeConfiguration<Hishab.Domain.Common.IdempotencyRecord>
+{
+    public void Configure(EntityTypeBuilder<Hishab.Domain.Common.IdempotencyRecord> builder)
+    {
+        builder.ToTable("idempotency_keys");
+
+        // The guarantee: one record per key per shop. A parallel request with the same key waits on
+        // this index until the first transaction commits, then fails and replays the stored result.
+        builder.HasKey(r => new { r.TenantId, r.Key });
+        builder.Property(r => r.Key).HasMaxLength(Hishab.Domain.Common.IdempotencyRecord.KeyMaxLength);
+        builder.Property(r => r.Operation).HasMaxLength(Hishab.Domain.Common.IdempotencyRecord.OperationMaxLength);
+        builder.Property(r => r.RequestHash).HasMaxLength(64).IsFixedLength();
     }
 }
