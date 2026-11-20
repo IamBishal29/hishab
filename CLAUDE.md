@@ -147,8 +147,9 @@ Never read, print or commit `.env`, user-secrets, tokens or keys. Put placeholde
   `dotnet user-secrets set "Jwt:SigningKey" "<another base64 of 32+ random bytes>" --project src/api/Hishab.Api`;
   `cd src/web && npm ci`. Dev OTP codes are logged (`Otp:Delivery=Log` in Development only).
 - Auth: `HishabUser` (Identity, tenant-owned, one shop per user, ADR 0006). The only
-  cross-tenant queries (named filter off) are the login lookup in `OtpAuthService` and the
-  refresh-token lookup by hash in `AuthTokenService`; both then set the tenant from the row.
+  cross-tenant queries (named filter off) are the login lookup in `OtpAuthService`, the
+  refresh-token lookup by hash in `AuthTokenService` (both then set the tenant from the row)
+  and the "phone already in a shop" check in `StaffService.InviteAsync`.
 - Tokens: JWT HS256, 15 min (`sub`, `tenant_id`, `role`); `TenantResolutionMiddleware` sets
   `ITenantContext` from `tenant_id`. Refresh tokens: one-time, SHA-256 hashed, families;
   reuse revokes the family. Browser gets an HttpOnly cookie (`hishab_rt`, Path=/auth),
@@ -158,9 +159,15 @@ Never read, print or commit `.env`, user-secrets, tokens or keys. Put placeholde
   re-check invariants and throw `DomainValidationException`.
 - Money: `Money` (Domain/Common, BDT, <=2 decimals, rejects rather than rounds); every Money
   property maps to `numeric(12,2)` by convention. JSON contracts expose plain `decimal`.
-- Authorization: named policies in `Api/Auth/AuthorizationSetup.cs` (`ManageShop` = Owner,
-  Manager). `Shop` has the tenant filter too (`Id == tenant`); cross-shop reads need
+- Authorization: `Permission` enum + `RolePermissions` matrix (Domain/Shops); one policy per
+  permission (`Policies.CanManageShop`, `CanManageStaff`, `CanEnterOrders`, `CanPack`,
+  `CanSeeProfit`) checked by `PermissionHandler` from the role claim. Never authorize by role
+  name on an endpoint. Matrix tests: `AuthorizationTests` (+ `_test/policy/*` probes).
+  `Shop` has the tenant filter too (`Id == tenant`); cross-shop reads need
   `IgnoreQueryFilters([HishabDbContext.TenantFilter])`.
+- Staff: invite = pre-created `HishabUser` (PhoneNumberConfirmed false until first OTP
+  login); removal is a hard delete. Tests: `factory.InviteAndSignInAsync(client, owner, role)`.
+  User limit placeholder `IShopPlanLimits` (15) until plans (M2).
 - OpenAPI: XML comments in `Hishab.Api` (`<summary>`, `<example>`) feed the document.
   Entities with a FK to shops: pass `newTenant` to `CrossTenantAssert` to create real shops.
 - Run: `dotnet run --project src/api/Hishab.Api` (http://localhost:5125, `/health`,
