@@ -2,11 +2,10 @@
 
 ## Current
 - Milestone: M2 Orders & customers (M1 complete)
-- Issue: #11 implemented and committed; push to GitHub was hanging (network), PR not opened yet
+- Issue: #11 done, PR #49 open for review
 - Branch: feat/11-plan-limits
-- Next step: `git push -u origin feat/11-plan-limits`, open the PR for #11 (body: plans,
-  atomic order meter, locked staff check, 402, GET /api/shop/usage, Dhaka periods), then
-  Syed merges and `/next-task` picks #12 "Products with variants and cost price".
+- Next step: Syed merges PR #49, then `/next-task` picks #12 "Products with variants and
+  cost price".
 
 ## Done
 - Product discovery: PRD written (docs/PRD.md); name chosen: Hishab
@@ -53,7 +52,7 @@
   core (memory token, single-flight refresh), session query, router shell, login/OTP/setup
   (RHF + Zod, server field errors, en + bn); 199 .NET + 11 web tests; e2e smoke through the
   Vite proxy; learning note 09 (merged; M1 complete)
-- #11 Plan limits (branch feat/11-plan-limits, PR pending): Plan catalogue from the PRD,
+- #11 Plan limits (PR #49): Plan catalogue from the PRD,
   Shop.Plan (Free default, backfilled), BillingPeriod (Dhaka months), usage_counters with an
   atomic reserve (no overshoot under parallel load), staff limit with a shop row lock (fixes
   the #8 race), 402 PlanLimitExceeded, GET /api/shop/usage, client regenerated; 221 .NET +
@@ -95,4 +94,4 @@
 - 2026-11-20: No AI-tool attribution on GitHub from now on (Syed)
 - 2026-11-20: #9 implemented, PR #47 open (merged)
 - 2026-11-20: #10 implemented, PR #48 open (API under /api and one PR: Syed's choices) (merged)
-- 2026-11-20: #11 implemented (usage counter table: Syed's choice); push pending (network)
+- 2026-11-20: #11 implemented, PR #49 open (usage counter table: Syed's choice)
