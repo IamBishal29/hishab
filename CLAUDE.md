@@ -144,9 +144,15 @@ Never read, print or commit `.env`, user-secrets, tokens or keys. Put placeholde
 - Setup: `cp .env.example .env` (set POSTGRES_PASSWORD); `docker compose up -d`;
   `dotnet user-secrets set "Database:ConnectionString" "..." --project src/api/Hishab.Api`;
   `dotnet user-secrets set "Otp:HashKey" "<base64 of 32+ random bytes>" --project src/api/Hishab.Api`;
+  `dotnet user-secrets set "Jwt:SigningKey" "<another base64 of 32+ random bytes>" --project src/api/Hishab.Api`;
   `cd src/web && npm ci`. Dev OTP codes are logged (`Otp:Delivery=Log` in Development only).
 - Auth: `HishabUser` (Identity, tenant-owned, one shop per user, ADR 0006). The only
-  cross-tenant user query is the login lookup in `OtpAuthService` (named filter off).
+  cross-tenant queries (named filter off) are the login lookup in `OtpAuthService` and the
+  refresh-token lookup by hash in `AuthTokenService`; both then set the tenant from the row.
+- Tokens: JWT HS256, 15 min (`sub`, `tenant_id`, `role`); `TenantResolutionMiddleware` sets
+  `ITenantContext` from `tenant_id`. Refresh tokens: one-time, SHA-256 hashed, families;
+  reuse revokes the family. Browser gets an HttpOnly cookie (`hishab_rt`, Path=/auth),
+  other clients send `tokenDelivery: "Body"`. Tests sign in for real via `factory.SignInAsync`.
   Entities with a FK to shops: pass `newTenant` to `CrossTenantAssert` to create real shops.
 - Run: `dotnet run --project src/api/Hishab.Api` (http://localhost:5125, `/health`,
   `/scalar`); `cd src/web && npm run dev` (http://localhost:5173).
