@@ -1,6 +1,7 @@
 using Hishab.Application.Common.Tenancy;
 using Hishab.Application.Shops;
 using Hishab.Application.Shops.Auth;
+using Hishab.Application.Shops.Staff;
 using Hishab.Infrastructure.Identity;
 using Hishab.Infrastructure.Persistence;
 using Hishab.Infrastructure.Persistence.Tenancy;
@@ -37,6 +38,8 @@ public static class DependencyInjection
         AddOtp(services, configuration);
         AddTokens(services, configuration);
         services.AddScoped<IShopProfileService, ShopProfileService>();
+        services.AddScoped<IStaffService, StaffService>();
+        services.AddSingleton<IShopPlanLimits, PlaceholderPlanLimits>();
 
         // Same DbContext and connection string as the app, so "healthy" means the app can really reach its data.
         services.AddHealthChecks()
