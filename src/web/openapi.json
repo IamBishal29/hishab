@@ -490,6 +490,76 @@
         }
       }
     },
+    "/api/shop/usage": {
+      "get": {
+        "tags": [
+          "Shop"
+        ],
+        "summary": "The plan, and used / limit for this billing month (Dhaka calendar month). A null limit means unlimited.",
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShopUsage"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShopUsage"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShopUsage"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/shop": {
       "get": {
         "tags": [
@@ -1358,6 +1428,14 @@
           }
         }
       },
+      "Plan": {
+        "enum": [
+          "Free",
+          "Starter",
+          "Growth",
+          "Business"
+        ]
+      },
       "ProblemDetails": {
         "type": "object",
         "properties": {
@@ -1488,6 +1566,39 @@
           "Moderator",
           "Packer"
         ]
+      },
+      "ShopUsage": {
+        "required": [
+          "plan",
+          "period",
+          "periodStartsAt",
+          "periodEndsAt",
+          "orders",
+          "users"
+        ],
+        "type": "object",
+        "properties": {
+          "plan": {
+            "$ref": "#/components/schemas/Plan"
+          },
+          "period": {
+            "type": "string"
+          },
+          "periodStartsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "periodEndsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "orders": {
+            "$ref": "#/components/schemas/UsageMeter"
+          },
+          "users": {
+            "$ref": "#/components/schemas/UsageMeter"
+          }
+        }
       },
       "StaffMember": {
         "required": [
@@ -1626,6 +1737,26 @@
           }
         },
         "description": "The editable shop profile. Only these fields bind from JSON: the id, tenant and creation\ntime can never be posted (no over-posting), because the entity is never bound."
+      },
+      "UsageMeter": {
+        "required": [
+          "used",
+          "limit"
+        ],
+        "type": "object",
+        "properties": {
+          "used": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "limit": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        }
       },
       "ValidationProblemDetails": {
         "type": "object",
