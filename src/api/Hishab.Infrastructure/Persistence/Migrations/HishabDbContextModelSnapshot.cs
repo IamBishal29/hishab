@@ -279,11 +279,11 @@ namespace Hishab.Infrastructure.Persistence.Migrations
                         .IsUnique()
                         .HasDatabaseName("ix_orders_tenant_id_number");
 
-                    b.HasIndex("TenantId", "CreatedAt", "Id")
-                        .HasDatabaseName("ix_orders_tenant_id_created_at_id");
+                    b.HasIndex("TenantId", "CreatedAt", "Number")
+                        .HasDatabaseName("ix_orders_tenant_id_created_at_number");
 
-                    b.HasIndex("TenantId", "Status", "CreatedAt", "Id")
-                        .HasDatabaseName("ix_orders_tenant_id_status_created_at_id");
+                    b.HasIndex("TenantId", "Status", "CreatedAt", "Number")
+                        .HasDatabaseName("ix_orders_tenant_id_status_created_at_number");
 
                     b.ToTable("orders", (string)null);
                 });

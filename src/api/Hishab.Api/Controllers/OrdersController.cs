@@ -82,7 +82,7 @@ public sealed class CreateOrderRequestValidator : AbstractValidator<CreateOrderR
 
 public sealed class OrderListQuery
 {
-    /// <summary>One or more statuses (repeat the parameter: <c>status=New&amp;status=Confirmed</c>).</summary>
+    /// <summary>One or more statuses; repeat the parameter for several (status=New, then status=Confirmed).</summary>
     public IReadOnlyList<OrderStatus>? Status { get; init; }
 
     /// <summary>First day (Asia/Dhaka), inclusive.</summary>

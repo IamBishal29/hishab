@@ -20,8 +20,8 @@ internal sealed partial class OrderService
 
         var orders = db.Orders.AsNoTracking();
 
-        // Each filter narrows the same index-backed scan: (tenant, status, created_at, id) when a
-        // status is chosen (the packer's usual view), otherwise (tenant, created_at, id).
+        // Each filter narrows the same index-backed scan: (tenant, status, created_at, number) when a
+        // status is chosen (the packer's usual view), otherwise (tenant, created_at, number).
         if (filter.Statuses is { Count: > 0 } statuses)
         {
             orders = orders.Where(o => statuses.Contains(o.Status));
@@ -51,11 +51,11 @@ internal sealed partial class OrderService
 
         if (after is { } bookmark)
         {
-            // Row-value comparison: (created_at, id) < (@at, @id). Seeks the index to the bookmark
-            // instead of reading and discarding every earlier row like OFFSET does.
+            // Row-value comparison: (created_at, number) < (@at, @number). Seeks the index to the
+            // bookmark instead of reading and discarding every earlier row like OFFSET does.
             orders = orders.Where(o => EF.Functions.LessThan(
-                ValueTuple.Create(o.CreatedAt, o.Id),
-                ValueTuple.Create(bookmark.CreatedAt, bookmark.Id)));
+                ValueTuple.Create(o.CreatedAt, o.Number),
+                ValueTuple.Create(bookmark.CreatedAt, bookmark.Number)));
         }
 
         var rows = orders.Join(
@@ -82,7 +82,9 @@ internal sealed partial class OrderService
         }
 
         var page = await rows
-            .OrderByDescending(r => r.Order.CreatedAt).ThenByDescending(r => r.Order.Id)
+            // Number breaks ties in created_at: unique per shop and given out in creation order,
+            // so "newest first" stays exact and the cursor always names one row.
+            .OrderByDescending(r => r.Order.CreatedAt).ThenByDescending(r => r.Order.Number)
             .Take(limit + 1) // one extra row says whether a next page exists, without a COUNT
             .ToListAsync(cancellationToken);
 
@@ -100,7 +102,7 @@ internal sealed partial class OrderService
             r.Order.CodAmount.Amount,
             r.Order.CreatedAt)).ToList();
 
-        var next = page.Count > limit ? new OrderCursor(items[^1].CreatedAt, items[^1].Id).Encode() : null;
+        var next = page.Count > limit ? new OrderCursor(items[^1].CreatedAt, items[^1].Number).Encode() : null;
         return new OrderListPage(items, next);
     }
 

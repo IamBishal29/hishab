@@ -4,20 +4,20 @@ using System.Diagnostics.CodeAnalysis;
 namespace Hishab.Application.Orders;
 
 /// <summary>
-/// A keyset bookmark: the (CreatedAt, Id) of the last order on a page. The next page is
+/// A keyset bookmark: the (CreatedAt, Number) of the last order on a page. The next page is
 /// "everything older than this", which an index answers directly however deep the reader
 /// scrolls, and new orders arriving meanwhile never shift or duplicate rows. Opaque to
 /// clients (base64url) so its shape can change without breaking them.
 /// </summary>
-public readonly record struct OrderCursor(DateTimeOffset CreatedAt, Guid Id)
+public readonly record struct OrderCursor(DateTimeOffset CreatedAt, int Number)
 {
-    private const int Size = sizeof(long) + 16;
+    private const int Size = sizeof(long) + sizeof(int);
 
     public string Encode()
     {
         Span<byte> bytes = stackalloc byte[Size];
         BinaryPrimitives.WriteInt64BigEndian(bytes, CreatedAt.UtcTicks);
-        Id.TryWriteBytes(bytes[sizeof(long)..]);
+        BinaryPrimitives.WriteInt32BigEndian(bytes[sizeof(long)..], Number);
         return Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
     }
 
@@ -43,7 +43,7 @@ public readonly record struct OrderCursor(DateTimeOffset CreatedAt, Guid Id)
             return false;
         }
 
-        cursor = new OrderCursor(new DateTimeOffset(ticks, TimeSpan.Zero), new Guid(bytes[sizeof(long)..Size]));
+        cursor = new OrderCursor(new DateTimeOffset(ticks, TimeSpan.Zero), BinaryPrimitives.ReadInt32BigEndian(bytes[sizeof(long)..Size]));
         return true;
     }
 }

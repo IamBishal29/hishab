@@ -15,25 +15,25 @@ namespace Hishab.Infrastructure.Persistence.Migrations
                 table: "orders");
 
             migrationBuilder.CreateIndex(
-                name: "ix_orders_tenant_id_created_at_id",
+                name: "ix_orders_tenant_id_created_at_number",
                 table: "orders",
-                columns: new[] { "tenant_id", "created_at", "id" });
+                columns: new[] { "tenant_id", "created_at", "number" });
 
             migrationBuilder.CreateIndex(
-                name: "ix_orders_tenant_id_status_created_at_id",
+                name: "ix_orders_tenant_id_status_created_at_number",
                 table: "orders",
-                columns: new[] { "tenant_id", "status", "created_at", "id" });
+                columns: new[] { "tenant_id", "status", "created_at", "number" });
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropIndex(
-                name: "ix_orders_tenant_id_created_at_id",
+                name: "ix_orders_tenant_id_created_at_number",
                 table: "orders");
 
             migrationBuilder.DropIndex(
-                name: "ix_orders_tenant_id_status_created_at_id",
+                name: "ix_orders_tenant_id_status_created_at_number",
                 table: "orders");
 
             migrationBuilder.CreateIndex(
