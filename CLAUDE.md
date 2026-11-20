@@ -189,6 +189,9 @@ Never read, print or commit `.env`, user-secrets, tokens or keys. Put placeholde
 - Products: `Product` aggregate owns `ProductVariant`s (change variants only via Product).
   Cost prices: services check `IRequestContext.Has(Permission.SeeProfit)` (reads return null,
   writes without it -> `ForbiddenException` 403). Order lines must snapshot name/SKU/price.
+- Customers: one per (TenantId, normalised E.164 phone), unique index. Use
+  `ICustomerService.FindOrCreateAsync` (race-safe: unique violation -> read the winner; safe
+  inside a transaction via EF savepoints). Phones never in URLs (`POST /api/customers/lookup`).
 - Field-level rules belong in services via `IRequestContext.Has(permission)`, not only in controllers.
 - Audit: mark entities `IAuditable` (Domain); `AuditInterceptor` writes `AuditEntry` rows in the
   same SaveChanges. In EF config mark personal fields `.IsPersonalData(PersonalDataKind.Phone|Text)`

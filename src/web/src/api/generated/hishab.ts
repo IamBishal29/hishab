@@ -55,6 +55,11 @@ export interface AuditPage {
   totalCount: number;
 }
 
+export interface BlockCustomerRequest {
+  /** @nullable */
+  reason?: string | null;
+}
+
 export type ShopRole = typeof ShopRole[keyof typeof ShopRole];
 
 
@@ -101,6 +106,45 @@ export interface CreateProductRequest {
   description?: string | null;
   /** At least one. A product without sizes or colours has one variant without them. */
   variants: VariantRequest[];
+}
+
+export interface CustomerDto {
+  id: string;
+  phone: string;
+  /** @nullable */
+  name: string | null;
+  /** @nullable */
+  address: string | null;
+  /** @nullable */
+  notes: string | null;
+  isBlocked: boolean;
+  /** @nullable */
+  blockedReason: string | null;
+  /** @nullable */
+  blockedAt: string | null;
+  createdAt: string;
+}
+
+/**
+ * The phone travels in the body, never the URL: URLs end up in proxy logs, browser history and Referer headers.
+ */
+export interface CustomerLookupRequest {
+  phone: string;
+}
+
+export interface CustomerPage {
+  items: CustomerDto[];
+  page: number;
+  pageSize: number;
+  totalCount: number;
+}
+
+export interface FindOrCreateCustomerRequest {
+  phone: string;
+  /** @nullable */
+  name?: string | null;
+  /** @nullable */
+  address?: string | null;
 }
 
 export interface InviteStaffRequest {
@@ -269,6 +313,15 @@ export interface TokenResponse {
   refreshTokenExpiresAt: string;
 }
 
+export interface UpdateCustomerRequest {
+  /** @nullable */
+  name?: string | null;
+  /** @nullable */
+  address?: string | null;
+  /** @nullable */
+  notes?: string | null;
+}
+
 /**
  * The editable shop profile. Only these fields bind from JSON: the id, tenant and creation
  * time can never be posted (no over-posting), because the entity is never bound.
@@ -318,6 +371,13 @@ export type GetApiAuditParams = {
   /** Starts at 1. */
   Page?: number;
   /** 1 to 100. */
+  PageSize?: number;
+};
+
+export type GetApiCustomersParams = {
+  /** Part of a name, or at least 3 digits of a phone number. */
+  Search?: string;
+  Page?: number;
   PageSize?: number;
 };
 
@@ -867,6 +927,566 @@ export function useGetApiAuthMe<TData = Awaited<ReturnType<typeof getApiAuthMe>>
 
 
 
+
+export const getGetApiCustomersUrl = (params?: GetApiCustomersParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/customers?${stringifiedParams}` : `/api/customers`
+}
+
+/**
+ * @summary Lists customers, newest first; search by name or phone digits.
+ */
+export const getApiCustomers = async (params?: GetApiCustomersParams, options?: Parameters<typeof apiFetch>[1]): Promise<CustomerPage> => {
+
+  return apiFetch<CustomerPage>(getGetApiCustomersUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetApiCustomersQueryKey = (params?: GetApiCustomersParams,) => {
+    return [
+    `/api/customers`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetApiCustomersQueryOptions = <TData = Awaited<ReturnType<typeof getApiCustomers>>, TError = ValidationProblemDetails | ProblemDetails>(params?: GetApiCustomersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCustomers>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiCustomersQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiCustomers>>> = ({ signal }) => getApiCustomers(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiCustomers>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetApiCustomersQueryResult = NonNullable<Awaited<ReturnType<typeof getApiCustomers>>>
+export type GetApiCustomersQueryError = ValidationProblemDetails | ProblemDetails
+
+
+/** @summary Lists customers, newest first; search by name or phone digits. */
+export function useGetApiCustomers<TData = Awaited<ReturnType<typeof getApiCustomers>>, TError = ValidationProblemDetails | ProblemDetails>(
+ params: undefined |  GetApiCustomersParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCustomers>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getApiCustomers>>,
+          TError,
+          Awaited<ReturnType<typeof getApiCustomers>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/** @summary Lists customers, newest first; search by name or phone digits. */
+export function useGetApiCustomers<TData = Awaited<ReturnType<typeof getApiCustomers>>, TError = ValidationProblemDetails | ProblemDetails>(
+ params?: GetApiCustomersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCustomers>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getApiCustomers>>,
+          TError,
+          Awaited<ReturnType<typeof getApiCustomers>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/** @summary Lists customers, newest first; search by name or phone digits. */
+export function useGetApiCustomers<TData = Awaited<ReturnType<typeof getApiCustomers>>, TError = ValidationProblemDetails | ProblemDetails>(
+ params?: GetApiCustomersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCustomers>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/** @summary Lists customers, newest first; search by name or phone digits. */
+export function useGetApiCustomers<TData = Awaited<ReturnType<typeof getApiCustomers>>, TError = ValidationProblemDetails | ProblemDetails>(
+ params?: GetApiCustomersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCustomers>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetApiCustomersQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getPostApiCustomersUrl = () => {
+
+
+
+
+  return `/api/customers`
+}
+
+/**
+ * @summary Returns the customer for this phone, creating it when new (201) or matching it (200; only missing details are filled).
+ */
+export const postApiCustomers = async (findOrCreateCustomerRequest: FindOrCreateCustomerRequest, options?: Parameters<typeof apiFetch>[1]): Promise<CustomerDto> => {
+
+  return apiFetch<CustomerDto>(getPostApiCustomersUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: getHeaders({ 'Content-Type': 'application/json' }, options?.headers),
+    body: JSON.stringify(findOrCreateCustomerRequest)
+  }
+);}
+
+
+
+
+
+export const getPostApiCustomersMutationKey = () => ['postApiCustomers'] as const;
+
+export const getPostApiCustomersMutationOptions = <TError = ValidationProblemDetails | ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiCustomers>>, TError,PostApiCustomersMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiCustomers>>, TError,PostApiCustomersMutationVariables, TContext> => {
+
+const mutationKey = getPostApiCustomersMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiCustomers>>, PostApiCustomersMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  postApiCustomers(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiCustomersMutationResult = NonNullable<Awaited<ReturnType<typeof postApiCustomers>>>
+    export type PostApiCustomersMutationBody = FindOrCreateCustomerRequest
+    export type PostApiCustomersMutationError = ValidationProblemDetails | ProblemDetails
+    export type PostApiCustomersMutationVariables = {data: FindOrCreateCustomerRequest}
+
+    /** @summary Returns the customer for this phone, creating it when new (201) or matching it (200; only missing details are filled). */
+export const usePostApiCustomers = <TError = ValidationProblemDetails | ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiCustomers>>, TError,PostApiCustomersMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof postApiCustomers>>,
+        TError,
+        PostApiCustomersMutationVariables,
+        TContext
+      > => {
+      return useMutation(getPostApiCustomersMutationOptions(options), queryClient);
+    }
+
+export const getPostApiCustomersLookupUrl = () => {
+
+
+
+
+  return `/api/customers/lookup`
+}
+
+/**
+ * @summary Quick-order auto-fill: finds the customer for a phone (any spelling). Check isBlocked before taking the order.
+ */
+export const postApiCustomersLookup = async (customerLookupRequest: CustomerLookupRequest, options?: Parameters<typeof apiFetch>[1]): Promise<CustomerDto> => {
+
+  return apiFetch<CustomerDto>(getPostApiCustomersLookupUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: getHeaders({ 'Content-Type': 'application/json' }, options?.headers),
+    body: JSON.stringify(customerLookupRequest)
+  }
+);}
+
+
+
+
+
+export const getPostApiCustomersLookupMutationKey = () => ['postApiCustomersLookup'] as const;
+
+export const getPostApiCustomersLookupMutationOptions = <TError = ValidationProblemDetails | ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiCustomersLookup>>, TError,PostApiCustomersLookupMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiCustomersLookup>>, TError,PostApiCustomersLookupMutationVariables, TContext> => {
+
+const mutationKey = getPostApiCustomersLookupMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiCustomersLookup>>, PostApiCustomersLookupMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  postApiCustomersLookup(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiCustomersLookupMutationResult = NonNullable<Awaited<ReturnType<typeof postApiCustomersLookup>>>
+    export type PostApiCustomersLookupMutationBody = CustomerLookupRequest
+    export type PostApiCustomersLookupMutationError = ValidationProblemDetails | ProblemDetails
+    export type PostApiCustomersLookupMutationVariables = {data: CustomerLookupRequest}
+
+    /** @summary Quick-order auto-fill: finds the customer for a phone (any spelling). Check isBlocked before taking the order. */
+export const usePostApiCustomersLookup = <TError = ValidationProblemDetails | ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiCustomersLookup>>, TError,PostApiCustomersLookupMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof postApiCustomersLookup>>,
+        TError,
+        PostApiCustomersLookupMutationVariables,
+        TContext
+      > => {
+      return useMutation(getPostApiCustomersLookupMutationOptions(options), queryClient);
+    }
+
+export const getGetApiCustomersIdUrl = (id: string,) => {
+
+
+
+
+  return `/api/customers/${id}`
+}
+
+export const getApiCustomersId = async (id: string, options?: Parameters<typeof apiFetch>[1]): Promise<CustomerDto> => {
+
+  return apiFetch<CustomerDto>(getGetApiCustomersIdUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetApiCustomersIdQueryKey = (id: string,) => {
+    return [
+    `/api/customers/${id}`
+    ] as const;
+    }
+
+
+export const getGetApiCustomersIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiCustomersId>>, TError = ProblemDetails>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCustomersId>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiCustomersIdQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiCustomersId>>> = ({ signal }) => getApiCustomersId(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiCustomersId>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetApiCustomersIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiCustomersId>>>
+export type GetApiCustomersIdQueryError = ProblemDetails
+
+
+export function useGetApiCustomersId<TData = Awaited<ReturnType<typeof getApiCustomersId>>, TError = ProblemDetails>(
+ id: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCustomersId>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getApiCustomersId>>,
+          TError,
+          Awaited<ReturnType<typeof getApiCustomersId>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetApiCustomersId<TData = Awaited<ReturnType<typeof getApiCustomersId>>, TError = ProblemDetails>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCustomersId>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getApiCustomersId>>,
+          TError,
+          Awaited<ReturnType<typeof getApiCustomersId>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetApiCustomersId<TData = Awaited<ReturnType<typeof getApiCustomersId>>, TError = ProblemDetails>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCustomersId>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetApiCustomersId<TData = Awaited<ReturnType<typeof getApiCustomersId>>, TError = ProblemDetails>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCustomersId>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetApiCustomersIdQueryOptions(id,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getPutApiCustomersIdUrl = (id: string,) => {
+
+
+
+
+  return `/api/customers/${id}`
+}
+
+/**
+ * @summary Replaces name, address and notes. The phone (the customer's identity) cannot change.
+ */
+export const putApiCustomersId = async (id: string,
+    updateCustomerRequest: UpdateCustomerRequest, options?: Parameters<typeof apiFetch>[1]): Promise<CustomerDto> => {
+
+  return apiFetch<CustomerDto>(getPutApiCustomersIdUrl(id),
+  {
+    ...options,
+    method: 'PUT',
+    headers: getHeaders({ 'Content-Type': 'application/json' }, options?.headers),
+    body: JSON.stringify(updateCustomerRequest)
+  }
+);}
+
+
+
+
+
+export const getPutApiCustomersIdMutationKey = () => ['putApiCustomersId'] as const;
+
+export const getPutApiCustomersIdMutationOptions = <TError = ValidationProblemDetails | ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiCustomersId>>, TError,PutApiCustomersIdMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof putApiCustomersId>>, TError,PutApiCustomersIdMutationVariables, TContext> => {
+
+const mutationKey = getPutApiCustomersIdMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof putApiCustomersId>>, PutApiCustomersIdMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  putApiCustomersId(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PutApiCustomersIdMutationResult = NonNullable<Awaited<ReturnType<typeof putApiCustomersId>>>
+    export type PutApiCustomersIdMutationBody = UpdateCustomerRequest
+    export type PutApiCustomersIdMutationError = ValidationProblemDetails | ProblemDetails
+    export type PutApiCustomersIdMutationVariables = {id: string;data: UpdateCustomerRequest}
+
+    /** @summary Replaces name, address and notes. The phone (the customer's identity) cannot change. */
+export const usePutApiCustomersId = <TError = ValidationProblemDetails | ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiCustomersId>>, TError,PutApiCustomersIdMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof putApiCustomersId>>,
+        TError,
+        PutApiCustomersIdMutationVariables,
+        TContext
+      > => {
+      return useMutation(getPutApiCustomersIdMutationOptions(options), queryClient);
+    }
+
+export const getPostApiCustomersIdBlockUrl = (id: string,) => {
+
+
+
+
+  return `/api/customers/${id}/block`
+}
+
+/**
+ * @summary Blocks the customer; order entry shows a warning for blocked customers.
+ */
+export const postApiCustomersIdBlock = async (id: string,
+    blockCustomerRequest: BlockCustomerRequest, options?: Parameters<typeof apiFetch>[1]): Promise<CustomerDto> => {
+
+  return apiFetch<CustomerDto>(getPostApiCustomersIdBlockUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: getHeaders({ 'Content-Type': 'application/json' }, options?.headers),
+    body: JSON.stringify(blockCustomerRequest)
+  }
+);}
+
+
+
+
+
+export const getPostApiCustomersIdBlockMutationKey = () => ['postApiCustomersIdBlock'] as const;
+
+export const getPostApiCustomersIdBlockMutationOptions = <TError = ValidationProblemDetails | ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiCustomersIdBlock>>, TError,PostApiCustomersIdBlockMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiCustomersIdBlock>>, TError,PostApiCustomersIdBlockMutationVariables, TContext> => {
+
+const mutationKey = getPostApiCustomersIdBlockMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiCustomersIdBlock>>, PostApiCustomersIdBlockMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  postApiCustomersIdBlock(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiCustomersIdBlockMutationResult = NonNullable<Awaited<ReturnType<typeof postApiCustomersIdBlock>>>
+    export type PostApiCustomersIdBlockMutationBody = BlockCustomerRequest
+    export type PostApiCustomersIdBlockMutationError = ValidationProblemDetails | ProblemDetails
+    export type PostApiCustomersIdBlockMutationVariables = {id: string;data: BlockCustomerRequest}
+
+    /** @summary Blocks the customer; order entry shows a warning for blocked customers. */
+export const usePostApiCustomersIdBlock = <TError = ValidationProblemDetails | ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiCustomersIdBlock>>, TError,PostApiCustomersIdBlockMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof postApiCustomersIdBlock>>,
+        TError,
+        PostApiCustomersIdBlockMutationVariables,
+        TContext
+      > => {
+      return useMutation(getPostApiCustomersIdBlockMutationOptions(options), queryClient);
+    }
+
+export const getDeleteApiCustomersIdBlockUrl = (id: string,) => {
+
+
+
+
+  return `/api/customers/${id}/block`
+}
+
+export const deleteApiCustomersIdBlock = async (id: string, options?: Parameters<typeof apiFetch>[1]): Promise<CustomerDto> => {
+
+  return apiFetch<CustomerDto>(getDeleteApiCustomersIdBlockUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteApiCustomersIdBlockMutationKey = () => ['deleteApiCustomersIdBlock'] as const;
+
+export const getDeleteApiCustomersIdBlockMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteApiCustomersIdBlock>>, TError,DeleteApiCustomersIdBlockMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteApiCustomersIdBlock>>, TError,DeleteApiCustomersIdBlockMutationVariables, TContext> => {
+
+const mutationKey = getDeleteApiCustomersIdBlockMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteApiCustomersIdBlock>>, DeleteApiCustomersIdBlockMutationVariables> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteApiCustomersIdBlock(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteApiCustomersIdBlockMutationResult = NonNullable<Awaited<ReturnType<typeof deleteApiCustomersIdBlock>>>
+
+    export type DeleteApiCustomersIdBlockMutationError = ProblemDetails
+    export type DeleteApiCustomersIdBlockMutationVariables = {id: string}
+
+    export const useDeleteApiCustomersIdBlock = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteApiCustomersIdBlock>>, TError,DeleteApiCustomersIdBlockMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof deleteApiCustomersIdBlock>>,
+        TError,
+        DeleteApiCustomersIdBlockMutationVariables,
+        TContext
+      > => {
+      return useMutation(getDeleteApiCustomersIdBlockMutationOptions(options), queryClient);
+    }
 
 export const getGetApiProductsUrl = (params?: GetApiProductsParams,) => {
   const normalizedParams = new URLSearchParams();
