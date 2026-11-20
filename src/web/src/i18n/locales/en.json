@@ -146,5 +146,30 @@
     "confirm": "Confirm order",
     "cancel": "Cancel order",
     "cancelAsk": "Cancel order #{{number}}? This cannot be undone."
+  },
+  "customer": {
+    "blockedBadge": "Blocked",
+    "notFound": "This customer does not exist in your shop.",
+    "noAccess": "Your role cannot open customer pages.",
+    "track": "Track record",
+    "orders": "Orders",
+    "delivered": "Delivered",
+    "returned": "Returned",
+    "cancelled": "Cancelled",
+    "deliveryRate": "Delivery success",
+    "percent": "{{value}}%",
+    "deliveredValue": "Delivered value",
+    "blockedBecause": "Blocked: {{reason}}. New orders show a warning.",
+    "blockedNoReason": "Blocked. New orders show a warning.",
+    "unblock": "Unblock",
+    "block": "Block customer",
+    "blockReason": "Reason for blocking (optional)",
+    "blockReasonHint": "e.g. refused 3 parcels",
+    "details": "Customer details",
+    "notes": "Notes (only your staff see these)",
+    "save": "Save details",
+    "saved": "Saved.",
+    "orderList": "Orders from this customer",
+    "noOrders": "No orders yet."
   }
 }
