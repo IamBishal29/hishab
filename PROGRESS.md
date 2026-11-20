@@ -2,10 +2,10 @@
 
 ## Current
 - Milestone: M2 Orders & customers (M1 complete)
-- Issue: #16 done, PR #54 open for review
-- Branch: feat/16-order-search-bulk
-- Next step: Syed merges PR #54, then `/next-task` picks #17 "Web: quick order form" (uses
-  POST /api/orders with a fresh Idempotency-Key per form submission; customer lookup by phone).
+- Open PRs: #58 (#18 order list, landing #57 on main; CI green) and #60 (#56 customer history API)
+- Branch: feat/56-customer-history-api
+- Next step: Syed merges #58, then #60 (PROGRESS.md conflicts: keep #60's version, it includes
+  #18). Then `/next-task` picks #59 "Web: customer page" (needs both on main).
 
 ## Done
 - Product discovery: PRD written (docs/PRD.md); name chosen: Hishab
@@ -77,7 +77,21 @@
 - #16 Order search + bulk (PR #54): GET /api/orders (status, Dhaka dates, area, source, text;
   keyset cursor on (created_at, number)), indexes checked with EXPLAIN (keyset 7 buffers vs
   OFFSET 847 + disk sort at row 40k), confirm/cancel (409 on lifecycle or concurrent change),
-  bulk confirm/cancel with per-order results, DhakaTime helper; 395 .NET tests; note 15
+  bulk confirm/cancel with per-order results, DhakaTime helper; 395 .NET tests; note 15 (merged)
+- #17 Quick order form (PR #55): phone-first debounced lookup (auto-fills only empty fields,
+  history + blocked warning), product picker, live totals, RHF + Zod with server line errors,
+  idempotency key kept while the outcome is unknown; lookup returns { customer, history };
+  GET /api/shop readable by all staff; screenshots in docs/screenshots; 397 .NET + 30 web
+  tests; note 16
+- #18 Order list + detail (PR #57 merged into the #17 branch after #55 had landed, so it never
+  reached main; re-opened as PR #58 against main, CI green): URL filters (orderFilters.ts,
+  bad values dropped), keyset "Load more" (useInfiniteQuery), bulk confirm/cancel with per-row
+  results, order detail timeline + confirm/cancel (409 message), invalidateOrders after changes,
+  packer read-only view; customer page split to #56; 45 web tests; note 17
+- #56 Customer history API (PR #60): GET /api/customers/{id} -> { customer, history,
+  deliveredValue } (computed on read from Order.Total), GET /api/orders?customerId= with a
+  (tenant, customer, created_at, number) index (EXPLAIN: 6 vs 84 buffers for a 2,000-order buyer
+  once tenant leads the index); 400 .NET tests; note 18. Web half split to #59.
 
 ## Decisions waiting for Syed
 - `GETTING-STARTED.md` says to delete it in the first PR; the permission check blocked
@@ -95,6 +109,17 @@
 - Order list (#16): courier filter waits for courier booking; "area" = inside/outside Dhaka for
   now; bulk returns 200 with per-order results (207 is the alternative); ILIKE search would
   need a pg_trgm index at very large volumes.
+- Quick order form (#17): GET /api/shop opened to all staff (delivery charges for the form);
+  form keeps the order channel after save; PR is ~1,200 lines (could have been split
+  backend/web). Smoke-tested against a throwaway Postgres container with process-only secrets.
+- Order list (#18): PR is ~1,250 lines (pages ~550, tests/fakes ~370, strings ~130); say if you
+  want order detail split out. Filters take a lot of height at 360 px (could collapse later).
+  Integration tests not run locally (Docker was off); web-only change, CI runs them.
+- Stacked PRs: a stacked PR merged into its base branch after that base has landed does not
+  reach main. From now on I branch from main only, or retarget before you merge.
+- Git's credential manager has no GitHub login on this machine (push failed with "could not read
+  Username"); I pushed via `gh auth git-credential` for that one command. To fix for good:
+  `gh auth setup-git` (or sign in again through Git Credential Manager).
 - Later hardening for the audit log: DB role without UPDATE/DELETE on audit_entries, or a
   hash chain (tamper-evidence); decide when deployment is planned.
 - Later: optimistic concurrency (ETag + xmin) for PUT /shop if two managers editing at
@@ -129,4 +154,8 @@
 - 2026-11-20: #13 implemented, PR #51 open (phone lookup via POST body: Syed's choice) (merged)
 - 2026-11-20: #14 implemented, PR #52 open (merged)
 - 2026-11-20: #15 implemented, PR #53 open (merged)
-- 2026-11-20: #16 implemented, PR #54 open (keyset cursor paging: Syed's choice)
+- 2026-11-20: #16 implemented, PR #54 open (keyset cursor paging: Syed's choice) (merged)
+- 2026-11-20: #17 implemented, PR #55 open
+- 2026-11-20: #18 split (customer page -> #56) and stacked on #55 (Syed's choices); PR #57 open
+- 2026-11-20: #57 merged into the #17 branch, not main; re-opened as #58. #56 split (web -> #59),
+  API half from main (Syed's choice); PR #60 open
