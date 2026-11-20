@@ -2,10 +2,9 @@
 
 ## Current
 - Milestone: M2 Orders & customers (M1 complete)
-- Issue: #17 done, PR #55 open for review
-- Branch: feat/17-quick-order-form
-- Next step: Syed merges PR #55, then `/next-task` picks #18 "Web: order list, bulk actions and
-  customer page" (uses GET /api/orders keyset cursor, bulk confirm/cancel per-order results).
+- Issue: #18 done, PR #57 open for review (stacked on #55)
+- Branch: feat/18-order-list (base: feat/17-quick-order-form)
+- Next step: Syed merges #55, then I retarget PR #57 to `main`. Then `/next-task` picks the lowest open M2 issue (#56 customer page was split from #18).
 
 ## Done
 - Product discovery: PRD written (docs/PRD.md); name chosen: Hishab
@@ -83,6 +82,10 @@
   idempotency key kept while the outcome is unknown; lookup returns { customer, history };
   GET /api/shop readable by all staff; screenshots in docs/screenshots; 397 .NET + 30 web
   tests; note 16
+- #18 Order list + detail (PR #57, stacked on #55): URL filters (orderFilters.ts,
+  bad values dropped), keyset "Load more" (useInfiniteQuery), bulk confirm/cancel with per-row
+  results, order detail timeline + confirm/cancel (409 message), invalidateOrders after changes,
+  packer read-only view; customer page split to #56; 45 web tests; note 17
 
 ## Decisions waiting for Syed
 - `GETTING-STARTED.md` says to delete it in the first PR; the permission check blocked
@@ -103,6 +106,12 @@
 - Quick order form (#17): GET /api/shop opened to all staff (delivery charges for the form);
   form keeps the order channel after save; PR is ~1,200 lines (could have been split
   backend/web). Smoke-tested against a throwaway Postgres container with process-only secrets.
+- Order list (#18): PR is ~1,250 lines (pages ~550, tests/fakes ~370, strings ~130); say if you
+  want order detail split out. Filters take a lot of height at 360 px (could collapse later).
+  Integration tests not run locally (Docker was off); web-only change, CI runs them.
+- Git's credential manager has no GitHub login on this machine (push failed with "could not read
+  Username"); I pushed via `gh auth git-credential` for that one command. To fix for good:
+  `gh auth setup-git` (or sign in again through Git Credential Manager).
 - Later hardening for the audit log: DB role without UPDATE/DELETE on audit_entries, or a
   hash chain (tamper-evidence); decide when deployment is planned.
 - Later: optimistic concurrency (ETag + xmin) for PUT /shop if two managers editing at
@@ -139,3 +148,4 @@
 - 2026-11-20: #15 implemented, PR #53 open (merged)
 - 2026-11-20: #16 implemented, PR #54 open (keyset cursor paging: Syed's choice) (merged)
 - 2026-11-20: #17 implemented, PR #55 open
+- 2026-11-20: #18 split (customer page -> #56) and stacked on #55 (Syed's choices); PR #57 open
