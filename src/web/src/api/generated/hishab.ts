@@ -205,18 +205,30 @@ export interface CustomerDto {
   createdAt: string;
 }
 
-/**
- * The phone travels in the body, never the URL: URLs end up in proxy logs, browser history and Referer headers.
- */
-export interface CustomerLookupRequest {
-  phone: string;
-}
-
 export interface CustomerOrderHistory {
   previousOrders: number;
   delivered: number;
   returned: number;
   cancelled: number;
+}
+
+/**
+ * The customer page: details, track record and what they have paid for.
+ */
+export interface CustomerDetails {
+  /** The customer's details. */
+  customer: CustomerDto;
+  /** Order counts by outcome in this shop. */
+  history: CustomerOrderHistory;
+  /** Sum of the totals of delivered and COD-settled orders, in BDT. */
+  deliveredValue: number;
+}
+
+/**
+ * The phone travels in the body, never the URL: URLs end up in proxy logs, browser history and Referer headers.
+ */
+export interface CustomerLookupRequest {
+  phone: string;
 }
 
 /**
@@ -583,6 +595,8 @@ export type GetApiOrdersParams = {
   Source?: OrderSource;
   /** Order number ("#1043"), part of the customer's name, or 3+ digits of their phone. */
   Search?: string;
+  /** Only this customer's orders (the customer page). */
+  CustomerId?: string;
   /** The `nextCursor` of the previous page; omit for the first page. */
   Cursor?: string;
   Limit?: number;
@@ -1399,9 +1413,12 @@ export const getGetApiCustomersIdUrl = (id: string,) => {
   return `/api/customers/${id}`
 }
 
-export const getApiCustomersId = async (id: string, options?: Parameters<typeof apiFetch>[1]): Promise<CustomerDto> => {
+/**
+ * @summary The customer with their order history in this shop (counts and delivered value).
+ */
+export const getApiCustomersId = async (id: string, options?: Parameters<typeof apiFetch>[1]): Promise<CustomerDetails> => {
 
-  return apiFetch<CustomerDto>(getGetApiCustomersIdUrl(id),
+  return apiFetch<CustomerDetails>(getGetApiCustomersIdUrl(id),
   {
     ...options,
     method: 'GET'
@@ -1443,6 +1460,7 @@ export type GetApiCustomersIdQueryResult = NonNullable<Awaited<ReturnType<typeof
 export type GetApiCustomersIdQueryError = ProblemDetails
 
 
+/** @summary The customer with their order history in this shop (counts and delivered value). */
 export function useGetApiCustomersId<TData = Awaited<ReturnType<typeof getApiCustomersId>>, TError = ProblemDetails>(
  id: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCustomersId>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
@@ -1453,6 +1471,7 @@ export function useGetApiCustomersId<TData = Awaited<ReturnType<typeof getApiCus
       >, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/** @summary The customer with their order history in this shop (counts and delivered value). */
 export function useGetApiCustomersId<TData = Awaited<ReturnType<typeof getApiCustomersId>>, TError = ProblemDetails>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCustomersId>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
@@ -1463,10 +1482,12 @@ export function useGetApiCustomersId<TData = Awaited<ReturnType<typeof getApiCus
       >, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/** @summary The customer with their order history in this shop (counts and delivered value). */
 export function useGetApiCustomersId<TData = Awaited<ReturnType<typeof getApiCustomersId>>, TError = ProblemDetails>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCustomersId>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/** @summary The customer with their order history in this shop (counts and delivered value). */
 export function useGetApiCustomersId<TData = Awaited<ReturnType<typeof getApiCustomersId>>, TError = ProblemDetails>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCustomersId>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient
