@@ -34,6 +34,7 @@ public sealed class Shop : IAuditable
         CreatedAt = createdAt;
         DeliveryChargeInsideDhaka = DefaultChargeInsideDhaka;
         DeliveryChargeOutsideDhaka = DefaultChargeOutsideDhaka;
+        Plan = Plan.Free;
     }
 
     public Guid Id { get; private set; }
@@ -53,6 +54,17 @@ public sealed class Shop : IAuditable
     public Money DeliveryChargeOutsideDhaka { get; private set; }
 
     public DateTimeOffset CreatedAt { get; private set; }
+
+    /// <summary>The subscription plan; every shop starts on Free. Changed by billing (later), audited like any shop change.</summary>
+    public Plan Plan { get; private set; }
+
+    public PlanLimits Limits => Plans.LimitsFor(Plan);
+
+    public void ChangePlan(Plan plan)
+    {
+        _ = Plans.LimitsFor(plan); // unknown plans are rejected
+        Plan = plan;
+    }
 
     /// <summary>Created on the owner's first successful OTP login; renamed during shop setup.</summary>
     public static Shop Create(DateTimeOffset now) => new(Guid.NewGuid(), DefaultName, now);

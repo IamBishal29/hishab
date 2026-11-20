@@ -1,4 +1,5 @@
 using Hishab.Domain.Common;
+using Hishab.Domain.Shops;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 
@@ -27,6 +28,7 @@ public sealed partial class DomainExceptionHandler(
             DomainValidationException => (StatusCodes.Status400BadRequest, "Validation failed"),
             TooManyRequestsException => (StatusCodes.Status429TooManyRequests, "Too many requests"),
             AuthenticationFailedException => (StatusCodes.Status401Unauthorized, "Authentication failed"),
+            PlanLimitExceededException => (StatusCodes.Status402PaymentRequired, "Plan limit reached"),
             _ => (StatusCodes.Status422UnprocessableEntity, "Business rule violated"),
         };
 

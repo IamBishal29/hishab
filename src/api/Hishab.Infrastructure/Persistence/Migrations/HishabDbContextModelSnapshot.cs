@@ -254,10 +254,49 @@ namespace Hishab.Infrastructure.Persistence.Migrations
                         .HasColumnName("pickup_address")
                         .HasAnnotation("Hishab:Audit:Personal", PersonalDataKind.Text);
 
+                    b.Property<string>("Plan")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("plan");
+
                     b.HasKey("Id")
                         .HasName("pk_shops");
 
                     b.ToTable("shops", (string)null);
+                });
+
+            modelBuilder.Entity("Hishab.Domain.Shops.UsageCounter", b =>
+                {
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("Period")
+                        .HasMaxLength(7)
+                        .HasColumnType("character(7)")
+                        .HasColumnName("period")
+                        .IsFixedLength();
+
+                    b.Property<string>("Metric")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("metric");
+
+                    b.Property<int>("Count")
+                        .HasColumnType("integer")
+                        .HasColumnName("count");
+
+                    b.HasKey("TenantId", "Period", "Metric")
+                        .HasName("pk_usage_counters");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_usage_counters_tenant_id");
+
+                    b.ToTable("usage_counters", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_usage_counters_count_non_negative", "count >= 0");
+                        });
                 });
 
             modelBuilder.Entity("Hishab.Infrastructure.Identity.HishabUser", b =>

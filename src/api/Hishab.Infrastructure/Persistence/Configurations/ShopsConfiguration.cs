@@ -17,6 +17,8 @@ internal sealed class ShopConfiguration : IEntityTypeConfiguration<Shop>
         builder.Property(s => s.LogoUrl).HasMaxLength(Shop.LogoUrlMaxLength);
         builder.Property(s => s.PickupAddress).HasMaxLength(Shop.PickupAddressMaxLength).IsPersonalData(PersonalDataKind.Text);
         builder.Property(s => s.DefaultCourier).HasConversion<string>().HasMaxLength(16);
+        builder.Property(s => s.Plan).HasConversion<string>().HasMaxLength(16);
+        builder.Ignore(s => s.Limits);
     }
 }
 
@@ -69,6 +71,18 @@ internal sealed class RefreshTokenConfiguration : IEntityTypeConfiguration<Refre
 
         // Two parallel refreshes with the same token: only one may redeem it, or the family forks.
         builder.Property<uint>("Version").IsRowVersion();
+    }
+}
+
+internal sealed class UsageCounterConfiguration : IEntityTypeConfiguration<UsageCounter>
+{
+    public void Configure(EntityTypeBuilder<UsageCounter> builder)
+    {
+        builder.ToTable("usage_counters");
+        builder.HasKey(c => new { c.TenantId, c.Period, c.Metric }); // the ON CONFLICT target of the atomic reserve
+        builder.Property(c => c.Period).HasMaxLength(UsageCounter.PeriodKeyLength).IsFixedLength();
+        builder.Property(c => c.Metric).HasConversion<string>().HasMaxLength(32);
+        builder.ToTable(t => t.HasCheckConstraint("ck_usage_counters_count_non_negative", "count >= 0"));
     }
 }
 

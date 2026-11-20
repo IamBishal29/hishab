@@ -109,6 +109,16 @@ export interface OtpSent {
   resendAfterSeconds: number;
 }
 
+export type Plan = typeof Plan[keyof typeof Plan];
+
+
+export const Plan = {
+  Free: 'Free',
+  Starter: 'Starter',
+  Growth: 'Growth',
+  Business: 'Business',
+} as const;
+
 export interface ProblemDetails {
   /** @nullable */
   type?: string | null;
@@ -149,6 +159,21 @@ export interface ShopResponse {
   deliveryChargeOutsideDhaka: number;
   /** @nullable */
   currency?: string | null;
+}
+
+export interface UsageMeter {
+  used: number;
+  /** @nullable */
+  limit: number | null;
+}
+
+export interface ShopUsage {
+  plan: Plan;
+  period: string;
+  periodStartsAt: string;
+  periodEndsAt: string;
+  orders: UsageMeter;
+  users: UsageMeter;
 }
 
 export type StaffStatus = typeof StaffStatus[keyof typeof StaffStatus];
@@ -766,6 +791,107 @@ export function useGetApiAuthMe<TData = Awaited<ReturnType<typeof getApiAuthMe>>
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getGetApiAuthMeQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetApiShopUsageUrl = () => {
+
+
+
+
+  return `/api/shop/usage`
+}
+
+/**
+ * @summary The plan, and used / limit for this billing month (Dhaka calendar month). A null limit means unlimited.
+ */
+export const getApiShopUsage = async ( options?: Parameters<typeof apiFetch>[1]): Promise<ShopUsage> => {
+
+  return apiFetch<ShopUsage>(getGetApiShopUsageUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetApiShopUsageQueryKey = () => {
+    return [
+    `/api/shop/usage`
+    ] as const;
+    }
+
+
+export const getGetApiShopUsageQueryOptions = <TData = Awaited<ReturnType<typeof getApiShopUsage>>, TError = ProblemDetails>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiShopUsage>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiShopUsageQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiShopUsage>>> = ({ signal }) => getApiShopUsage({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiShopUsage>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetApiShopUsageQueryResult = NonNullable<Awaited<ReturnType<typeof getApiShopUsage>>>
+export type GetApiShopUsageQueryError = ProblemDetails
+
+
+/** @summary The plan, and used / limit for this billing month (Dhaka calendar month). A null limit means unlimited. */
+export function useGetApiShopUsage<TData = Awaited<ReturnType<typeof getApiShopUsage>>, TError = ProblemDetails>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiShopUsage>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getApiShopUsage>>,
+          TError,
+          Awaited<ReturnType<typeof getApiShopUsage>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/** @summary The plan, and used / limit for this billing month (Dhaka calendar month). A null limit means unlimited. */
+export function useGetApiShopUsage<TData = Awaited<ReturnType<typeof getApiShopUsage>>, TError = ProblemDetails>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiShopUsage>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getApiShopUsage>>,
+          TError,
+          Awaited<ReturnType<typeof getApiShopUsage>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/** @summary The plan, and used / limit for this billing month (Dhaka calendar month). A null limit means unlimited. */
+export function useGetApiShopUsage<TData = Awaited<ReturnType<typeof getApiShopUsage>>, TError = ProblemDetails>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiShopUsage>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/** @summary The plan, and used / limit for this billing month (Dhaka calendar month). A null limit means unlimited. */
+export function useGetApiShopUsage<TData = Awaited<ReturnType<typeof getApiShopUsage>>, TError = ProblemDetails>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiShopUsage>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetApiShopUsageQueryOptions(options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

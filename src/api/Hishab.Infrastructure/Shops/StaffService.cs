@@ -1,4 +1,5 @@
 using Hishab.Application.Common.Tenancy;
+using Hishab.Application.Shops;
 using Hishab.Application.Shops.Staff;
 using Hishab.Domain.Common;
 using Hishab.Domain.Shops;
@@ -15,7 +16,7 @@ internal sealed partial class StaffService(
     HishabDbContext db,
     UserManager<HishabUser> users,
     ITenantContext tenant,
-    IShopPlanLimits limits,
+    IPlanLimitService limits,
     TimeProvider clock,
     ILogger<StaffService> logger) : IStaffService
 {
@@ -32,11 +33,10 @@ internal sealed partial class StaffService(
         var parsed = Phone.Parse(phone);
         EnsureAssignable(role);
 
-        var max = await limits.MaxUsersAsync(cancellationToken);
-        if (await db.Users.CountAsync(cancellationToken) >= max)
-        {
-            throw new ConflictException($"Your plan allows up to {max} users. Remove someone or upgrade to add more.");
-        }
+        // The limit check locks the shop row until this transaction ends, so concurrent invites
+        // cannot both pass at the limit; the user is created inside the same transaction.
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        await limits.EnsureCanAddStaffAsync(cancellationToken);
 
         // Phones are unique across shops (ADR 0006), so look beyond this tenant: the filtered
         // query would miss another shop's user and the unique index would turn it into a 500.
@@ -71,6 +71,7 @@ internal sealed partial class StaffService(
             throw new InvalidOperationException("Creating the staff member failed: " + string.Join(", ", created.Errors.Select(e => e.Code)));
         }
 
+        await transaction.CommitAsync(cancellationToken);
         LogInvited(logger, member.Id, role);
         return ToMember(member);
     }
@@ -130,12 +131,4 @@ internal sealed partial class StaffService(
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Staff member {UserId} removed from shop {ShopId}")]
     private static partial void LogRemoved(ILogger logger, Guid userId, Guid? shopId);
-}
-
-/// <summary>Placeholder: the largest plan's user count (PRD: Business, 15) until plans exist in M2.</summary>
-internal sealed class PlaceholderPlanLimits : IShopPlanLimits
-{
-    public const int MaxUsers = 15;
-
-    public Task<int> MaxUsersAsync(CancellationToken cancellationToken) => Task.FromResult(MaxUsers);
 }

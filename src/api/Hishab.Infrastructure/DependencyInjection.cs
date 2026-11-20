@@ -45,7 +45,7 @@ public static class DependencyInjection
         services.AddScoped<IShopProfileService, ShopProfileService>();
         services.AddScoped<IStaffService, StaffService>();
         services.AddScoped<IAuditLog, AuditLog>();
-        services.AddSingleton<IShopPlanLimits, PlaceholderPlanLimits>();
+        services.AddScoped<IPlanLimitService, PlanLimitService>();
 
         // Same DbContext and connection string as the app, so "healthy" means the app can really reach its data.
         services.AddHealthChecks()

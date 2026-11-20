@@ -89,8 +89,14 @@ public sealed record ShopResponse(
 [Authorize(Policy = Policies.CanManageShop)]
 [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
 [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
-public sealed class ShopController(IShopProfileService shops) : ControllerBase
+public sealed class ShopController(IShopProfileService shops, IPlanLimitService limits) : ControllerBase
 {
+    /// <summary>The plan, and used / limit for this billing month (Dhaka calendar month). A null limit means unlimited.</summary>
+    [HttpGet("usage")]
+    [ProducesResponseType<ShopUsage>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<ShopUsage>> Usage(CancellationToken cancellationToken) =>
+        Ok(await limits.GetUsageAsync(cancellationToken));
+
     /// <summary>Gets the shop profile and delivery charges.</summary>
     [HttpGet]
     [ProducesResponseType<ShopResponse>(StatusCodes.Status200OK)]

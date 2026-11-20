@@ -166,8 +166,13 @@ Never read, print or commit `.env`, user-secrets, tokens or keys. Put placeholde
   `Shop` has the tenant filter too (`Id == tenant`); cross-shop reads need
   `IgnoreQueryFilters([HishabDbContext.TenantFilter])`.
 - Staff: invite = pre-created `HishabUser` (PhoneNumberConfirmed false until first OTP
-  login); removal is a hard delete. Tests: `factory.InviteAndSignInAsync(client, owner, role)`.
-  User limit placeholder `IShopPlanLimits` (15) until plans (M2).
+  login); removal is a hard delete. Tests: `factory.InviteAndSignInAsync(client, owner, role)`
+  (moves the shop to Business first); `factory.ChangePlanAsync(owner, plan)` stands in for billing.
+- Plans: `Plans.LimitsFor(plan)` (PRD catalogue), `Shop.Plan` (Free default). Enforce through
+  `IPlanLimitService`: `ReserveOrderAsync` (atomic upsert on `usage_counters`, call it inside
+  the order's transaction) and `EnsureCanAddStaffAsync` (shop row `FOR UPDATE`, needs a
+  transaction). Limit reached -> `PlanLimitExceededException` -> 402. Billing months are Dhaka
+  months: always use `BillingPeriod.Containing(utcNow)`, never UTC months.
 - OpenAPI: XML comments in `Hishab.Api` (`<summary>`, `<example>`) feed the document.
 - Routes: every controller is under `/api` (`ApiRoutePrefixConvention`); `/health`, `/scalar`,
   `/openapi` stay at the root. JSON: string enums + strict numbers in both MVC and HTTP options.
