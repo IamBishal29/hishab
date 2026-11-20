@@ -75,7 +75,9 @@ public class CustomersTests(HishabApiFactory factory) : IClassFixture<HishabApiF
         var found = await Send(HttpMethod.Post, "/api/customers/lookup", owner, new { phone = "+880 " + phone[1..5] + "-" + phone[5..] });
 
         found.StatusCode.ShouldBe(HttpStatusCode.OK);
-        var customer = await Json(found);
+        var body = await Json(found);
+        var customer = body.GetProperty("customer");
+        body.GetProperty("history").GetProperty("previousOrders").GetInt32().ShouldBe(0);
         customer.GetProperty("isBlocked").GetBoolean().ShouldBeTrue();
         customer.GetProperty("blockedReason").GetString().ShouldBe("Refused 3 parcels");
     }
@@ -134,7 +136,7 @@ public class CustomersTests(HishabApiFactory factory) : IClassFixture<HishabApiF
         await Send(HttpMethod.Post, $"/api/customers/{inA.GetProperty("id").GetGuid()}/block", shopA, new { reason = "A only" });
 
         inB.StatusCode.ShouldBe(HttpStatusCode.Created); // B's first sight of this phone
-        var seenByB = await Json(await Send(HttpMethod.Post, "/api/customers/lookup", shopB, new { phone }));
+        var seenByB = (await Json(await Send(HttpMethod.Post, "/api/customers/lookup", shopB, new { phone }))).GetProperty("customer");
         seenByB.GetProperty("name").GetString().ShouldBe("Name in B");
         seenByB.GetProperty("isBlocked").GetBoolean().ShouldBeFalse(); // A's block stays in A
         (await Send(HttpMethod.Get, $"/api/customers/{inA.GetProperty("id").GetGuid()}", shopB)).StatusCode.ShouldBe(HttpStatusCode.NotFound);

@@ -1,6 +1,7 @@
 using FluentValidation;
 using Hishab.Api.Auth;
 using Hishab.Application.Customers;
+using Hishab.Application.Orders;
 using Hishab.Domain.Customers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -97,13 +98,16 @@ public sealed class CustomerListQueryValidator : AbstractValidator<CustomerListQ
     }
 }
 
+/// <summary>The customer and their track record with this shop.</summary>
+public sealed record CustomerLookupResponse(CustomerDto Customer, CustomerOrderHistory History);
+
 /// <summary>Customers of this shop. Staff who enter orders (Owner, Manager, Moderator).</summary>
 [ApiController]
 [Route("customers")]
 [Authorize(Policy = Policies.CanEnterOrders)]
 [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
 [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
-public sealed class CustomersController(ICustomerService customers) : ControllerBase
+public sealed class CustomersController(ICustomerService customers, ICustomerOrderHistory history) : ControllerBase
 {
     /// <summary>Lists customers, newest first; search by name or phone digits.</summary>
     [HttpGet]
@@ -112,13 +116,23 @@ public sealed class CustomersController(ICustomerService customers) : Controller
     public async Task<ActionResult<CustomerPage>> List([FromQuery] CustomerListQuery query, CancellationToken cancellationToken) =>
         Ok(await customers.ListAsync(query.Search, query.Page, query.PageSize, cancellationToken));
 
-    /// <summary>Quick-order auto-fill: finds the customer for a phone (any spelling). Check isBlocked before taking the order.</summary>
+    /// <summary>
+    /// Quick-order auto-fill: finds the customer for a phone (any spelling), with their order
+    /// history in this shop. 404 means a new customer. Check isBlocked before taking the order.
+    /// </summary>
     [HttpPost("lookup")]
-    [ProducesResponseType<CustomerDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType<CustomerLookupResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<CustomerDto>> Lookup(CustomerLookupRequest request, CancellationToken cancellationToken) =>
-        await customers.FindByPhoneAsync(request.Phone, cancellationToken) is { } customer ? Ok(customer) : NotFound();
+    public async Task<ActionResult<CustomerLookupResponse>> Lookup(CustomerLookupRequest request, CancellationToken cancellationToken)
+    {
+        if (await customers.FindByPhoneAsync(request.Phone, cancellationToken) is not { } customer)
+        {
+            return NotFound();
+        }
+
+        return Ok(new CustomerLookupResponse(customer, await history.ForAsync(customer.Id, null, cancellationToken)));
+    }
 
     /// <summary>Returns the customer for this phone, creating it when new (201) or matching it (200; only missing details are filled).</summary>
     [HttpPost]

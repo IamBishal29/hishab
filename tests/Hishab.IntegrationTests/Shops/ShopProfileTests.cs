@@ -130,6 +130,20 @@ public class ShopProfileTests(HishabApiFactory factory) : IClassFixture<HishabAp
         (await Send(HttpMethod.Put, staff, _validUpdate)).StatusCode.ShouldBe(expected);
     }
 
+    [Theory]
+    [InlineData(ShopRole.Moderator)]
+    [InlineData(ShopRole.Packer)]
+    public async Task All_staff_read_the_profile_for_delivery_charges(ShopRole role)
+    {
+        var owner = await factory.SignInAsync(_client, Ct);
+        var staff = (await factory.InviteAndSignInAsync(_client, owner, role.ToString(), Ct)).GetProperty("accessToken").GetString();
+
+        var response = await Send(HttpMethod.Get, staff);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await Json(response)).GetProperty("deliveryChargeInsideDhaka").GetDecimal().ShouldBe(60m);
+    }
+
     [Fact]
     public async Task Shop_A_cannot_read_or_change_shop_B()
     {
