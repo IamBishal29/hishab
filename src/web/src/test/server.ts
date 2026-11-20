@@ -2,6 +2,8 @@ import { http, HttpResponse } from 'msw'
 import { setupServer } from 'msw/node'
 import type {
   BulkItemResult,
+  CustomerDetails,
+  CustomerDto,
   OrderDetails,
   OrderListItem,
   OrderStatus,
@@ -28,6 +30,31 @@ export const api = {
   orderListQueries: [] as URLSearchParams[],
   /** Bulk or single actions on these order IDs fail with this message (lifecycle conflict). */
   conflicts: {} as Record<string, string>,
+  /** Customers served by GET /api/customers/{id} and changed by PUT and block/unblock. */
+  customerPages: {} as Record<string, CustomerDetails>,
+  /** Every PUT /api/customers/{id} body. */
+  customerUpdates: [] as Record<string, unknown>[],
+  /** The next customer change fails with these field errors. */
+  nextCustomerFailure: null as null | Record<string, string[]>,
+}
+
+export function customerPage(overrides: Partial<CustomerDto> = {}): CustomerDetails {
+  return {
+    customer: {
+      id: 'c-1',
+      phone: '+8801712345678',
+      name: 'Rahima Begum',
+      address: 'House 4, Road 2, Mirpur',
+      notes: null,
+      isBlocked: false,
+      blockedReason: null,
+      blockedAt: null,
+      createdAt: '2026-11-01T00:00:00Z',
+      ...overrides,
+    },
+    history: { previousOrders: 5, delivered: 2, returned: 1, cancelled: 1 },
+    deliveredValue: 1480,
+  }
 }
 
 export function listItem(number: number, overrides: Partial<OrderListItem> = {}): OrderListItem {
@@ -104,6 +131,16 @@ export function detailsOf(item: OrderListItem): OrderDetails {
     },
     warnings: [],
   }
+}
+
+function changeCustomer(id: string, change: Partial<CustomerDto>) {
+  const page = api.customerPages[id]
+  const failure = api.nextCustomerFailure
+  api.nextCustomerFailure = null
+  if (!page) return problem(404)
+  if (failure) return problem(400, failure)
+  page.customer = { ...page.customer, ...change }
+  return HttpResponse.json(page.customer)
 }
 
 /** Applies a status change like the API: a conflict leaves the order as it was. */
@@ -263,7 +300,12 @@ export const handlers = [
     const query = new URL(request.url).searchParams
     api.orderListQueries.push(query)
     const statuses = query.getAll('Status')
-    const matching = api.orders.filter((o) => statuses.length === 0 || statuses.includes(o.status))
+    const customerId = query.get('CustomerId')
+    const matching = api.orders.filter(
+      (o) =>
+        (statuses.length === 0 || statuses.includes(o.status)) &&
+        (customerId === null || o.customerId === customerId),
+    )
     const start = Number(query.get('Cursor') ?? 0)
     const end = start + Number(query.get('Limit') ?? 25)
     return HttpResponse.json({
@@ -293,6 +335,35 @@ export const handlers = [
     return HttpResponse.json(detailsOf(order))
   }),
 
+  http.get('*/api/customers/:id', ({ params }) => {
+    if (api.role === 'Packer') return problem(403)
+    const page = api.customerPages[String(params.id)]
+    return page ? HttpResponse.json(page) : problem(404)
+  }),
+
+  http.put('*/api/customers/:id', async ({ request, params }) => {
+    const body = (await request.json()) as Record<string, string | null>
+    api.customerUpdates.push(body)
+    return changeCustomer(String(params.id), {
+      name: body.name ?? null,
+      address: body.address ?? null,
+      notes: body.notes ?? null,
+    })
+  }),
+
+  http.post('*/api/customers/:id/block', async ({ request, params }) => {
+    const { reason } = (await request.json()) as { reason: string | null }
+    return changeCustomer(String(params.id), {
+      isBlocked: true,
+      blockedReason: reason,
+      blockedAt: '2026-11-20T10:00:00Z',
+    })
+  }),
+
+  http.delete('*/api/customers/:id/block', ({ params }) =>
+    changeCustomer(String(params.id), { isBlocked: false, blockedReason: null, blockedAt: null }),
+  ),
+
   http.put('*/api/shop', async ({ request }) => {
     const body = (await request.json()) as { name: string }
     api.shopName = body.name
@@ -314,4 +385,7 @@ export function resetApi(): void {
   api.orders = []
   api.orderListQueries = []
   api.conflicts = {}
+  api.customerPages = {}
+  api.customerUpdates = []
+  api.nextCustomerFailure = null
 }
