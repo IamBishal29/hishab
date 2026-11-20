@@ -1,5 +1,6 @@
 using System.Globalization;
 using Hishab.Domain.Common;
+using Hishab.Domain.Customers;
 using Hishab.Domain.Products;
 using Hishab.Domain.Shops;
 using Hishab.Infrastructure.Identity;
@@ -117,6 +118,15 @@ public class TenantIsolationTests(TenancyDatabaseFixture fixture) : IClassFixtur
         (await other.Set<ProductVariant>().AnyAsync(v => v.TenantId == tenantA, Ct)).ShouldBeFalse();
         await using var owner = fixture.CreateContext(tenantA);
         (await owner.Set<ProductVariant>().AnyAsync(Ct)).ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task Customers_are_isolated_between_shops()
+    {
+        await CrossTenantAssert.IsIsolatedAsync(
+            id => fixture.CreateContext(id),
+            () => Customer.Create(Phone.Parse("01912345678"), "Rahima", "Mirpur", DateTimeOffset.UtcNow),
+            Ct);
     }
 
     [Fact]

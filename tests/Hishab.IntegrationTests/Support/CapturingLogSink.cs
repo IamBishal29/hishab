@@ -40,6 +40,10 @@ public sealed class CapturingLogSink : ILogEventSink
         }
     }
 
+    /// <summary>Every event of one request seen so far (call after <see cref="WaitForAsync"/> for the last one).</summary>
+    public IReadOnlyList<LogEvent> For(string correlationId) =>
+        [.. _events.Where(e => HasCorrelationId(e, correlationId))];
+
     private static bool HasCorrelationId(LogEvent e, string correlationId) =>
         e.Properties.TryGetValue("CorrelationId", out var v) && v is ScalarValue { Value: string s } && s == correlationId;
 }
