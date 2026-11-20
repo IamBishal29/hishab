@@ -5,7 +5,8 @@
     "switchLanguage": "English"
   },
   "common": {
-    "loading": "লোড হচ্ছে…"
+    "loading": "লোড হচ্ছে…",
+    "retry": "আবার চেষ্টা করুন"
   },
   "errors": {
     "network": "হিসাবের সাথে সংযোগ করা যায়নি। ইন্টারনেট দেখে আবার চেষ্টা করুন।",
@@ -38,7 +39,8 @@
   "home": {
     "title": "হিসাবে স্বাগতম",
     "signedInAs": "{{role}} হিসেবে লগইন করা আছে।",
-    "newOrder": "নতুন অর্ডার"
+    "newOrder": "নতুন অর্ডার",
+    "orders": "অর্ডারসমূহ"
   },
   "order": {
     "title": "নতুন অর্ডার",
@@ -85,5 +87,64 @@
     "saving": "সেভ হচ্ছে…",
     "saved": "অর্ডার #{{number}} সেভ হয়েছে। পরের অর্ডারের জন্য প্রস্তুত।",
     "possibleDuplicate": "আগের চেষ্টায় অর্ডারটি হয়তো সেভ হয়ে গেছে। আবার সেভ করার আগে অর্ডার তালিকা দেখুন।"
+  },
+  "status": {
+    "New": "নতুন",
+    "Confirmed": "কনফার্মড",
+    "Cancelled": "বাতিল",
+    "Booked": "বুকড",
+    "InTransit": "পথে আছে",
+    "Delivered": "ডেলিভারড",
+    "Returned": "ফেরত",
+    "CodSettled": "COD বুঝে পাওয়া",
+    "ReceivedBack": "ফেরত পাওয়া গেছে"
+  },
+  "orders": {
+    "title": "অর্ডারসমূহ",
+    "newOrder": "নতুন অর্ডার",
+    "filters": "ফিল্টার",
+    "search": "অর্ডার খুঁজুন",
+    "searchHint": "অর্ডার নম্বর, নাম বা ফোনের ৩+ সংখ্যা",
+    "status": "অবস্থা",
+    "from": "থেকে",
+    "to": "পর্যন্ত",
+    "area": "এলাকা",
+    "anyArea": "সব এলাকা",
+    "source": "উৎস",
+    "anySource": "সব উৎস",
+    "clear": "ফিল্টার মুছুন",
+    "empty": "এই ফিল্টারে কোনো অর্ডার নেই।",
+    "loadMore": "আরও দেখুন",
+    "loadingMore": "লোড হচ্ছে…",
+    "select": "অর্ডার #{{number}} বাছাই করুন",
+    "selectAll": "দেখানো সব বাছাই করুন",
+    "selected": "{{count}}টি বাছাই করা",
+    "confirm": "কনফার্ম",
+    "cancel": "অর্ডার বাতিল",
+    "working": "কাজ চলছে…",
+    "bulkDone": "{{succeeded}}টি হয়েছে, {{failed}}টি বদলানো যায়নি।",
+    "rowDone": "এখন {{status}}",
+    "rowFailed": "বদলানো যায়নি: {{message}}",
+    "items_one": "{{count}}টি পণ্য",
+    "items_other": "{{count}}টি পণ্য",
+    "cod": "COD {{amount}}",
+    "inside": "ঢাকার ভেতরে",
+    "outside": "ঢাকার বাইরে",
+    "cancelAsk": "বাছাই করা {{count}}টি অর্ডার বাতিল করবেন? এটি ফেরানো যাবে না।"
+  },
+  "orderDetail": {
+    "title": "অর্ডার #{{number}}",
+    "back": "সব অর্ডার",
+    "customer": "কাস্টমার",
+    "delivery": "ডেলিভারি",
+    "items": "পণ্য",
+    "history": "অবস্থার ইতিহাস",
+    "created": "তৈরি",
+    "changed": "{{from}} → {{to}}",
+    "notFound": "এই অর্ডারটি নেই বা মুছে ফেলা হয়েছে।",
+    "note": "নোট",
+    "confirm": "অর্ডার কনফার্ম",
+    "cancel": "অর্ডার বাতিল",
+    "cancelAsk": "অর্ডার #{{number}} বাতিল করবেন? এটি ফেরানো যাবে না।"
   }
 }
