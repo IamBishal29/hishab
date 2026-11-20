@@ -35,3 +35,29 @@ public sealed partial class TestEndpointsController(ILogger<TestEndpointsControl
     [LoggerMessage(Level = LogLevel.Information, Message = "Calling customer {Phone}")]
     private static partial void LogCustomerCall(ILogger logger, string phone);
 }
+
+/// <summary>One endpoint per policy, so authorization can be tested before the real features exist.</summary>
+[ApiController]
+[Route("_test/policy")]
+public sealed class PolicyProbeController : ControllerBase
+{
+    [HttpGet("manage-shop")]
+    [Microsoft.AspNetCore.Authorization.Authorize(Policy = Hishab.Api.Auth.Policies.CanManageShop)]
+    public IActionResult ManageShop() => Ok();
+
+    [HttpGet("manage-staff")]
+    [Microsoft.AspNetCore.Authorization.Authorize(Policy = Hishab.Api.Auth.Policies.CanManageStaff)]
+    public IActionResult ManageStaff() => Ok();
+
+    [HttpGet("enter-orders")]
+    [Microsoft.AspNetCore.Authorization.Authorize(Policy = Hishab.Api.Auth.Policies.CanEnterOrders)]
+    public IActionResult EnterOrders() => Ok();
+
+    [HttpGet("pack")]
+    [Microsoft.AspNetCore.Authorization.Authorize(Policy = Hishab.Api.Auth.Policies.CanPack)]
+    public IActionResult Pack() => Ok();
+
+    [HttpGet("see-profit")]
+    [Microsoft.AspNetCore.Authorization.Authorize(Policy = Hishab.Api.Auth.Policies.CanSeeProfit)]
+    public IActionResult SeeProfit() => Ok();
+}
