@@ -33,6 +33,7 @@ public static class DependencyInjection
             .AddEntityFrameworkStores<HishabDbContext>();
 
         AddOtp(services, configuration);
+        AddTokens(services, configuration);
 
         // Same DbContext and connection string as the app, so "healthy" means the app can really reach its data.
         services.AddHealthChecks()
@@ -52,5 +53,18 @@ public static class DependencyInjection
         services.AddSingleton<IOtpHasher, HmacOtpHasher>();
         services.AddSingleton<IOtpSender, LogOtpSender>();
         services.AddScoped<IOtpAuthService, OtpAuthService>();
+    }
+
+    private static void AddTokens(IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddOptions<JwtOptions>()
+            .Bind(configuration.GetSection(JwtOptions.SectionName))
+            .Validate(o => o.HasValidKey(), $"Jwt:SigningKey must be base64 of at least {JwtOptions.MinKeyBytes} bytes (set it with user-secrets).")
+            .Validate(o => !string.IsNullOrWhiteSpace(o.Issuer) && !string.IsNullOrWhiteSpace(o.Audience), "Jwt:Issuer and Jwt:Audience are required.")
+            .Validate(o => o.AccessTokenLifetime > TimeSpan.Zero && o.AccessTokenLifetime <= TimeSpan.FromHours(1), "Jwt:AccessTokenLifetime must be between 0 and 1 hour.")
+            .Validate(o => o.RefreshTokenLifetime > o.AccessTokenLifetime, "Jwt:RefreshTokenLifetime must be longer than the access token lifetime.")
+            .ValidateOnStart();
+
+        services.AddScoped<IAuthTokenService, AuthTokenService>();
     }
 }

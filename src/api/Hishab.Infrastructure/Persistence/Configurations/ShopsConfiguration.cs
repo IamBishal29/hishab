@@ -46,6 +46,21 @@ internal sealed class HishabUserConfiguration : IEntityTypeConfiguration<HishabU
     }
 }
 
+internal sealed class RefreshTokenConfiguration : IEntityTypeConfiguration<RefreshToken>
+{
+    public void Configure(EntityTypeBuilder<RefreshToken> builder)
+    {
+        builder.ToTable("refresh_tokens");
+        builder.Property(t => t.TokenHash).HasMaxLength(64);
+        builder.HasIndex(t => t.TokenHash).IsUnique(); // the refresh lookup
+        builder.HasIndex(t => t.FamilyId); // revoking a family
+        builder.HasOne<HishabUser>().WithMany().HasForeignKey(t => t.UserId).OnDelete(DeleteBehavior.Cascade);
+
+        // Two parallel refreshes with the same token: only one may redeem it, or the family forks.
+        builder.Property<uint>("Version").IsRowVersion();
+    }
+}
+
 internal sealed class UserClaimConfiguration : IEntityTypeConfiguration<IdentityUserClaim<Guid>>
 {
     public void Configure(EntityTypeBuilder<IdentityUserClaim<Guid>> builder) => builder.ToTable("user_claims");

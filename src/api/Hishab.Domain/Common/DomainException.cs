@@ -30,3 +30,6 @@ public sealed class TooManyRequestsException(string message, TimeSpan retryAfter
 {
     public TimeSpan RetryAfter { get; } = retryAfter;
 }
+
+/// <summary>The caller's credentials (e.g. a refresh token) are missing, invalid or expired (HTTP 401).</summary>
+public sealed class AuthenticationFailedException(string message) : DomainException(message);

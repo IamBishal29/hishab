@@ -26,6 +26,7 @@ public sealed partial class DomainExceptionHandler(
             ConflictException => (StatusCodes.Status409Conflict, "Conflict with current state"),
             DomainValidationException => (StatusCodes.Status400BadRequest, "Validation failed"),
             TooManyRequestsException => (StatusCodes.Status429TooManyRequests, "Too many requests"),
+            AuthenticationFailedException => (StatusCodes.Status401Unauthorized, "Authentication failed"),
             _ => (StatusCodes.Status422UnprocessableEntity, "Business rule violated"),
         };
 

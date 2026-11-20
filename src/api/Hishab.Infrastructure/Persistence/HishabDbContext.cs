@@ -42,6 +42,8 @@ public class HishabDbContext : IdentityUserContext<HishabUser, Guid>
 
     public DbSet<OtpChallenge> OtpChallenges => Set<OtpChallenge>();
 
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder); // Identity's own mapping first, ours on top
