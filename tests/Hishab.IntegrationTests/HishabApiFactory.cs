@@ -2,7 +2,6 @@ using System.Security.Cryptography;
 using Hishab.Application.Shops.Auth;
 using Hishab.Infrastructure.Persistence;
 using Hishab.IntegrationTests.Support;
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
@@ -16,8 +15,8 @@ namespace Hishab.IntegrationTests;
 
 /// <summary>
 /// Boots the real API against a throwaway PostgreSQL container with migrations applied,
-/// plus test-only endpoints, a header-based test login, log capture, OTP capture and a
-/// controllable clock.
+/// plus test-only endpoints, log capture, OTP capture and a controllable clock. Tests sign
+/// in for real (OTP, then JWT) through <see cref="AuthSession"/>.
 /// </summary>
 public class HishabApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
@@ -46,6 +45,7 @@ public class HishabApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         builder.UseSetting("Observability:JsonConsole", "false");
         builder.UseSetting("Otp:HashKey", Convert.ToBase64String(RandomNumberGenerator.GetBytes(32))); // fresh per run, never committed
         builder.UseSetting("Otp:Delivery", "Log");
+        builder.UseSetting("Jwt:SigningKey", Convert.ToBase64String(RandomNumberGenerator.GetBytes(32)));
         builder.UseSetting("RateLimiting:OtpPermitsPerMinute", OtpPermitsPerMinute.ToString(System.Globalization.CultureInfo.InvariantCulture));
 
         builder.ConfigureTestServices(services =>
@@ -56,8 +56,6 @@ public class HishabApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
             services.RemoveAll<TimeProvider>();
             services.AddSingleton<TimeProvider>(Clock);
             services.AddControllers().AddApplicationPart(typeof(HishabApiFactory).Assembly);
-            services.AddAuthentication(TestAuthHandler.SchemeName)
-                .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(TestAuthHandler.SchemeName, _ => { });
         });
     }
 
