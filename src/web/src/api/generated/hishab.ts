@@ -60,6 +60,19 @@ export interface BlockCustomerRequest {
   reason?: string | null;
 }
 
+export type CourierProvider = typeof CourierProvider[keyof typeof CourierProvider];
+
+
+export const CourierProvider = {
+  Fake: 'Fake',
+  Pathao: 'Pathao',
+  Steadfast: 'Steadfast',
+} as const;
+
+export interface BookOrderRequest {
+  courier?: null | CourierProvider;
+}
+
 export type OrderStatus = typeof OrderStatus[keyof typeof OrderStatus];
 
 
@@ -122,15 +135,6 @@ export interface ConnectCourierRequest {
   /** The courier's fields (see `fields` in GET /api/couriers), e.g. `{ "apiKey": "..." }`. Stored encrypted, never returned. */
   credentials?: ConnectCourierRequestCredentials;
 }
-
-export type CourierProvider = typeof CourierProvider[keyof typeof CourierProvider];
-
-
-export const CourierProvider = {
-  Fake: 'Fake',
-  Pathao: 'Pathao',
-  Steadfast: 'Steadfast',
-} as const;
 
 export interface CourierCredentialField {
   name: string;
@@ -371,10 +375,37 @@ export interface OrderDto {
   history: OrderStatusChangeDto[];
 }
 
+export type ShipmentState = typeof ShipmentState[keyof typeof ShipmentState];
+
+
+export const ShipmentState = {
+  Requested: 'Requested',
+  Booked: 'Booked',
+  Rejected: 'Rejected',
+} as const;
+
+export interface ShipmentDto {
+  id: string;
+  provider: CourierProvider;
+  state: ShipmentState;
+  /** @nullable */
+  consignmentId: string | null;
+  /** @nullable */
+  trackingCode: string | null;
+  /** @nullable */
+  deliveryFee: number | null;
+  /** @nullable */
+  error: string | null;
+  requestedAt: string;
+  /** @nullable */
+  bookedAt: string | null;
+}
+
 export interface OrderDetails {
   order: OrderDto;
   customer: CustomerSummary;
   warnings: string[];
+  shipment: null | ShipmentDto;
 }
 
 export interface OrderListItem {
@@ -2372,6 +2403,89 @@ export const usePostApiOrdersIdConfirm = <TError = ProblemDetails,
         TContext
       > => {
       return useMutation(getPostApiOrdersIdConfirmMutationOptions(options), queryClient);
+    }
+
+export const getPostApiOrdersIdBookUrl = (id: string,) => {
+
+
+
+
+  return `/api/orders/${id}/book`
+}
+
+/**
+ * @summary Books a Confirmed order with a courier (the shop's default when none is given) and moves it
+to Booked. Safe to retry: an already booked order returns its booking, and the courier
+always receives the same reference, so it never books the parcel twice. 409 if the order is
+not Confirmed; 400 if no courier is connected or the courier refuses the parcel; 503 if the
+courier did not answer (retry).
+ */
+export const postApiOrdersIdBook = async (id: string,
+    nullBookOrderRequest?: null | BookOrderRequest, options?: Parameters<typeof apiFetch>[1]): Promise<OrderDetails> => {
+
+  return apiFetch<OrderDetails>(getPostApiOrdersIdBookUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: getHeaders({ 'Content-Type': 'application/json' }, options?.headers),
+    body: JSON.stringify(nullBookOrderRequest)
+  }
+);}
+
+
+
+
+
+export const getPostApiOrdersIdBookMutationKey = () => ['postApiOrdersIdBook'] as const;
+
+export const getPostApiOrdersIdBookMutationOptions = <TError = ValidationProblemDetails | ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiOrdersIdBook>>, TError,PostApiOrdersIdBookMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiOrdersIdBook>>, TError,PostApiOrdersIdBookMutationVariables, TContext> => {
+
+const mutationKey = getPostApiOrdersIdBookMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiOrdersIdBook>>, PostApiOrdersIdBookMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  postApiOrdersIdBook(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiOrdersIdBookMutationResult = NonNullable<Awaited<ReturnType<typeof postApiOrdersIdBook>>>
+    export type PostApiOrdersIdBookMutationBody = null | BookOrderRequest | undefined
+    export type PostApiOrdersIdBookMutationError = ValidationProblemDetails | ProblemDetails
+    export type PostApiOrdersIdBookMutationVariables = {id: string;data?: null | BookOrderRequest}
+
+    /**
+ * @summary Books a Confirmed order with a courier (the shop's default when none is given) and moves it
+to Booked. Safe to retry: an already booked order returns its booking, and the courier
+always receives the same reference, so it never books the parcel twice. 409 if the order is
+not Confirmed; 400 if no courier is connected or the courier refuses the parcel; 503 if the
+courier did not answer (retry).
+ */
+export const usePostApiOrdersIdBook = <TError = ValidationProblemDetails | ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiOrdersIdBook>>, TError,PostApiOrdersIdBookMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof postApiOrdersIdBook>>,
+        TError,
+        PostApiOrdersIdBookMutationVariables,
+        TContext
+      > => {
+      return useMutation(getPostApiOrdersIdBookMutationOptions(options), queryClient);
     }
 
 export const getPostApiOrdersIdCancelUrl = (id: string,) => {
