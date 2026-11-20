@@ -1,5 +1,6 @@
 using System.Globalization;
 using Hishab.Domain.Common;
+using Hishab.Domain.Couriers;
 using Hishab.Domain.Customers;
 using Hishab.Domain.Orders;
 using Hishab.Domain.Products;
@@ -168,6 +169,23 @@ public class TenantIsolationTests(TenancyDatabaseFixture fixture) : IClassFixtur
             id => fixture.CreateContext(id),
             () => new IdempotencyRecord(Guid.NewGuid().ToString(), "CreateOrder", new string('A', 64), Guid.NewGuid(), DateTimeOffset.UtcNow),
             Ct);
+    }
+
+    [Fact]
+    public async Task Courier_accounts_are_isolated_between_shops()
+    {
+        await CrossTenantAssert.IsIsolatedAsync(
+            id => fixture.CreateContext(id),
+            () => CourierAccount.Connect(CourierProvider.Fake, "ciphertext", "••••", DateTimeOffset.UtcNow),
+            Ct,
+            newTenant: async () =>
+            {
+                var shop = Shop.Create(DateTimeOffset.UtcNow); // courier accounts have a foreign key to shops
+                await using var db = fixture.CreateContext(tenantId: null);
+                db.Shops.Add(shop);
+                await db.SaveChangesAsync(Ct);
+                return shop.Id;
+            });
     }
 
     [Fact]
