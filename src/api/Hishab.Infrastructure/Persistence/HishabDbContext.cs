@@ -1,6 +1,7 @@
 using System.Linq.Expressions;
 using Hishab.Application.Common.Tenancy;
 using Hishab.Domain.Common;
+using Hishab.Domain.Customers;
 using Hishab.Domain.Products;
 using Hishab.Domain.Shops;
 using Hishab.Infrastructure.Identity;
@@ -53,6 +54,8 @@ public class HishabDbContext : IdentityUserContext<HishabUser, Guid>
     public DbSet<UsageCounter> UsageCounters => Set<UsageCounter>();
 
     public DbSet<Product> Products => Set<Product>();
+
+    public DbSet<Customer> Customers => Set<Customer>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

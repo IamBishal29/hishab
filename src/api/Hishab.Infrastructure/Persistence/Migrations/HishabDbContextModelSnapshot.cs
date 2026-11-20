@@ -89,6 +89,76 @@ namespace Hishab.Infrastructure.Persistence.Migrations
                     b.ToTable("audit_entries", (string)null);
                 });
 
+            modelBuilder.Entity("Hishab.Domain.Customers.Customer", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Address")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("address")
+                        .HasAnnotation("Hishab:Audit:Personal", PersonalDataKind.Text);
+
+                    b.Property<DateTimeOffset?>("BlockedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("blocked_at");
+
+                    b.Property<string>("BlockedReason")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("blocked_reason")
+                        .HasAnnotation("Hishab:Audit:Personal", PersonalDataKind.Text);
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<bool>("IsBlocked")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_blocked");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name")
+                        .HasAnnotation("Hishab:Audit:Personal", PersonalDataKind.Text);
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("notes")
+                        .HasAnnotation("Hishab:Audit:Personal", PersonalDataKind.Text);
+
+                    b.Property<string>("Phone")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("phone")
+                        .HasAnnotation("Hishab:Audit:Personal", PersonalDataKind.Phone);
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_customers");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_customers_tenant_id");
+
+                    b.HasIndex("TenantId", "CreatedAt")
+                        .HasDatabaseName("ix_customers_tenant_id_created_at");
+
+                    b.HasIndex("TenantId", "Phone")
+                        .IsUnique()
+                        .HasDatabaseName("ix_customers_tenant_id_phone");
+
+                    b.ToTable("customers", (string)null);
+                });
+
             modelBuilder.Entity("Hishab.Domain.Products.Product", b =>
                 {
                     b.Property<Guid>("Id")

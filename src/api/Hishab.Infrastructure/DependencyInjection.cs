@@ -1,5 +1,6 @@
 using Hishab.Application.Common.Auditing;
 using Hishab.Application.Common.Tenancy;
+using Hishab.Application.Customers;
 using Hishab.Application.Products;
 using Hishab.Application.Shops;
 using Hishab.Application.Shops.Auth;
@@ -8,6 +9,7 @@ using Hishab.Infrastructure.Identity;
 using Hishab.Infrastructure.Persistence;
 using Hishab.Infrastructure.Persistence.Auditing;
 using Hishab.Infrastructure.Persistence.Tenancy;
+using Hishab.Infrastructure.Customers;
 using Hishab.Infrastructure.Products;
 using Hishab.Infrastructure.Shops;
 using Hishab.Infrastructure.Shops.Auth;
@@ -49,6 +51,7 @@ public static class DependencyInjection
         services.AddScoped<IAuditLog, AuditLog>();
         services.AddScoped<IPlanLimitService, PlanLimitService>();
         services.AddScoped<IProductService, ProductService>();
+        services.AddScoped<ICustomerService, CustomerService>();
 
         // Same DbContext and connection string as the app, so "healthy" means the app can really reach its data.
         services.AddHealthChecks()
