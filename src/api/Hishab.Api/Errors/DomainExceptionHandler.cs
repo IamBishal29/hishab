@@ -28,6 +28,7 @@ public sealed partial class DomainExceptionHandler(
             DomainValidationException => (StatusCodes.Status400BadRequest, "Validation failed"),
             TooManyRequestsException => (StatusCodes.Status429TooManyRequests, "Too many requests"),
             AuthenticationFailedException => (StatusCodes.Status401Unauthorized, "Authentication failed"),
+            ForbiddenException => (StatusCodes.Status403Forbidden, "Not allowed"),
             PlanLimitExceededException => (StatusCodes.Status402PaymentRequired, "Plan limit reached"),
             _ => (StatusCodes.Status422UnprocessableEntity, "Business rule violated"),
         };

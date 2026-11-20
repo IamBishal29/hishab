@@ -13,6 +13,7 @@ public static class Policies
 {
     public const string CanManageShop = "Can" + nameof(Permission.ManageShop);
     public const string CanManageStaff = "Can" + nameof(Permission.ManageStaff);
+    public const string CanManageProducts = "Can" + nameof(Permission.ManageProducts);
     public const string CanEnterOrders = "Can" + nameof(Permission.EnterOrders);
     public const string CanPack = "Can" + nameof(Permission.Pack);
     public const string CanSeeProfit = "Can" + nameof(Permission.SeeProfit);
