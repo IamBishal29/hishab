@@ -1,9 +1,11 @@
 using System.Text.Json.Serialization;
+using FluentValidation;
 using Hishab.Api.Auth;
 using Hishab.Api.Errors;
 using Hishab.Api.Logging;
 using Hishab.Api.Middleware;
 using Hishab.Api.RateLimiting;
+using Hishab.Api.Validation;
 using Hishab.Infrastructure;
 using Hishab.Infrastructure.Persistence;
 using Scalar.AspNetCore;
@@ -13,12 +15,13 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddHishabLogging();
 
-builder.Services.AddControllers()
+builder.Services.AddControllers(options => options.Filters.Add<FluentValidationFilter>())
     .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter())); // "Owner", not 0
 builder.Services.AddHishabRateLimiting(builder.Configuration);
 builder.Services.AddOpenApi();
 builder.Services.AddHishabJwtAuthentication();
-builder.Services.AddAuthorization();
+builder.Services.AddHishabAuthorization();
+builder.Services.AddValidatorsFromAssemblyContaining<Program>(ServiceLifetime.Singleton); // validators are stateless
 builder.Services.AddExceptionHandler<DomainExceptionHandler>();
 builder.Services.AddProblemDetails(options => options.CustomizeProblemDetails = context =>
     context.ProblemDetails.Extensions["correlationId"] = context.HttpContext.TraceIdentifier);

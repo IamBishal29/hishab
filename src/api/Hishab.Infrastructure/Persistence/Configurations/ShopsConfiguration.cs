@@ -13,6 +13,9 @@ internal sealed class ShopConfiguration : IEntityTypeConfiguration<Shop>
     {
         builder.ToTable("shops");
         builder.Property(s => s.Name).HasMaxLength(Shop.NameMaxLength);
+        builder.Property(s => s.LogoUrl).HasMaxLength(Shop.LogoUrlMaxLength);
+        builder.Property(s => s.PickupAddress).HasMaxLength(Shop.PickupAddressMaxLength);
+        builder.Property(s => s.DefaultCourier).HasConversion<string>().HasMaxLength(16);
     }
 }
 

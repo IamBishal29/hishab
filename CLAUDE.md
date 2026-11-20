@@ -153,6 +153,15 @@ Never read, print or commit `.env`, user-secrets, tokens or keys. Put placeholde
   `ITenantContext` from `tenant_id`. Refresh tokens: one-time, SHA-256 hashed, families;
   reuse revokes the family. Browser gets an HttpOnly cookie (`hishab_rt`, Path=/auth),
   other clients send `tokenDelivery: "Body"`. Tests sign in for real via `factory.SignInAsync`.
+- Validation: request DTOs + `AbstractValidator<T>` in `Hishab.Api` (auto-registered);
+  `FluentValidationFilter` runs them globally -> 400 with camelCase field keys. Entities
+  re-check invariants and throw `DomainValidationException`.
+- Money: `Money` (Domain/Common, BDT, <=2 decimals, rejects rather than rounds); every Money
+  property maps to `numeric(12,2)` by convention. JSON contracts expose plain `decimal`.
+- Authorization: named policies in `Api/Auth/AuthorizationSetup.cs` (`ManageShop` = Owner,
+  Manager). `Shop` has the tenant filter too (`Id == tenant`); cross-shop reads need
+  `IgnoreQueryFilters([HishabDbContext.TenantFilter])`.
+- OpenAPI: XML comments in `Hishab.Api` (`<summary>`, `<example>`) feed the document.
   Entities with a FK to shops: pass `newTenant` to `CrossTenantAssert` to create real shops.
 - Run: `dotnet run --project src/api/Hishab.Api` (http://localhost:5125, `/health`,
   `/scalar`); `cd src/web && npm run dev` (http://localhost:5173).
