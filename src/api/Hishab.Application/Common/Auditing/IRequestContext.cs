@@ -7,4 +7,11 @@ public interface IRequestContext
     Guid? UserId { get; }
 
     string? CorrelationId { get; }
+
+    /// <summary>
+    /// Whether the acting user holds <paramref name="permission"/>. Services use it for
+    /// field-level rules (e.g. cost prices), so the rule holds whichever endpoint calls them.
+    /// False outside a signed-in request.
+    /// </summary>
+    bool Has(Domain.Shops.Permission permission);
 }
