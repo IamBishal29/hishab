@@ -162,6 +162,15 @@ public class TenantIsolationTests(TenancyDatabaseFixture fixture) : IClassFixtur
     }
 
     [Fact]
+    public async Task Idempotency_records_are_isolated_between_shops()
+    {
+        await CrossTenantAssert.IsIsolatedAsync(
+            id => fixture.CreateContext(id),
+            () => new IdempotencyRecord(Guid.NewGuid().ToString(), "CreateOrder", new string('A', 64), Guid.NewGuid(), DateTimeOffset.UtcNow),
+            Ct);
+    }
+
+    [Fact]
     public async Task Queries_return_nothing_when_no_tenant_is_set()
     {
         await using (var db = fixture.CreateContext(Guid.NewGuid()))
