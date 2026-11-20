@@ -36,7 +36,7 @@ public static class Plans
 /// </summary>
 public sealed record BillingPeriod
 {
-    private static readonly TimeZoneInfo _dhaka = FindDhaka();
+    private static readonly TimeZoneInfo _dhaka = DhakaTime.Zone;
 
     private BillingPeriod(string key, DateTimeOffset startsAt, DateTimeOffset endsAt)
     {
@@ -63,12 +63,6 @@ public sealed record BillingPeriod
         var endsAt = new DateTimeOffset(nextMonth, _dhaka.GetUtcOffset(nextMonth)).ToUniversalTime();
         return new BillingPeriod(firstOfMonth.ToString("yyyy-MM", CultureInfo.InvariantCulture), startsAt, endsAt);
     }
-
-    /// <summary>The OS time zone database when present; slim containers may lack it, and Dhaka is a fixed UTC+6.</summary>
-    private static TimeZoneInfo FindDhaka() =>
-        TimeZoneInfo.TryFindSystemTimeZoneById("Asia/Dhaka", out var zone)
-            ? zone
-            : TimeZoneInfo.CreateCustomTimeZone("Asia/Dhaka", TimeSpan.FromHours(6), "Asia/Dhaka", "Bangladesh Standard Time");
 }
 
 public enum UsageMetric

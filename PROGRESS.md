@@ -2,11 +2,10 @@
 
 ## Current
 - Milestone: M2 Orders & customers (M1 complete)
-- Issue: #15 done, PR #53 open for review
-- Branch: feat/15-quick-order-api
-- Next step: Syed merges PR #53, then `/next-task` picks #16 "Order search, filters,
-  transitions and bulk actions" (map DbUpdateConcurrencyException to 409; EXPLAIN the indexes;
-  per-order results for bulk actions).
+- Issue: #16 done, PR #54 open for review
+- Branch: feat/16-order-search-bulk
+- Next step: Syed merges PR #54, then `/next-task` picks #17 "Web: quick order form" (uses
+  POST /api/orders with a fresh Idempotency-Key per form submission; customer lookup by phone).
 
 ## Done
 - Product discovery: PRD written (docs/PRD.md); name chosen: Hishab
@@ -74,6 +73,11 @@
   number, catalogue snapshots, delivery charge rule/override), required Idempotency-Key
   (fingerprint, replay 201 + header, 409 on reuse, parallel twins roll back and replay),
   customer history summary + blocked warning, GET /api/orders/{id}; 378 .NET tests; note 14
+  (merged)
+- #16 Order search + bulk (PR #54): GET /api/orders (status, Dhaka dates, area, source, text;
+  keyset cursor on (created_at, number)), indexes checked with EXPLAIN (keyset 7 buffers vs
+  OFFSET 847 + disk sort at row 40k), confirm/cancel (409 on lifecycle or concurrent change),
+  bulk confirm/cancel with per-order results, DhakaTime helper; 395 .NET tests; note 15
 
 ## Decisions waiting for Syed
 - `GETTING-STARTED.md` says to delete it in the first PR; the permission check blocked
@@ -88,6 +92,9 @@
 - Quick order: no per-order price override (catalogue price only) and Idempotency-Key is
   required; say if sellers need a negotiated-price override. Old idempotency keys need a
   clean-up job once Hangfire lands.
+- Order list (#16): courier filter waits for courier booking; "area" = inside/outside Dhaka for
+  now; bulk returns 200 with per-order results (207 is the alternative); ILIKE search would
+  need a pg_trgm index at very large volumes.
 - Later hardening for the audit log: DB role without UPDATE/DELETE on audit_entries, or a
   hash chain (tamper-evidence); decide when deployment is planned.
 - Later: optimistic concurrency (ETag + xmin) for PUT /shop if two managers editing at
@@ -121,4 +128,5 @@
   cost writes: Syed's choices) (merged)
 - 2026-11-20: #13 implemented, PR #51 open (phone lookup via POST body: Syed's choice) (merged)
 - 2026-11-20: #14 implemented, PR #52 open (merged)
-- 2026-11-20: #15 implemented, PR #53 open
+- 2026-11-20: #15 implemented, PR #53 open (merged)
+- 2026-11-20: #16 implemented, PR #54 open (keyset cursor paging: Syed's choice)

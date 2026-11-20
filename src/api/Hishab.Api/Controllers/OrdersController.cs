@@ -80,10 +80,90 @@ public sealed class CreateOrderRequestValidator : AbstractValidator<CreateOrderR
     }
 }
 
-/// <summary>Orders of this shop. Staff who enter orders (Owner, Manager, Moderator).</summary>
+public sealed class OrderListQuery
+{
+    /// <summary>One or more statuses; repeat the parameter for several (status=New, then status=Confirmed).</summary>
+    public IReadOnlyList<OrderStatus>? Status { get; init; }
+
+    /// <summary>First day (Asia/Dhaka), inclusive.</summary>
+    /// <example>2026-11-01</example>
+    public DateOnly? From { get; init; }
+
+    /// <summary>Last day (Asia/Dhaka), inclusive.</summary>
+    /// <example>2026-11-30</example>
+    public DateOnly? To { get; init; }
+
+    /// <summary>Area: true for inside Dhaka, false for outside.</summary>
+    public bool? IsInsideDhaka { get; init; }
+
+    public OrderSource? Source { get; init; }
+
+    /// <summary>Order number ("#1043"), part of the customer's name, or 3+ digits of their phone.</summary>
+    /// <example>#1043</example>
+    public string? Search { get; init; }
+
+    /// <summary>The <c>nextCursor</c> of the previous page; omit for the first page.</summary>
+    public string? Cursor { get; init; }
+
+    /// <example>25</example>
+    public int Limit { get; init; } = 25;
+}
+
+public sealed class OrderListQueryValidator : AbstractValidator<OrderListQuery>
+{
+    public OrderListQueryValidator()
+    {
+        RuleForEach(q => q.Status).IsInEnum();
+        RuleFor(q => q.Source).IsInEnum();
+        RuleFor(q => q.To).GreaterThanOrEqualTo(q => q.From).When(q => q.From is not null && q.To is not null)
+            .WithMessage("The last day must not be before the first day.");
+        RuleFor(q => q.Search).MaximumLength(100);
+        RuleFor(q => q.Cursor).MaximumLength(64);
+        RuleFor(q => q.Limit).InclusiveBetween(1, 100);
+    }
+}
+
+public sealed class OrderActionRequest
+{
+    /// <summary>Why, e.g. a cancellation reason; saved in the order's history.</summary>
+    /// <example>Customer asked to cancel on Messenger</example>
+    public string? Note { get; init; }
+}
+
+public sealed class OrderActionRequestValidator : AbstractValidator<OrderActionRequest>
+{
+    public OrderActionRequestValidator() => RuleFor(r => r.Note).MaximumLength(Order.NoteMaxLength);
+}
+
+public sealed class BulkOrderActionRequest
+{
+    public const int MaxOrders = 100;
+
+    /// <summary>Up to 100 order IDs; each succeeds or fails on its own.</summary>
+    public required IReadOnlyList<Guid> OrderIds { get; init; }
+
+    /// <example>Customer asked to cancel on Messenger</example>
+    public string? Note { get; init; }
+}
+
+public sealed class BulkOrderActionRequestValidator : AbstractValidator<BulkOrderActionRequest>
+{
+    public BulkOrderActionRequestValidator()
+    {
+        RuleFor(r => r.OrderIds).NotEmpty()
+            .Must(ids => ids.Count <= BulkOrderActionRequest.MaxOrders).WithMessage($"At most {BulkOrderActionRequest.MaxOrders} orders at a time.");
+        RuleForEach(r => r.OrderIds).NotEmpty();
+        RuleFor(r => r.Note).MaximumLength(Order.NoteMaxLength);
+    }
+}
+
+/// <summary>
+/// Orders of this shop. Every staff member can read them (packers work from the list);
+/// creating, confirming and cancelling need <see cref="Policies.CanEnterOrders"/> (Owner, Manager, Moderator).
+/// </summary>
 [ApiController]
 [Route("orders")]
-[Authorize(Policy = Policies.CanEnterOrders)]
+[Authorize]
 [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
 [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
 public sealed class OrdersController(IOrderService orders) : ControllerBase
@@ -96,6 +176,7 @@ public sealed class OrdersController(IOrderService orders) : ControllerBase
     /// submission: retrying with the same key returns the first order instead of creating another.
     /// </summary>
     [HttpPost]
+    [Authorize(Policy = Policies.CanEnterOrders)]
     [ProducesResponseType<OrderDetails>(StatusCodes.Status201Created)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status402PaymentRequired)]
@@ -125,4 +206,55 @@ public sealed class OrdersController(IOrderService orders) : ControllerBase
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<OrderDetails>> Get(Guid id, CancellationToken cancellationToken) =>
         Ok(await orders.GetAsync(id, cancellationToken));
+
+    /// <summary>
+    /// The shop's orders, newest first. Filters combine with AND. Keyset paging: pass the
+    /// returned <c>nextCursor</c> to get the next page; it is null on the last page.
+    /// </summary>
+    [HttpGet]
+    [ProducesResponseType<OrderListPage>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<OrderListPage>> List([FromQuery] OrderListQuery query, CancellationToken cancellationToken) =>
+        Ok(await orders.ListAsync(
+            new OrderListFilter(query.Status, query.From, query.To, query.IsInsideDhaka, query.Source, query.Search),
+            query.Cursor,
+            query.Limit,
+            cancellationToken));
+
+    /// <summary>Confirms a New order (the buyer said yes on the phone). 409 if it is not New or changed meanwhile.</summary>
+    [HttpPost("{id:guid}/confirm")]
+    [Authorize(Policy = Policies.CanEnterOrders)]
+    [ProducesResponseType<OrderDetails>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<OrderDetails>> Confirm(Guid id, OrderActionRequest? request, CancellationToken cancellationToken) =>
+        Ok(await orders.TransitionAsync(id, OrderStatus.Confirmed, request?.Note, cancellationToken));
+
+    /// <summary>Cancels a New or Confirmed order. 409 once it is booked with a courier or changed meanwhile.</summary>
+    [HttpPost("{id:guid}/cancel")]
+    [Authorize(Policy = Policies.CanEnterOrders)]
+    [ProducesResponseType<OrderDetails>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<OrderDetails>> Cancel(Guid id, OrderActionRequest? request, CancellationToken cancellationToken) =>
+        Ok(await orders.TransitionAsync(id, OrderStatus.Cancelled, request?.Note, cancellationToken));
+
+    /// <summary>
+    /// Confirms many orders. Always 200 with one result per order: check <c>failed</c> and each
+    /// result's <c>error</c>; successful orders stay confirmed even when others fail.
+    /// </summary>
+    [HttpPost("bulk/confirm")]
+    [Authorize(Policy = Policies.CanEnterOrders)]
+    [ProducesResponseType<BulkActionResult>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<BulkActionResult>> BulkConfirm(BulkOrderActionRequest request, CancellationToken cancellationToken) =>
+        Ok(await orders.TransitionManyAsync(request.OrderIds, OrderStatus.Confirmed, request.Note, cancellationToken));
+
+    /// <summary>Cancels many orders, each on its own (see bulk confirm).</summary>
+    [HttpPost("bulk/cancel")]
+    [Authorize(Policy = Policies.CanEnterOrders)]
+    [ProducesResponseType<BulkActionResult>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<BulkActionResult>> BulkCancel(BulkOrderActionRequest request, CancellationToken cancellationToken) =>
+        Ok(await orders.TransitionManyAsync(request.OrderIds, OrderStatus.Cancelled, request.Note, cancellationToken));
 }
