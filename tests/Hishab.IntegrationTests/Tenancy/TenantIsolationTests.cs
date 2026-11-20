@@ -90,6 +90,15 @@ public class TenantIsolationTests(TenancyDatabaseFixture fixture) : IClassFixtur
     }
 
     [Fact]
+    public async Task Usage_counters_are_isolated_between_shops()
+    {
+        await CrossTenantAssert.IsIsolatedAsync(
+            id => fixture.CreateContext(id),
+            () => new UsageCounter("2026-11", UsageMetric.Orders, 42),
+            Ct);
+    }
+
+    [Fact]
     public async Task Queries_return_nothing_when_no_tenant_is_set()
     {
         await using (var db = fixture.CreateContext(Guid.NewGuid()))
