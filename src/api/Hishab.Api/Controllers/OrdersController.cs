@@ -1,3 +1,5 @@
+using Hishab.Domain.Couriers;
+using Hishab.Application.Couriers;
 using FluentValidation;
 using Hishab.Api.Auth;
 using Hishab.Application.Orders;
@@ -126,6 +128,13 @@ public sealed class OrderListQueryValidator : AbstractValidator<OrderListQuery>
     }
 }
 
+public sealed class BookOrderRequest
+{
+    /// <summary>The courier to book with; omit to use the shop's default courier.</summary>
+    /// <example>Fake</example>
+    public CourierProvider? Courier { get; init; }
+}
+
 public sealed class OrderActionRequest
 {
     /// <summary>Why, e.g. a cancellation reason; saved in the order's history.</summary>
@@ -169,7 +178,7 @@ public sealed class BulkOrderActionRequestValidator : AbstractValidator<BulkOrde
 [Authorize]
 [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
 [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
-public sealed class OrdersController(IOrderService orders) : ControllerBase
+public sealed class OrdersController(IOrderService orders, IShipmentService shipments) : ControllerBase
 {
     public const string IdempotencyHeader = "Idempotency-Key";
     public const string ReplayedHeader = "Idempotent-Replayed";
@@ -232,6 +241,23 @@ public sealed class OrdersController(IOrderService orders) : ControllerBase
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<OrderDetails>> Confirm(Guid id, OrderActionRequest? request, CancellationToken cancellationToken) =>
         Ok(await orders.TransitionAsync(id, OrderStatus.Confirmed, request?.Note, cancellationToken));
+
+    /// <summary>
+    /// Books a Confirmed order with a courier (the shop's default when none is given) and moves it
+    /// to Booked. Safe to retry: an already booked order returns its booking, and the courier
+    /// always receives the same reference, so it never books the parcel twice. 409 if the order is
+    /// not Confirmed; 400 if no courier is connected or the courier refuses the parcel; 503 if the
+    /// courier did not answer (retry).
+    /// </summary>
+    [HttpPost("{id:guid}/book")]
+    [Authorize(Policy = Policies.CanPack)]
+    [ProducesResponseType<OrderDetails>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status503ServiceUnavailable)]
+    public async Task<ActionResult<OrderDetails>> Book(Guid id, BookOrderRequest? request, CancellationToken cancellationToken) =>
+        Ok(await shipments.BookAsync(id, request?.Courier, cancellationToken));
 
     /// <summary>Cancels a New or Confirmed order. 409 once it is booked with a courier or changed meanwhile.</summary>
     [HttpPost("{id:guid}/cancel")]
