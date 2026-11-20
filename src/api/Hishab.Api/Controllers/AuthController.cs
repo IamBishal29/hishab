@@ -150,14 +150,14 @@ public sealed class AuthController(IOtpAuthService auth, IAuthTokenService token
         return null;
     }
 
-    // Path=/auth: the cookie travels only to refresh and logout, never with ordinary API calls.
+    // Path=/api/auth: the cookie travels only to refresh and logout, never with ordinary API calls.
     // SameSite=Strict: other sites cannot make the browser send it (CSRF).
     private static CookieOptions CookieOptions(DateTimeOffset? expires) => new()
     {
         HttpOnly = true,
         Secure = true,
         SameSite = SameSiteMode.Strict,
-        Path = "/auth",
+        Path = "/api/auth",
         Expires = expires,
         IsEssential = true,
     };

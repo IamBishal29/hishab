@@ -152,7 +152,7 @@ Never read, print or commit `.env`, user-secrets, tokens or keys. Put placeholde
   and the "phone already in a shop" check in `StaffService.InviteAsync`.
 - Tokens: JWT HS256, 15 min (`sub`, `tenant_id`, `role`); `TenantResolutionMiddleware` sets
   `ITenantContext` from `tenant_id`. Refresh tokens: one-time, SHA-256 hashed, families;
-  reuse revokes the family. Browser gets an HttpOnly cookie (`hishab_rt`, Path=/auth),
+  reuse revokes the family. Browser gets an HttpOnly cookie (`hishab_rt`, Path=/api/auth),
   other clients send `tokenDelivery: "Body"`. Tests sign in for real via `factory.SignInAsync`.
 - Validation: request DTOs + `AbstractValidator<T>` in `Hishab.Api` (auto-registered);
   `FluentValidationFilter` runs them globally -> 400 with camelCase field keys. Entities
@@ -169,6 +169,15 @@ Never read, print or commit `.env`, user-secrets, tokens or keys. Put placeholde
   login); removal is a hard delete. Tests: `factory.InviteAndSignInAsync(client, owner, role)`.
   User limit placeholder `IShopPlanLimits` (15) until plans (M2).
 - OpenAPI: XML comments in `Hishab.Api` (`<summary>`, `<example>`) feed the document.
+- Routes: every controller is under `/api` (`ApiRoutePrefixConvention`); `/health`, `/scalar`,
+  `/openapi` stay at the root. JSON: string enums + strict numbers in both MVC and HTTP options.
+- API contract: `src/web/openapi.json` is a snapshot checked by `OpenApiSnapshotTests`; update it
+  with `HISHAB_UPDATE_OPENAPI=1 dotnet test`, then `npm run api:generate` (orval ->
+  `src/web/src/api/generated`, never edit by hand; CI fails on a stale client).
+- Web: access token in memory only (`features/auth/session.ts`); session = TanStack query
+  `sessionQuery` (refresh cookie -> /api/auth/me); orval mutator `api/http.ts` (single-flight
+  refresh, `ApiProblem`); `applyProblem` maps server field errors to RHF. Tests: MSW handlers in
+  `src/test/server.ts` (unhandled requests fail). Vite proxies `/api` to :5125.
 - Audit: mark entities `IAuditable` (Domain); `AuditInterceptor` writes `AuditEntry` rows in the
   same SaveChanges. In EF config mark personal fields `.IsPersonalData(PersonalDataKind.Phone|Text)`
   and noise `.IsNotAudited()`. Do not use ExecuteUpdate/ExecuteDelete on auditable entities.

@@ -60,6 +60,12 @@ jobs:
           cache-dependency-path: src/web/package-lock.json
 
       - run: npm ci
+      # The client is generated from openapi.json (kept in step with the API by a .NET test);
+      # a stale committed client fails here.
+      - name: Generated API client is up to date
+        run: |
+          npm run api:generate
+          git diff --exit-code -- src/api/generated
       - run: npm run format:check
       - run: npm run lint
       - run: npm run typecheck

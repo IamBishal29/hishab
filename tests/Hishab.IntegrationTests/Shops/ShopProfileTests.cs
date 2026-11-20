@@ -31,7 +31,7 @@ public class ShopProfileTests(HishabApiFactory factory) : IClassFixture<HishabAp
 
     private async Task<HttpResponseMessage> Send(HttpMethod method, string? token, object? body = null)
     {
-        using var request = new HttpRequestMessage(method, "/shop");
+        using var request = new HttpRequestMessage(method, "/api/shop");
         if (token is not null)
         {
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -156,7 +156,7 @@ public class ShopProfileTests(HishabApiFactory factory) : IClassFixture<HishabAp
         var document = await provider.GetOpenApiDocumentAsync(Ct);
 
         var json = JsonDocument.Parse(await document.SerializeAsJsonAsync(OpenApiSpecVersion.OpenApi3_1, cancellationToken: Ct)).RootElement;
-        json.GetProperty("paths").GetProperty("/shop").GetProperty("put").GetProperty("summary").GetString().ShouldNotBeNullOrEmpty();
+        json.GetProperty("paths").GetProperty("/api/shop").GetProperty("put").GetProperty("summary").GetString().ShouldNotBeNullOrEmpty();
         var properties = json.GetProperty("components").GetProperty("schemas").GetProperty("UpdateShopRequest").GetProperty("properties");
         properties.GetProperty("name").GetProperty("examples")[0].GetString().ShouldBe("Rahim Fashion"); // OpenAPI 3.1: "examples" array
         properties.GetProperty("deliveryChargeInsideDhaka").GetProperty("examples")[0].GetDecimal().ShouldBe(60m);

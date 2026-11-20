@@ -23,7 +23,7 @@ public class TokenAuthTests(HishabApiFactory factory) : IClassFixture<HishabApiF
 
     private async Task<HttpResponseMessage> Me(string? accessToken)
     {
-        using var request = new HttpRequestMessage(HttpMethod.Get, "/auth/me");
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/api/auth/me");
         if (accessToken is not null)
         {
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
@@ -33,7 +33,7 @@ public class TokenAuthTests(HishabApiFactory factory) : IClassFixture<HishabApiF
     }
 
     private Task<HttpResponseMessage> Refresh(string? refreshToken) =>
-        _client.PostAsJsonAsync("/auth/refresh", new { refreshToken }, Ct);
+        _client.PostAsJsonAsync("/api/auth/refresh", new { refreshToken }, Ct);
 
     private static string Access(JsonElement tokens) => tokens.GetProperty("accessToken").GetString()!;
 
@@ -153,7 +153,7 @@ public class TokenAuthTests(HishabApiFactory factory) : IClassFixture<HishabApiF
     {
         var login = await SignIn();
 
-        var logout = await _client.PostAsJsonAsync("/auth/logout", new { refreshToken = RefreshTokenOf(login) }, Ct);
+        var logout = await _client.PostAsJsonAsync("/api/auth/logout", new { refreshToken = RefreshTokenOf(login) }, Ct);
 
         logout.StatusCode.ShouldBe(HttpStatusCode.NoContent);
         (await Refresh(RefreshTokenOf(login))).StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
@@ -163,9 +163,9 @@ public class TokenAuthTests(HishabApiFactory factory) : IClassFixture<HishabApiF
     public async Task Browser_login_puts_the_refresh_token_only_in_a_locked_down_cookie()
     {
         var phone = AuthSession.NewPhone();
-        await _client.PostAsJsonAsync("/auth/otp", new { phone }, Ct);
+        await _client.PostAsJsonAsync("/api/auth/otp", new { phone }, Ct);
 
-        var login = await _client.PostAsJsonAsync("/auth/otp/verify", new { phone, code = factory.Otps.LatestCodeFor(phone) }, Ct);
+        var login = await _client.PostAsJsonAsync("/api/auth/otp/verify", new { phone, code = factory.Otps.LatestCodeFor(phone) }, Ct);
 
         login.StatusCode.ShouldBe(HttpStatusCode.OK);
         (await Json(login)).GetProperty("refreshToken").ValueKind.ShouldBe(JsonValueKind.Null);
@@ -173,18 +173,18 @@ public class TokenAuthTests(HishabApiFactory factory) : IClassFixture<HishabApiF
         cookie.ShouldContain("httponly");
         cookie.ShouldContain("secure");
         cookie.ShouldContain("samesite=strict");
-        cookie.ShouldContain("path=/auth");
+        cookie.ShouldContain("path=/api/auth");
     }
 
     [Fact]
     public async Task Refresh_with_the_cookie_rotates_the_cookie()
     {
         var phone = AuthSession.NewPhone();
-        await _client.PostAsJsonAsync("/auth/otp", new { phone }, Ct);
-        var login = await _client.PostAsJsonAsync("/auth/otp/verify", new { phone, code = factory.Otps.LatestCodeFor(phone) }, Ct);
+        await _client.PostAsJsonAsync("/api/auth/otp", new { phone }, Ct);
+        var login = await _client.PostAsJsonAsync("/api/auth/otp/verify", new { phone, code = factory.Otps.LatestCodeFor(phone) }, Ct);
         var cookie = RefreshCookieHeader(login).Split(';')[0];
 
-        using var request = new HttpRequestMessage(HttpMethod.Post, "/auth/refresh");
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/auth/refresh");
         request.Headers.Add("Cookie", cookie);
         var response = await _client.SendAsync(request, Ct);
 

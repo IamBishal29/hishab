@@ -2,11 +2,10 @@
 
 ## Current
 - Milestone: M1 Foundation
-- Issue: #9 done, PR #47 open for review
-- Branch: feat/9-audit-log
-- Next step: Syed merges PR #47, then `/next-task` picks #10 "Web: app shell, generated API
-  client and OTP login" (first web issue: Vite proxy for the /auth cookie, serialised
-  refresh, orval client from the OpenAPI document).
+- Issue: #10 done, PR #48 open for review (last M1 issue)
+- Branch: feat/10-web-shell-login
+- Next step: Syed merges PR #48 (closes M1), then `/next-task` starts M2 with #11 "Plan
+  limits and usage meter" (replaces the IShopPlanLimits placeholder of 15 users).
 
 ## Done
 - Product discovery: PRD written (docs/PRD.md); name chosen: Hishab
@@ -47,13 +46,21 @@
 - #9 Audit log (PR #47): IAuditable + AuditInterceptor (same transaction, old/new diff,
   personal fields masked, secrets never stored, append-only), AuditEntry (jsonb, sequence
   order, no FK to users), IRequestContext, GET /audit (Owner, paged); 198 tests passing;
-  learning note 08
+  learning note 08 (merged)
+- #10 Web shell + login (PR #48): API under /api, OpenAPI snapshot test + orval client
+  (CI drift check), contract fixes (string enums, strict numbers, required fields), fetch
+  core (memory token, single-flight refresh), session query, router shell, login/OTP/setup
+  (RHF + Zod, server field errors, en + bn); 199 .NET + 11 web tests; e2e smoke through the
+  Vite proxy; learning note 09
 
 ## Decisions waiting for Syed
 - `GETTING-STARTED.md` says to delete it in the first PR; the permission check blocked
   the deletion. Delete it, or say so and I'll do it in the next PR.
 - New: `Jwt:SigningKey` user-secret is required to run the API locally (README step 2).
-- PR #47 is ~740 lines excl. migrations (guideline ~600), half tests/docs.
+- Local setup: no `.env` yet, so `docker compose up -d` fails until you `cp .env.example .env`
+  and set POSTGRES_PASSWORD (I used a throwaway container for the smoke test).
+- Web follow-ups: Bangla server messages (API errors are English), route code-splitting
+  (bundle 181 kB gzip), 4 moderate dev-only npm audit findings.
 - Later hardening for the audit log: DB role without UPDATE/DELETE on audit_entries, or a
   hash chain (tamper-evidence); decide when deployment is planned.
 - Later: optimistic concurrency (ETag + xmin) for PUT /shop if two managers editing at
@@ -80,4 +87,5 @@
 - 2026-11-20: #7 implemented, PR #45 open (merged)
 - 2026-11-20: #8 implemented, PR #46 open (merged)
 - 2026-11-20: No AI-tool attribution on GitHub from now on (Syed)
-- 2026-11-20: #9 implemented, PR #47 open
+- 2026-11-20: #9 implemented, PR #47 open (merged)
+- 2026-11-20: #10 implemented, PR #48 open (API under /api and one PR: Syed's choices)
