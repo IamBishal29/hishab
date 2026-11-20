@@ -3,5 +3,40 @@
     "name": "Hishab",
     "tagline": "Orders, couriers and cash on delivery in one place.",
     "switchLanguage": "বাংলা"
+  },
+  "common": {
+    "loading": "Loading…"
+  },
+  "errors": {
+    "network": "Could not reach Hishab. Check your connection and try again.",
+    "unexpected": "Something went wrong. Please try again."
+  },
+  "login": {
+    "subtitle": "Sign in with your mobile number.",
+    "phone": "Mobile number",
+    "phoneInvalid": "Enter a Bangladeshi mobile number, e.g. 01712345678.",
+    "sendCode": "Send code",
+    "codeSent": "We sent a 6-digit code to {{phone}}.",
+    "code": "6-digit code",
+    "codeInvalid": "Enter the 6 digits from the SMS.",
+    "verify": "Sign in",
+    "changePhone": "Use another number"
+  },
+  "setup": {
+    "title": "Set up your shop",
+    "subtitle": "You can change these later in settings.",
+    "name": "Shop name",
+    "nameRequired": "Enter a shop name (up to 100 characters).",
+    "insideDhaka": "Delivery charge inside Dhaka (BDT)",
+    "outsideDhaka": "Delivery charge outside Dhaka (BDT)",
+    "chargeInvalid": "Enter an amount from 0 to 5000.",
+    "save": "Save and continue"
+  },
+  "shell": {
+    "logout": "Log out"
+  },
+  "home": {
+    "title": "Welcome to Hishab",
+    "signedInAs": "Signed in as {{role}}."
   }
 }
