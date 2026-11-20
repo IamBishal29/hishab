@@ -1,5 +1,6 @@
 import type { RouteObject } from 'react-router'
 import { LoginPage } from '@/features/auth/LoginPage'
+import { CustomerPage } from '@/features/customers/CustomerPage'
 import { OrderDetailPage } from '@/features/orders/OrderDetailPage'
 import { OrderListPage } from '@/features/orders/OrderListPage'
 import { QuickOrderPage } from '@/features/orders/QuickOrderPage'
@@ -19,6 +20,7 @@ export const routes: RouteObject[] = [
           { path: 'orders', element: <OrderListPage /> },
           { path: 'orders/new', element: <QuickOrderPage /> },
           { path: 'orders/:id', element: <OrderDetailPage /> },
+          { path: 'customers/:id', element: <CustomerPage /> },
         ],
       },
     ],

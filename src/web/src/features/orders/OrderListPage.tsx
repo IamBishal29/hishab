@@ -9,18 +9,15 @@ import {
   postApiOrdersBulkConfirm,
   type BulkActionResult,
   type BulkItemResult,
-  type OrderListItem,
 } from '@/api/generated/hishab'
 import { ApiProblem } from '@/api/http'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { canEnterOrders } from '@/features/auth/permissions'
 import { useSession } from '@/features/auth/useSession'
-import { formatDhakaDateTime } from '@/lib/dates'
-import { formatMoney } from '@/lib/money'
 import { parseFilters, toApiParams, toSearchParams, type OrderFilters } from './orderFilters'
 import { canCancel, canConfirm, invalidateOrders, orderListQuery } from './orderQueries'
-import { StatusBadge } from './StatusBadge'
+import { OrderRow } from './OrderRow'
 
 const selectClass = 'h-10 w-full rounded-md border border-input bg-transparent px-2 text-sm'
 
@@ -284,12 +281,18 @@ function OrderResults({ filters }: { filters: OrderFilters }): ReactElement {
           <OrderRow
             key={order.id}
             order={order}
-            selectable={canAct}
-            selected={selected.has(order.id)}
-            onToggle={() => {
-              toggle(order.id)
-            }}
+            selection={
+              canAct
+                ? {
+                    selected: selected.has(order.id),
+                    onToggle: () => {
+                      toggle(order.id)
+                    },
+                  }
+                : undefined
+            }
             result={results.get(order.id)}
+            customer={canAct ? 'link' : 'text'}
           />
         ))}
       </ul>
@@ -303,64 +306,5 @@ function OrderResults({ filters }: { filters: OrderFilters }): ReactElement {
         </Button>
       )}
     </div>
-  )
-}
-
-interface OrderRowProps {
-  order: OrderListItem
-  selectable: boolean
-  selected: boolean
-  onToggle: () => void
-  result: BulkItemResult | undefined
-}
-
-function OrderRow({ order, selectable, selected, onToggle, result }: OrderRowProps): ReactElement {
-  const { t, i18n } = useTranslation()
-  return (
-    <li className="flex gap-3 rounded-lg border p-3" aria-label={`#${String(order.number)}`}>
-      {selectable && (
-        <input
-          type="checkbox"
-          className="mt-1 size-5 shrink-0"
-          aria-label={t('orders.select', { number: order.number })}
-          checked={selected}
-          onChange={onToggle}
-        />
-      )}
-      <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <div className="flex items-center justify-between gap-2">
-          <Link
-            to={`/orders/${order.id}`}
-            className="font-semibold underline-offset-4 hover:underline"
-          >
-            #{order.number}
-          </Link>
-          <StatusBadge status={order.status} />
-        </div>
-        <p className="truncate text-sm">
-          {order.customerName ?? order.customerPhone} · {order.customerPhone}
-        </p>
-        <p className="flex flex-wrap justify-between gap-x-3 text-sm text-muted-foreground">
-          <span>
-            {t('orders.items', { count: order.itemCount })} ·{' '}
-            {t(order.isInsideDhaka ? 'orders.inside' : 'orders.outside')}
-          </span>
-          <span>{t('orders.cod', { amount: formatMoney(order.codAmount, i18n.language) })}</span>
-        </p>
-        <p className="text-xs text-muted-foreground">
-          {formatDhakaDateTime(order.createdAt, i18n.language)}
-        </p>
-        {result && (
-          <p
-            role={result.succeeded ? undefined : 'alert'}
-            className={result.succeeded ? 'text-sm text-green-800' : 'text-sm text-destructive'}
-          >
-            {result.succeeded && result.status
-              ? t('orders.rowDone', { status: t(`status.${result.status}`) })
-              : t('orders.rowFailed', { message: result.message ?? result.error ?? '' })}
-          </p>
-        )}
-      </div>
-    </li>
   )
 }

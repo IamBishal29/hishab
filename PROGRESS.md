@@ -1,14 +1,10 @@
 # Progress
 
 ## Current
-- Milestone: M2 Orders & customers (M1 complete)
-- Open PRs: #58 (#18 order list, landing #57 on main; CI green) and #60 (#56 customer history API)
-- Branch: feat/56-customer-history-api
-- Next step: Syed merges #58, then #60 (PROGRESS.md conflicts: keep #60's version, it includes
-  #18). Then `/next-task` picks #59 "Web: customer page" (needs both on main).
-- Issue: #18 done, PR #57 open for review (stacked on #55)
-- Branch: feat/18-order-list (base: feat/17-quick-order-form)
-- Next step: Syed merges #55, then I retarget PR #57 to `main`. Then `/next-task` picks the lowest open M2 issue (#56 customer page was split from #18).
+- Milestone: M2 Orders & customers; its last issue (#59) is in PR #61
+- Branch: feat/59-customer-page
+- Next step: Syed merges #61 (M2 complete), then `/next-task` starts M3 Couriers with #19
+  "ICourierProvider, courier accounts and the Fake courier".
 
 ## Done
 - Product discovery: PRD written (docs/PRD.md); name chosen: Hishab
@@ -95,10 +91,10 @@
   deliveredValue } (computed on read from Order.Total), GET /api/orders?customerId= with a
   (tenant, customer, created_at, number) index (EXPLAIN: 6 vs 84 buffers for a 2,000-order buyer
   once tenant leads the index); 400 .NET tests; note 18. Web half split to #59.
-- #18 Order list + detail (PR #57, stacked on #55): URL filters (orderFilters.ts,
-  bad values dropped), keyset "Load more" (useInfiniteQuery), bulk confirm/cancel with per-row
-  results, order detail timeline + confirm/cancel (409 message), invalidateOrders after changes,
-  packer read-only view; customer page split to #56; 45 web tests; note 17
+- #59 Customer page (PR #61): track record tiles (incl. delivery success and delivered value),
+  details form (server field errors), block/unblock, the customer's orders; afterCustomerChange()
+  fans one change out to order lists, order details and quick-order lookups (test guards it);
+  OrderRow extracted and shared; customer links for Owner/Manager/Moderator; 52 web tests; note 19
 
 ## Decisions waiting for Syed
 - `GETTING-STARTED.md` says to delete it in the first PR; the permission check blocked
@@ -122,6 +118,8 @@
 - Order list (#18): PR is ~1,250 lines (pages ~550, tests/fakes ~370, strings ~130); say if you
   want order detail split out. Filters take a lot of height at 360 px (could collapse later).
   Integration tests not run locally (Docker was off); web-only change, CI runs them.
+- Customer page (#59): blocking only warns, as since #13/#17 (orders are still allowed); say if blocked buyers
+  should need an Owner override to order. PR is ~750 lines.
 - Stacked PRs: a stacked PR merged into its base branch after that base has landed does not
   reach main. From now on I branch from main only, or retarget before you merge.
 - Git's credential manager has no GitHub login on this machine (push failed with "could not read
@@ -166,3 +164,4 @@
 - 2026-11-20: #18 split (customer page -> #56) and stacked on #55 (Syed's choices); PR #57 open
 - 2026-11-20: #57 merged into the #17 branch, not main; re-opened as #58. #56 split (web -> #59),
   API half from main (Syed's choice); PR #60 open
+- 2026-11-20: #58 and #60 merged; #59 implemented, PR #61 open

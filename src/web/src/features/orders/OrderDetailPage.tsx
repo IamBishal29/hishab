@@ -114,7 +114,18 @@ function OrderView({ details }: { details: OrderDetails }): ReactElement {
       <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
         <dt className="text-muted-foreground">{t('orderDetail.customer')}</dt>
         <dd>
-          {customer.name ?? customer.phone} · {customer.phone}
+          {canEnterOrders(session?.role) ? (
+            <Link to={`/customers/${customer.id}`} className="underline underline-offset-4">
+              {customer.name ?? customer.phone} · {customer.phone}
+            </Link>
+          ) : (
+            `${customer.name ?? customer.phone} · ${customer.phone}`
+          )}
+          {customer.isBlocked && (
+            <span className="ml-2 rounded-full bg-destructive/10 px-2 py-0.5 text-xs text-destructive">
+              {t('customer.blockedBadge')}
+            </span>
+          )}
         </dd>
         <dt className="text-muted-foreground">{t('orderDetail.delivery')}</dt>
         <dd>
