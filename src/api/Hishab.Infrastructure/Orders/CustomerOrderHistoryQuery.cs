@@ -24,4 +24,16 @@ internal sealed class CustomerOrderHistoryQuery(HishabDbContext db) : ICustomerO
             Returned: Count(OrderStatus.Returned, OrderStatus.ReceivedBack),
             Cancelled: Count(OrderStatus.Cancelled));
     }
+
+    // Order.Total is a domain rule (lines + delivery charge), not a column, so the delivered orders
+    // are loaded and summed with that rule rather than re-implemented in SQL. One customer's
+    // delivered orders are tens of rows, served by the (tenant_id, customer_id, created_at, number) index.
+    public async Task<decimal> DeliveredValueAsync(Guid customerId, CancellationToken cancellationToken)
+    {
+        var delivered = await db.Orders.AsNoTracking()
+            .Where(o => o.CustomerId == customerId
+                && (o.Status == OrderStatus.Delivered || o.Status == OrderStatus.CodSettled))
+            .ToListAsync(cancellationToken);
+        return delivered.Sum(o => o.Total.Amount);
+    }
 }
