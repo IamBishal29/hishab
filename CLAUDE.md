@@ -192,6 +192,11 @@ Never read, print or commit `.env`, user-secrets, tokens or keys. Put placeholde
 - Customers: one per (TenantId, normalised E.164 phone), unique index. Use
   `ICustomerService.FindOrCreateAsync` (race-safe: unique violation -> read the winner; safe
   inside a transaction via EF savepoints). Phones never in URLs (`POST /api/customers/lookup`).
+  Customer read model: `ICustomerOrderHistory` (counts by outcome, `DeliveredValueAsync` sums the
+  domain `Order.Total`; computed on read, no stored counters). `GET /api/customers/{id}` returns
+  `{ customer, history, deliveredValue }`; `GET /api/orders?customerId=` uses the
+  `(tenant_id, customer_id, created_at, number)` index. Composite indexes: equality columns first
+  (tenant included, the query filter adds it), sort key last.
 - Orders: `Order` aggregate (owned `Lines` + `History`, `xmin` row version). Change status only
   via `Order.TransitionTo` (table `OrderLifecycle`, from the PRD; invalid -> 409). Lines snapshot
   name/label/SKU/price/cost. Concurrent saves of one order -> `DbUpdateConcurrencyException`
