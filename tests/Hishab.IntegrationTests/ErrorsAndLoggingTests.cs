@@ -83,11 +83,12 @@ public class ErrorsAndLoggingTests(HishabApiFactory factory) : IClassFixture<His
     [Fact]
     public async Task Request_log_carries_correlation_tenant_and_user_ids()
     {
-        var tenantId = Guid.NewGuid().ToString();
-        var userId = Guid.NewGuid().ToString();
         using var client = factory.CreateClient();
+        var login = await factory.SignInAsync(client, Ct);
+        var tenantId = login.GetProperty("shopId").GetString();
+        var userId = login.GetProperty("userId").GetString();
         using var request = new HttpRequestMessage(HttpMethod.Get, "/_test/ok");
-        request.Headers.Add(TestAuthHandler.Header, $"{tenantId}|{userId}");
+        request.Headers.Authorization = AuthSession.Bearer(login);
 
         var response = await client.SendAsync(request, Ct);
         var correlationId = response.Headers.GetValues(CorrelationIdMiddleware.HeaderName).Single();

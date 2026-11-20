@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using Hishab.Api.Auth;
 using Hishab.Api.Errors;
 using Hishab.Api.Logging;
 using Hishab.Api.Middleware;
@@ -16,7 +17,7 @@ builder.Services.AddControllers()
     .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter())); // "Owner", not 0
 builder.Services.AddHishabRateLimiting(builder.Configuration);
 builder.Services.AddOpenApi();
-builder.Services.AddAuthentication(); // schemes arrive with JWT (#6); tests register their own
+builder.Services.AddHishabJwtAuthentication();
 builder.Services.AddAuthorization();
 builder.Services.AddExceptionHandler<DomainExceptionHandler>();
 builder.Services.AddProblemDetails(options => options.CustomizeProblemDetails = context =>
@@ -42,6 +43,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseAuthentication();
+app.UseMiddleware<TenantResolutionMiddleware>();
 app.UseMiddleware<UserLogContextMiddleware>();
 app.UseAuthorization();
 app.UseRateLimiter();

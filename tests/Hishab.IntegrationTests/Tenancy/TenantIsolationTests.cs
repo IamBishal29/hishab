@@ -50,6 +50,36 @@ public class TenantIsolationTests(TenancyDatabaseFixture fixture) : IClassFixtur
     }
 
     [Fact]
+    public async Task Refresh_tokens_are_isolated_between_shops()
+    {
+        var owners = new List<Guid>();
+        await CrossTenantAssert.IsIsolatedAsync(
+            id => fixture.CreateContext(id),
+            () => RefreshToken.Issue(owners[0], Guid.NewGuid(), Convert.ToHexString(Guid.NewGuid().ToByteArray()), DateTimeOffset.UtcNow, TimeSpan.FromDays(30)),
+            Ct,
+            newTenant: async () =>
+            {
+                var shop = Shop.Create(DateTimeOffset.UtcNow); // refresh tokens have a foreign key to users, users to shops
+                await using (var db = fixture.CreateContext(tenantId: null))
+                {
+                    db.Shops.Add(shop);
+                    await db.SaveChangesAsync(Ct);
+                }
+
+                var phone = "+8801" + Random.Shared.Next(300_000_000, 999_999_999).ToString(CultureInfo.InvariantCulture);
+                var owner = new HishabUser { Id = Guid.NewGuid(), UserName = phone, NormalizedUserName = phone, PhoneNumber = phone, Role = ShopRole.Owner };
+                await using (var db = fixture.CreateContext(shop.Id))
+                {
+                    db.Users.Add(owner);
+                    await db.SaveChangesAsync(Ct);
+                }
+
+                owners.Add(owner.Id); // the token is created for tenant A, the first shop
+                return shop.Id;
+            });
+    }
+
+    [Fact]
     public async Task Queries_return_nothing_when_no_tenant_is_set()
     {
         await using (var db = fixture.CreateContext(Guid.NewGuid()))

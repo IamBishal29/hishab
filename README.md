@@ -42,6 +42,8 @@ dotnet user-secrets set "Database:ConnectionString" \
   --project src/api/Hishab.Api
 # OTP hashing key: any random 32+ bytes, base64 (PowerShell: [Convert]::ToBase64String((1..32 | % { Get-Random -Max 256 })))
 dotnet user-secrets set "Otp:HashKey" "$(openssl rand -base64 32)" --project src/api/Hishab.Api
+# JWT signing key: another, different random 32+ bytes, base64
+dotnet user-secrets set "Jwt:SigningKey" "$(openssl rand -base64 32)" --project src/api/Hishab.Api
 dotnet run --project src/api/Hishab.Api           # dev OTP codes appear in the console log
 
 # 3. Web  ->  http://localhost:5173
