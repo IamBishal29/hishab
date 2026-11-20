@@ -9,6 +9,10 @@ export default defineConfig({
   resolve: {
     alias: { '@': path.resolve(import.meta.dirname, './src') },
   },
+  server: {
+    // Same origin for the SPA and the API, so the HttpOnly refresh cookie (Path=/api/auth) works.
+    proxy: { '/api': 'http://localhost:5125' },
+  },
   test: {
     environment: 'jsdom',
     globals: true,
