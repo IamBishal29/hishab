@@ -1,4 +1,5 @@
 using System.Globalization;
+using Hishab.Domain.Common;
 using Hishab.Domain.Shops;
 using Hishab.Infrastructure.Identity;
 using Hishab.Infrastructure.Persistence;
@@ -77,6 +78,15 @@ public class TenantIsolationTests(TenancyDatabaseFixture fixture) : IClassFixtur
                 owners.Add(owner.Id); // the token is created for tenant A, the first shop
                 return shop.Id;
             });
+    }
+
+    [Fact]
+    public async Task Audit_entries_are_isolated_between_shops()
+    {
+        await CrossTenantAssert.IsIsolatedAsync(
+            id => fixture.CreateContext(id),
+            () => AuditEntry.Record(Guid.Empty, Guid.NewGuid(), "Shop", Guid.NewGuid().ToString(), AuditAction.Updated, """{"name":{"old":"A","new":"B"}}""", "corr-1", DateTimeOffset.UtcNow),
+            Ct);
     }
 
     [Fact]

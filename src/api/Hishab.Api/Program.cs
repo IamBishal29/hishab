@@ -6,6 +6,7 @@ using Hishab.Api.Logging;
 using Hishab.Api.Middleware;
 using Hishab.Api.RateLimiting;
 using Hishab.Api.Validation;
+using Hishab.Application.Common.Auditing;
 using Hishab.Infrastructure;
 using Hishab.Infrastructure.Persistence;
 using Scalar.AspNetCore;
@@ -21,6 +22,8 @@ builder.Services.AddHishabRateLimiting(builder.Configuration);
 builder.Services.AddOpenApi();
 builder.Services.AddHishabJwtAuthentication();
 builder.Services.AddHishabAuthorization();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<IRequestContext, HttpRequestContext>(); // who is acting, for the audit log
 builder.Services.AddValidatorsFromAssemblyContaining<Program>(ServiceLifetime.Singleton); // validators are stateless
 builder.Services.AddExceptionHandler<DomainExceptionHandler>();
 builder.Services.AddProblemDetails(options => options.CustomizeProblemDetails = context =>

@@ -2,10 +2,11 @@
 
 ## Current
 - Milestone: M1 Foundation
-- Issue: #8 done, PR #46 open for review
-- Branch: feat/8-staff-roles
-- Next step: Syed merges PR #46, then `/next-task` picks #9 "Audit log via a SaveChanges
-  interceptor" (store user IDs without FK: users are hard-deleted on removal).
+- Issue: #9 done, PR #47 open for review
+- Branch: feat/9-audit-log
+- Next step: Syed merges PR #47, then `/next-task` picks #10 "Web: app shell, generated API
+  client and OTP login" (first web issue: Vite proxy for the /auth cookie, serialised
+  refresh, orval client from the OpenAPI document).
 
 ## Done
 - Product discovery: PRD written (docs/PRD.md); name chosen: Hishab
@@ -42,14 +43,19 @@
 - #8 Staff + authorization (PR #46): Permission enum + RolePermissions matrix, one policy
   per permission (PermissionHandler), POST/GET/PUT role/DELETE /staff (Owner only), invite =
   pre-created user joining at first OTP login, hard delete, limit placeholder 15; 183 tests
-  passing; learning note 07
+  passing; learning note 07 (merged)
+- #9 Audit log (PR #47): IAuditable + AuditInterceptor (same transaction, old/new diff,
+  personal fields masked, secrets never stored, append-only), AuditEntry (jsonb, sequence
+  order, no FK to users), IRequestContext, GET /audit (Owner, paged); 198 tests passing;
+  learning note 08
 
 ## Decisions waiting for Syed
 - `GETTING-STARTED.md` says to delete it in the first PR; the permission check blocked
   the deletion. Delete it, or say so and I'll do it in the next PR.
 - New: `Jwt:SigningKey` user-secret is required to run the API locally (README step 2).
-- Review the role matrix in PR #46 (e.g. should Managers manage staff?).
-- PR #46 is ~760 lines (no migration); still above ~600, mostly tests.
+- PR #47 is ~740 lines excl. migrations (guideline ~600), half tests/docs.
+- Later hardening for the audit log: DB role without UPDATE/DELETE on audit_entries, or a
+  hash chain (tamper-evidence); decide when deployment is planned.
 - Later: optimistic concurrency (ETag + xmin) for PUT /shop if two managers editing at
   once becomes real; validate default courier against connected couriers (courier issue).
 - Web login (#10): the SPA must serialise refresh calls (strict reuse detection: two tabs
@@ -72,4 +78,6 @@
 - 2026-11-20: PR size guideline raised to ~600 lines incl. tests/docs (Syed)
 - 2026-11-20: #6 implemented, PR #44 open (refresh token: cookie + body, Syed's choice) (merged)
 - 2026-11-20: #7 implemented, PR #45 open (merged)
-- 2026-11-20: #8 implemented, PR #46 open
+- 2026-11-20: #8 implemented, PR #46 open (merged)
+- 2026-11-20: No AI-tool attribution on GitHub from now on (Syed)
+- 2026-11-20: #9 implemented, PR #47 open

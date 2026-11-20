@@ -16,7 +16,7 @@ public enum ShopRole
 /// A seller's shop: the tenant. Its <see cref="Id"/> is the TenantId of everything the
 /// shop owns. Holds the profile and the delivery charges used when pricing orders.
 /// </summary>
-public sealed class Shop
+public sealed class Shop : IAuditable
 {
     public const string DefaultName = "My shop";
     public const int NameMaxLength = 100;
