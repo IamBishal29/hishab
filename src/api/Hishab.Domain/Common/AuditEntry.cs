@@ -40,6 +40,12 @@ public sealed class AuditEntry : ITenantOwned
 
     public Guid Id { get; private set; }
 
+    /// <summary>
+    /// Database-assigned, increasing: the stable newest-first order. Timestamps tie (same
+    /// millisecond, or one transaction) and random Guids have no order.
+    /// </summary>
+    public long Sequence { get; private set; }
+
     public Guid TenantId { get; set; }
 
     /// <summary>Who made the change; null for sign-up and background work. No foreign key: users can be removed, their history stays.</summary>

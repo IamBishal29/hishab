@@ -122,18 +122,14 @@ internal static class AuditChanges
                 continue;
             }
 
+            var isUpdate = entry.State is not (EntityState.Added or EntityState.Deleted);
+            if (isUpdate && (!property.IsModified || Equals(property.OriginalValue, property.CurrentValue)))
+            {
+                continue; // untouched, or set to the value it already had
+            }
+
             var oldValue = entry.State == EntityState.Added ? null : Present(meta, property.OriginalValue);
             var newValue = entry.State == EntityState.Deleted ? null : Present(meta, property.CurrentValue);
-
-            if (entry.State == EntityState.Modified && !property.IsModified)
-            {
-                continue;
-            }
-
-            if (Equals(property.OriginalValue, property.CurrentValue) && entry.State == EntityState.Modified)
-            {
-                continue; // set to the same value
-            }
 
             if (oldValue is null && newValue is null)
             {

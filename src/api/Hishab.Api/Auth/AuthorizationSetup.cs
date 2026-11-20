@@ -16,6 +16,7 @@ public static class Policies
     public const string CanEnterOrders = "Can" + nameof(Permission.EnterOrders);
     public const string CanPack = "Can" + nameof(Permission.Pack);
     public const string CanSeeProfit = "Can" + nameof(Permission.SeeProfit);
+    public const string CanViewAudit = "Can" + nameof(Permission.ViewAudit);
 
     public static string For(Permission permission) => "Can" + permission;
 

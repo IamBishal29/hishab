@@ -11,7 +11,7 @@ internal sealed class AuditLog(HishabDbContext db) : IAuditLog
         var query = db.AuditEntries.AsNoTracking(); // tenant filter: this shop only
         var total = await query.CountAsync(cancellationToken);
         var rows = await query
-            .OrderByDescending(a => a.OccurredAt).ThenByDescending(a => a.Id) // stable order across pages
+            .OrderByDescending(a => a.Sequence) // stable, gap-tolerant order across pages
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(cancellationToken);

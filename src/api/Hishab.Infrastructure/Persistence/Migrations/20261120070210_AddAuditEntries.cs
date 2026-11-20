@@ -1,5 +1,6 @@
 ﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
@@ -16,6 +17,8 @@ namespace Hishab.Infrastructure.Persistence.Migrations
                 columns: table => new
                 {
                     id = table.Column<Guid>(type: "uuid", nullable: false),
+                    sequence = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityAlwaysColumn),
                     tenant_id = table.Column<Guid>(type: "uuid", nullable: false),
                     user_id = table.Column<Guid>(type: "uuid", nullable: true),
                     entity_type = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
@@ -36,9 +39,9 @@ namespace Hishab.Infrastructure.Persistence.Migrations
                 column: "tenant_id");
 
             migrationBuilder.CreateIndex(
-                name: "ix_audit_entries_tenant_id_occurred_at",
+                name: "ix_audit_entries_tenant_id_sequence",
                 table: "audit_entries",
-                columns: new[] { "tenant_id", "occurred_at" });
+                columns: new[] { "tenant_id", "sequence" });
         }
 
         /// <inheritdoc />

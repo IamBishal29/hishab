@@ -62,6 +62,13 @@ namespace Hishab.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("occurred_at");
 
+                    b.Property<long>("Sequence")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("sequence");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityAlwaysColumn(b.Property<long>("Sequence"));
+
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uuid")
                         .HasColumnName("tenant_id");
@@ -76,8 +83,8 @@ namespace Hishab.Infrastructure.Persistence.Migrations
                     b.HasIndex("TenantId")
                         .HasDatabaseName("ix_audit_entries_tenant_id");
 
-                    b.HasIndex("TenantId", "OccurredAt")
-                        .HasDatabaseName("ix_audit_entries_tenant_id_occurred_at");
+                    b.HasIndex("TenantId", "Sequence")
+                        .HasDatabaseName("ix_audit_entries_tenant_id_sequence");
 
                     b.ToTable("audit_entries", (string)null);
                 });

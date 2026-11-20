@@ -82,7 +82,8 @@ internal sealed class AuditEntryConfiguration : IEntityTypeConfiguration<AuditEn
         builder.Property(a => a.Action).HasConversion<string>().HasMaxLength(16);
         builder.Property(a => a.Changes).HasColumnType("jsonb");
         builder.Property(a => a.CorrelationId).HasMaxLength(AuditEntry.CorrelationIdMaxLength);
-        builder.HasIndex(a => new { a.TenantId, a.OccurredAt }); // newest-first paging per shop
+        builder.Property(a => a.Sequence).UseIdentityAlwaysColumn(); // assigned by PostgreSQL, never by the app
+        builder.HasIndex(a => new { a.TenantId, a.Sequence }); // newest-first paging per shop (and keyset paging later)
     }
 }
 
