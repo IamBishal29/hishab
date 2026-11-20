@@ -1,5 +1,11 @@
 import { http, HttpResponse } from 'msw'
 import { setupServer } from 'msw/node'
+import type {
+  BulkItemResult,
+  OrderDetails,
+  OrderListItem,
+  OrderStatus,
+} from '@/api/generated/hishab'
 
 /** A fake Hishab API for component tests. `api` holds the state tests arrange and inspect. */
 export const api = {
@@ -14,6 +20,107 @@ export const api = {
   orderRequests: [] as { key: string | null; body: Record<string, unknown> }[],
   /** The next POST /api/orders fails like this instead of succeeding. */
   nextOrderFailure: null as null | 'network' | Record<string, string[]>,
+  /** The signed-in user's role (GET /api/auth/me). */
+  role: 'Owner',
+  /** Orders served by GET /api/orders (newest first) and changed by confirm/cancel. */
+  orders: [] as OrderListItem[],
+  /** Query strings of every GET /api/orders, to check what the list asked for. */
+  orderListQueries: [] as URLSearchParams[],
+  /** Bulk or single actions on these order IDs fail with this message (lifecycle conflict). */
+  conflicts: {} as Record<string, string>,
+}
+
+export function listItem(number: number, overrides: Partial<OrderListItem> = {}): OrderListItem {
+  return {
+    id: `o-${String(number)}`,
+    number,
+    status: 'New',
+    source: 'Facebook',
+    isInsideDhaka: true,
+    customerId: 'c-1',
+    customerPhone: '+8801712345678',
+    customerName: 'Rahima Begum',
+    itemCount: 2,
+    total: 1360,
+    codAmount: 1360,
+    createdAt: '2026-11-20T04:30:00Z',
+    ...overrides,
+  }
+}
+
+/** GET /api/orders/{id} for a list item: one line, created then (maybe) moved on. */
+export function detailsOf(item: OrderListItem): OrderDetails {
+  const history: OrderDetails['order']['history'] = [
+    { from: null, to: 'New', changedBy: 'u-1', changedAt: item.createdAt, note: null },
+  ]
+  if (item.status !== 'New') {
+    history.push({
+      from: 'New',
+      to: item.status,
+      changedBy: 'u-1',
+      changedAt: '2026-11-20T06:00:00Z',
+      note: null,
+    })
+  }
+  return {
+    order: {
+      id: item.id,
+      number: item.number,
+      status: item.status,
+      source: item.source,
+      deliveryAddress: 'House 4, Road 2, Mirpur',
+      isInsideDhaka: item.isInsideDhaka,
+      lines: [
+        {
+          productVariantId: 'v-m',
+          productName: 'Polo shirt',
+          variantLabel: 'M / Red',
+          sku: 'POLO-M',
+          unitPrice: 650,
+          unitCost: null,
+          quantity: 2,
+          lineTotal: 1300,
+        },
+      ],
+      subtotal: 1300,
+      deliveryCharge: 60,
+      total: 1360,
+      advancePaid: 0,
+      codAmount: 1360,
+      note: null,
+      createdAt: item.createdAt,
+      history,
+    },
+    customer: {
+      id: item.customerId,
+      phone: item.customerPhone,
+      name: item.customerName,
+      isBlocked: false,
+      blockedReason: null,
+      previousOrders: 0,
+      delivered: 0,
+      returned: 0,
+      cancelled: 0,
+    },
+    warnings: [],
+  }
+}
+
+/** Applies a status change like the API: a conflict leaves the order as it was. */
+function changeStatus(id: string, to: OrderStatus): BulkItemResult {
+  const order = api.orders.find((o) => o.id === id)
+  const conflict = api.conflicts[id]
+  if (!order || conflict) {
+    return {
+      orderId: id,
+      succeeded: false,
+      status: null,
+      error: 'Conflict',
+      message: conflict ?? 'Not found',
+    }
+  }
+  order.status = to
+  return { orderId: id, succeeded: true, status: to, error: null, message: null }
 }
 
 export interface LookupResult {
@@ -61,7 +168,7 @@ const problem = (status: number, errors?: Record<string, string[]>, detail?: str
     { status, headers: { 'content-type': 'application/problem+json' } },
   )
 
-const me = { userId: 'u-1', shopId: 's-1', role: 'Owner' }
+const me = () => ({ userId: 'u-1', shopId: 's-1', role: api.role })
 
 export const handlers = [
   http.post('*/api/auth/otp', () =>
@@ -77,7 +184,7 @@ export const handlers = [
     }
     api.hasRefreshCookie = true
     return HttpResponse.json({
-      ...me,
+      ...me(),
       isNewShop: api.isNewShop,
       accessToken: 'access-1',
       accessTokenExpiresAt: '2026-11-20T10:15:00Z',
@@ -105,7 +212,7 @@ export const handlers = [
 
   http.get('*/api/auth/me', ({ request }) =>
     request.headers.get('Authorization')?.startsWith('Bearer ')
-      ? HttpResponse.json(me)
+      ? HttpResponse.json(me())
       : problem(401),
   ),
 
@@ -151,6 +258,41 @@ export const handlers = [
     )
   }),
 
+  // Keyset paging stand-in: the cursor is the index of the next order.
+  http.get('*/api/orders', ({ request }) => {
+    const query = new URL(request.url).searchParams
+    api.orderListQueries.push(query)
+    const statuses = query.getAll('Status')
+    const matching = api.orders.filter((o) => statuses.length === 0 || statuses.includes(o.status))
+    const start = Number(query.get('Cursor') ?? 0)
+    const end = start + Number(query.get('Limit') ?? 25)
+    return HttpResponse.json({
+      items: matching.slice(start, end),
+      nextCursor: end < matching.length ? String(end) : null,
+    })
+  }),
+
+  http.get('*/api/orders/:id', ({ params }) => {
+    const order = api.orders.find((o) => o.id === params.id)
+    return order ? HttpResponse.json(detailsOf(order)) : problem(404)
+  }),
+
+  http.post('*/api/orders/bulk/:action', async ({ request, params }) => {
+    const { orderIds } = (await request.json()) as { orderIds: string[] }
+    const to: OrderStatus = params.action === 'confirm' ? 'Confirmed' : 'Cancelled'
+    const results = orderIds.map((id) => changeStatus(id, to))
+    const succeeded = results.filter((r) => r.succeeded).length
+    return HttpResponse.json({ succeeded, failed: results.length - succeeded, results })
+  }),
+
+  http.post('*/api/orders/:id/:action', ({ params }) => {
+    const id = String(params.id)
+    const result = changeStatus(id, params.action === 'confirm' ? 'Confirmed' : 'Cancelled')
+    const order = api.orders.find((o) => o.id === id)
+    if (!result.succeeded || !order) return problem(409, undefined, result.message ?? undefined)
+    return HttpResponse.json(detailsOf(order))
+  }),
+
   http.put('*/api/shop', async ({ request }) => {
     const body = (await request.json()) as { name: string }
     api.shopName = body.name
@@ -168,4 +310,8 @@ export function resetApi(): void {
   api.customers = {}
   api.orderRequests = []
   api.nextOrderFailure = null
+  api.role = 'Owner'
+  api.orders = []
+  api.orderListQueries = []
+  api.conflicts = {}
 }
