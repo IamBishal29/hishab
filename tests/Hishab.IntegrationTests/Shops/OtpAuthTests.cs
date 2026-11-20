@@ -55,7 +55,7 @@ public class OtpAuthTests(HishabApiFactory factory) : IClassFixture<HishabApiFac
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<HishabDbContext>();
         var shopId = body.GetProperty("shopId").GetGuid();
-        (await db.Shops.AnyAsync(s => s.Id == shopId, Ct)).ShouldBeTrue();
+        (await db.Shops.IgnoreQueryFilters([HishabDbContext.TenantFilter]).AnyAsync(s => s.Id == shopId, Ct)).ShouldBeTrue();
         var owner = await db.Users.IgnoreQueryFilters([HishabDbContext.TenantFilter])
             .SingleAsync(u => u.Id == body.GetProperty("userId").GetGuid(), Ct);
         owner.TenantId.ShouldBe(shopId);

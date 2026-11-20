@@ -49,6 +49,18 @@ public class HishabDbContext : IdentityUserContext<HishabUser, Guid>
         base.OnModelCreating(builder); // Identity's own mapping first, ours on top
         builder.ApplyConfigurationsFromAssembly(typeof(HishabDbContext).Assembly);
         ApplyTenantConventions(builder);
+
+        // The shop is the tenant itself (not ITenantOwned): the same named filter keeps every
+        // shop query to the caller's own shop, so no endpoint can read another shop by id.
+        builder.Entity<Shop>().HasQueryFilter(TenantFilter, s => s.Id == CurrentTenantId);
+    }
+
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+    {
+        // Every Money column: numeric(12,2), up to 9,999,999,999.99 BDT.
+        configurationBuilder.Properties<Money>()
+            .HaveConversion<MoneyConverter>()
+            .HavePrecision(12, 2);
     }
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
