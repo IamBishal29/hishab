@@ -2,10 +2,10 @@
 
 ## Current
 - Milestone: M3 Couriers (M1 and M2 complete)
-- Issue: #19 done, PR #62 open for review
-- Branch: feat/19-courier-provider-accounts
-- Next step: Syed sets the new `DataProtection:CertificateBase64` user-secret (README) and merges
-  #62, then `/next-task` picks #20 "Book a courier for one order".
+- Issue: #20 done, PR #63 open for review
+- Branch: feat/20-book-courier
+- Next step: Syed merges #63, then `/next-task` picks #21 "Bulk booking with partial failures"
+  (reuse ShipmentService per order; Fake BookManyAsync already returns per-parcel results).
 
 ## Done
 - Product discovery: PRD written (docs/PRD.md); name chosen: Hishab
@@ -101,6 +101,10 @@
   wrapped by a certificate, purpose bound to the shop; ADR 0007), masked hints only, Free plan = 1
   courier (shop-row lock; key rotation always allowed), GET/PUT/DELETE /api/couriers; tests migrate
   before host start; 421 .NET tests; note 20. README commands smoke-tested end to end.
+- #20 Booking (PR #63): Shipment entity (Requested/Booked/Rejected, row version), intent committed
+  before the courier call, reference = order ID (adapters must be idempotent on it), partial unique
+  index = one live booking per order, POST /api/orders/{id}/book (CanPack), 503 on no answer,
+  OrderDetails.shipment, default courier cleared on disconnect; 440 .NET tests; note 21
 
 ## Decisions waiting for Syed
 - `GETTING-STARTED.md` says to delete it in the first PR; the permission check blocked
@@ -126,10 +130,12 @@
   Integration tests not run locally (Docker was off); web-only change, CI runs them.
 - **Action needed (#19):** the API now needs `DataProtection:CertificateBase64` to start. Run the
   README "Data Protection certificate" lines once; I did not touch your user-secrets.
+- Booking (#20): an order cancelled while its courier booking is in flight leaves a parcel at the
+  courier (logged warning; #22 reconciles `Requested` shipments). Alternative: block cancel while a
+  booking is in flight. PR is ~960 lines (half tests).
 - Couriers (#19): Managers can connect couriers (the #8 matrix gives them ManageShop). Owner-only
   would need a new permission; say if you want it. Pathao's API wants a merchant login for its
   token, while our guardrail says never store courier passwords: decide before the Pathao issue.
-  Disconnecting the shop's default courier does not clear `Shop.DefaultCourier` yet (booking issue).
 - Customer page (#59): blocking only warns, as since #13/#17 (orders are still allowed); say if blocked buyers
   should need an Owner override to order. PR is ~750 lines.
 - Stacked PRs: a stacked PR merged into its base branch after that base has landed does not
@@ -179,3 +185,5 @@
 - 2026-11-20: #58 and #60 merged; #59 implemented, PR #61 open
 - 2026-11-21: #61 merged (M2 complete); #19 as one PR with key ring in Postgres + certificate
   (Syed's choices); PR #62 open
+- 2026-11-21: #62 merged; #20 with a Shipment entity and intent record + same key (Syed's
+  choices); PR #63 open
