@@ -12,18 +12,18 @@ public enum Plan
     Business,
 }
 
-/// <summary>What a plan allows. <see cref="MaxOrdersPerMonth"/> null means unlimited.</summary>
-public sealed record PlanLimits(int? MaxOrdersPerMonth, int MaxUsers);
+/// <summary>What a plan allows. Null means unlimited.</summary>
+public sealed record PlanLimits(int? MaxOrdersPerMonth, int MaxUsers, int? MaxCouriers);
 
 /// <summary>The plan catalogue: the entitlements of each plan, in one place.</summary>
 public static class Plans
 {
     private static readonly Dictionary<Plan, PlanLimits> _limits = new()
     {
-        [Plan.Free] = new(MaxOrdersPerMonth: 100, MaxUsers: 1),
-        [Plan.Starter] = new(MaxOrdersPerMonth: 1_000, MaxUsers: 2),
-        [Plan.Growth] = new(MaxOrdersPerMonth: 5_000, MaxUsers: 5),
-        [Plan.Business] = new(MaxOrdersPerMonth: null, MaxUsers: 15),
+        [Plan.Free] = new(MaxOrdersPerMonth: 100, MaxUsers: 1, MaxCouriers: 1),
+        [Plan.Starter] = new(MaxOrdersPerMonth: 1_000, MaxUsers: 2, MaxCouriers: null), // "All couriers"
+        [Plan.Growth] = new(MaxOrdersPerMonth: 5_000, MaxUsers: 5, MaxCouriers: null),
+        [Plan.Business] = new(MaxOrdersPerMonth: null, MaxUsers: 15, MaxCouriers: null),
     };
 
     public static PlanLimits LimitsFor(Plan plan) =>
@@ -101,6 +101,9 @@ public sealed class PlanLimitExceededException(Plan plan, string allowance, int 
 {
     public static PlanLimitExceededException Users(Plan plan, int limit) =>
         new(plan, limit == 1 ? "1 user" : $"{limit} users", limit);
+
+    public static PlanLimitExceededException Couriers(Plan plan, int limit) =>
+        new(plan, limit == 1 ? "1 courier" : $"{limit} couriers", limit);
 
     public static PlanLimitExceededException Orders(Plan plan, int limit) =>
         new(plan, $"{limit} orders a month", limit);

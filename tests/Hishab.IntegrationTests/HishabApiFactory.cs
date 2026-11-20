@@ -1,10 +1,12 @@
 using System.Security.Cryptography;
 using Hishab.Application.Shops.Auth;
 using Hishab.Infrastructure.Persistence;
+using Hishab.Infrastructure.Persistence.Tenancy;
 using Hishab.IntegrationTests.Support;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Time.Testing;
@@ -35,7 +37,19 @@ public class HishabApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
     public async ValueTask InitializeAsync()
     {
         await _postgres.StartAsync();
-        await Services.MigrateDatabaseAsync();
+
+        // Migrate before the host starts, as Program does: hosted services (the Data Protection
+        // key ring loader) read tables at startup.
+        var options = new DbContextOptionsBuilder<HishabDbContext>()
+            .UseNpgsql(_postgres.GetConnectionString())
+            .UseSnakeCaseNamingConvention()
+            .Options;
+        await using (var db = new HishabDbContext(options, new TenantContext()))
+        {
+            await db.Database.MigrateAsync();
+        }
+
+        _ = Services; // starts the host
     }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -46,6 +60,7 @@ public class HishabApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         builder.UseSetting("Otp:HashKey", Convert.ToBase64String(RandomNumberGenerator.GetBytes(32))); // fresh per run, never committed
         builder.UseSetting("Otp:Delivery", "Log");
         builder.UseSetting("Jwt:SigningKey", Convert.ToBase64String(RandomNumberGenerator.GetBytes(32)));
+        builder.UseSetting("DataProtection:CertificateBase64", Support.TestCertificate.PfxBase64); // fresh per run, in memory only
         builder.UseSetting("RateLimiting:OtpPermitsPerMinute", OtpPermitsPerMinute.ToString(System.Globalization.CultureInfo.InvariantCulture));
 
         builder.ConfigureTestServices(services =>

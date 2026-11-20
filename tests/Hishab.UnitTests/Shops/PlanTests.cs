@@ -5,13 +5,13 @@ namespace Hishab.UnitTests.Shops;
 public class PlanTests
 {
     [Theory]
-    [InlineData(Plan.Free, 100, 1)]
-    [InlineData(Plan.Starter, 1_000, 2)]
-    [InlineData(Plan.Growth, 5_000, 5)]
-    [InlineData(Plan.Business, null, 15)]
-    public void Plan_limits_match_the_PRD(Plan plan, int? orders, int users)
+    [InlineData(Plan.Free, 100, 1, 1)]
+    [InlineData(Plan.Starter, 1_000, 2, null)]
+    [InlineData(Plan.Growth, 5_000, 5, null)]
+    [InlineData(Plan.Business, null, 15, null)]
+    public void Plan_limits_match_the_PRD(Plan plan, int? orders, int users, int? couriers)
     {
-        Plans.LimitsFor(plan).ShouldBe(new PlanLimits(orders, users));
+        Plans.LimitsFor(plan).ShouldBe(new PlanLimits(orders, users, couriers));
     }
 
     [Fact]
