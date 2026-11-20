@@ -137,6 +137,7 @@ public class TenantIsolationTests(TenancyDatabaseFixture fixture) : IClassFixtur
         await CrossTenantAssert.IsIsolatedAsync(
             id => fixture.CreateContext(id),
             () => Order.Create(
+                1,
                 customers[0],
                 "Mirpur",
                 true,
@@ -158,6 +159,15 @@ public class TenantIsolationTests(TenancyDatabaseFixture fixture) : IClassFixtur
                 customers.Add(customer.Id); // the order is created for tenant A, the first one
                 return tenant;
             });
+    }
+
+    [Fact]
+    public async Task Idempotency_records_are_isolated_between_shops()
+    {
+        await CrossTenantAssert.IsIsolatedAsync(
+            id => fixture.CreateContext(id),
+            () => new IdempotencyRecord(Guid.NewGuid().ToString(), "CreateOrder", new string('A', 64), Guid.NewGuid(), DateTimeOffset.UtcNow),
+            Ct);
     }
 
     [Fact]

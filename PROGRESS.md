@@ -2,11 +2,11 @@
 
 ## Current
 - Milestone: M2 Orders & customers (M1 complete)
-- Issue: #14 done, PR #52 open for review
-- Branch: feat/14-order-aggregate
-- Next step: Syed merges PR #52, then `/next-task` picks #15 "Quick order API" (POST /orders in
-  one transaction: FindOrCreateAsync + ReserveOrderAsync + Order.Create; delivery charge from
-  shop settings; idempotency key; short order number; map DbUpdateConcurrencyException to 409).
+- Issue: #15 done, PR #53 open for review
+- Branch: feat/15-quick-order-api
+- Next step: Syed merges PR #53, then `/next-task` picks #16 "Order search, filters,
+  transitions and bulk actions" (map DbUpdateConcurrencyException to 409; EXPLAIN the indexes;
+  per-order results for bulk actions).
 
 ## Done
 - Product discovery: PRD written (docs/PRD.md); name chosen: Hishab
@@ -69,7 +69,11 @@
 - #14 Order aggregate (PR #52): Order + owned lines (snapshots incl. cost) + status history
   (sequence), OrderLifecycle table from the PRD (TransitionTo, 409 on invalid), totals/COD,
   xmin row version, concurrent saves -> DbUpdateConcurrencyException; 9 allowed + 72
-  forbidden transition tests; 365 .NET tests; learning note 13
+  forbidden transition tests; 365 .NET tests; learning note 13 (merged)
+- #15 Quick order API (PR #53): POST /api/orders in one transaction (customer, quota, order
+  number, catalogue snapshots, delivery charge rule/override), required Idempotency-Key
+  (fingerprint, replay 201 + header, 409 on reuse, parallel twins roll back and replay),
+  customer history summary + blocked warning, GET /api/orders/{id}; 378 .NET tests; note 14
 
 ## Decisions waiting for Syed
 - `GETTING-STARTED.md` says to delete it in the first PR; the permission check blocked
@@ -81,6 +85,9 @@
   (bundle 181 kB gzip), 4 moderate dev-only npm audit findings.
 - Order lifecycle follows the PRD exactly: no cancel after booking, no return after delivery.
   Confirm with sellers whether courier-side cancellations need a Booked -> Cancelled move.
+- Quick order: no per-order price override (catalogue price only) and Idempotency-Key is
+  required; say if sellers need a negotiated-price override. Old idempotency keys need a
+  clean-up job once Hangfire lands.
 - Later hardening for the audit log: DB role without UPDATE/DELETE on audit_entries, or a
   hash chain (tamper-evidence); decide when deployment is planned.
 - Later: optimistic concurrency (ETag + xmin) for PUT /shop if two managers editing at
@@ -113,4 +120,5 @@
 - 2026-11-20: #12 implemented, PR #50 open (all read, Owner+Manager edit; 403 on manager
   cost writes: Syed's choices) (merged)
 - 2026-11-20: #13 implemented, PR #51 open (phone lookup via POST body: Syed's choice) (merged)
-- 2026-11-20: #14 implemented, PR #52 open
+- 2026-11-20: #14 implemented, PR #52 open (merged)
+- 2026-11-20: #15 implemented, PR #53 open

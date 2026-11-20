@@ -196,6 +196,11 @@ Never read, print or commit `.env`, user-secrets, tokens or keys. Put placeholde
   via `Order.TransitionTo` (table `OrderLifecycle`, from the PRD; invalid -> 409). Lines snapshot
   name/label/SKU/price/cost. Concurrent saves of one order -> `DbUpdateConcurrencyException`
   (map to 409 "reload and retry"). Order lines have no TenantId: always query through orders.
+- Order creation: `IOrderService.CreateAsync` (one transaction: customer, quota, number,
+  snapshots, idempotency record). `POST /api/orders` requires `Idempotency-Key`; replays return
+  the first order (201 + `Idempotent-Replayed: true`), a reused key with a different body -> 409.
+  Order numbers: atomic `UPDATE shops SET last_order_number ... RETURNING`. Lock order per
+  request: usage counter, then shop row (keep it, to avoid deadlocks).
 - Field-level rules belong in services via `IRequestContext.Has(permission)`, not only in controllers.
 - Audit: mark entities `IAuditable` (Domain); `AuditInterceptor` writes `AuditEntry` rows in the
   same SaveChanges. In EF config mark personal fields `.IsPersonalData(PersonalDataKind.Phone|Text)`

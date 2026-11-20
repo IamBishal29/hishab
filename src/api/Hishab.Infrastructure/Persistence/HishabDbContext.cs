@@ -60,6 +60,8 @@ public class HishabDbContext : IdentityUserContext<HishabUser, Guid>
 
     public DbSet<Order> Orders => Set<Order>();
 
+    public DbSet<IdempotencyRecord> IdempotencyRecords => Set<IdempotencyRecord>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder); // Identity's own mapping first, ours on top

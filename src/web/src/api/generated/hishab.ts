@@ -84,6 +84,48 @@ export const CourierProvider = {
   Steadfast: 'Steadfast',
 } as const;
 
+export interface CreateOrderLineRequest {
+  /** The catalogue variant; name, SKU, price and cost are copied from it. */
+  variantId: string;
+  quantity: number;
+}
+
+export type OrderSource = typeof OrderSource[keyof typeof OrderSource];
+
+
+export const OrderSource = {
+  Facebook: 'Facebook',
+  Instagram: 'Instagram',
+  WhatsApp: 'WhatsApp',
+  Phone: 'Phone',
+  WalkIn: 'WalkIn',
+} as const;
+
+export interface CreateOrderRequest {
+  /** The buyer's mobile number; matches an existing customer or creates one. */
+  phone: string;
+  /** @nullable */
+  customerName?: string | null;
+  /**
+     * Defaults to the customer's saved address.
+     * @nullable
+     */
+  deliveryAddress?: string | null;
+  /** Picks the shop's inside or outside Dhaka delivery charge. */
+  isInsideDhaka: boolean;
+  source: OrderSource;
+  lines: CreateOrderLineRequest[];
+  /**
+     * Overrides the shop's delivery charge (BDT), e.g. free delivery for a loyal buyer.
+     * @nullable
+     */
+  deliveryCharge?: number | null;
+  /** Paid before delivery (bKash, Nagad), BDT. */
+  advancePaid?: number;
+  /** @nullable */
+  note?: string | null;
+}
+
 export interface VariantRequest {
   /** Stock-keeping unit; stored upper-case, unique among the shop's active variants. */
   sku: string;
@@ -139,6 +181,20 @@ export interface CustomerPage {
   totalCount: number;
 }
 
+export interface CustomerSummary {
+  id: string;
+  phone: string;
+  /** @nullable */
+  name: string | null;
+  isBlocked: boolean;
+  /** @nullable */
+  blockedReason: string | null;
+  previousOrders: number;
+  delivered: number;
+  returned: number;
+  cancelled: number;
+}
+
 export interface FindOrCreateCustomerRequest {
   phone: string;
   /** @nullable */
@@ -170,6 +226,72 @@ export interface MeResponse {
   userId: string;
   shopId: string;
   role: string;
+}
+
+export type OrderStatus = typeof OrderStatus[keyof typeof OrderStatus];
+
+
+export const OrderStatus = {
+  New: 'New',
+  Confirmed: 'Confirmed',
+  Cancelled: 'Cancelled',
+  Booked: 'Booked',
+  InTransit: 'InTransit',
+  Delivered: 'Delivered',
+  Returned: 'Returned',
+  CodSettled: 'CodSettled',
+  ReceivedBack: 'ReceivedBack',
+} as const;
+
+export interface OrderLineDto {
+  /** @nullable */
+  productVariantId: string | null;
+  productName: string;
+  /** @nullable */
+  variantLabel: string | null;
+  /** @nullable */
+  sku: string | null;
+  unitPrice: number;
+  /** @nullable */
+  unitCost: number | null;
+  quantity: number;
+  lineTotal: number;
+}
+
+export interface OrderStatusChangeDto {
+  from: null | OrderStatus;
+  to: OrderStatus;
+  /** @nullable */
+  changedBy: string | null;
+  changedAt: string;
+  /** @nullable */
+  note: string | null;
+}
+
+export interface OrderDto {
+  id: string;
+  number: number;
+  status: OrderStatus;
+  source: OrderSource;
+  /** @nullable */
+  deliveryAddress: string | null;
+  isInsideDhaka: boolean;
+  lines: OrderLineDto[];
+  subtotal: number;
+  deliveryCharge: number;
+  total: number;
+  advancePaid: number;
+  codAmount: number;
+  /** @nullable */
+  note: string | null;
+  createdAt: string;
+  history: OrderStatusChangeDto[];
+}
+
+export interface OrderDetails {
+  order: OrderDto;
+  customer: CustomerSummary;
+  warnings: string[];
 }
 
 export interface OtpSent {
@@ -1487,6 +1609,183 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return useMutation(getDeleteApiCustomersIdBlockMutationOptions(options), queryClient);
     }
+
+export const getPostApiOrdersUrl = () => {
+
+
+
+
+  return `/api/orders`
+}
+
+/**
+ * @summary Creates an order in one request. Send a new Idempotency-Key (e.g. a UUID) per order form
+submission: retrying with the same key returns the first order instead of creating another.
+ */
+export const postApiOrders = async (createOrderRequest: CreateOrderRequest, options?: Parameters<typeof apiFetch>[1]): Promise<OrderDetails> => {
+
+  return apiFetch<OrderDetails>(getPostApiOrdersUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: getHeaders({ 'Content-Type': 'application/json' }, options?.headers),
+    body: JSON.stringify(createOrderRequest)
+  }
+);}
+
+
+
+
+
+export const getPostApiOrdersMutationKey = () => ['postApiOrders'] as const;
+
+export const getPostApiOrdersMutationOptions = <TError = ValidationProblemDetails | ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiOrders>>, TError,PostApiOrdersMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiOrders>>, TError,PostApiOrdersMutationVariables, TContext> => {
+
+const mutationKey = getPostApiOrdersMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiOrders>>, PostApiOrdersMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  postApiOrders(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiOrdersMutationResult = NonNullable<Awaited<ReturnType<typeof postApiOrders>>>
+    export type PostApiOrdersMutationBody = CreateOrderRequest
+    export type PostApiOrdersMutationError = ValidationProblemDetails | ProblemDetails
+    export type PostApiOrdersMutationVariables = {data: CreateOrderRequest}
+
+    /**
+ * @summary Creates an order in one request. Send a new Idempotency-Key (e.g. a UUID) per order form
+submission: retrying with the same key returns the first order instead of creating another.
+ */
+export const usePostApiOrders = <TError = ValidationProblemDetails | ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiOrders>>, TError,PostApiOrdersMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof postApiOrders>>,
+        TError,
+        PostApiOrdersMutationVariables,
+        TContext
+      > => {
+      return useMutation(getPostApiOrdersMutationOptions(options), queryClient);
+    }
+
+export const getGetApiOrdersIdUrl = (id: string,) => {
+
+
+
+
+  return `/api/orders/${id}`
+}
+
+/**
+ * @summary The order with its lines, history and the customer's track record.
+ */
+export const getApiOrdersId = async (id: string, options?: Parameters<typeof apiFetch>[1]): Promise<OrderDetails> => {
+
+  return apiFetch<OrderDetails>(getGetApiOrdersIdUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetApiOrdersIdQueryKey = (id: string,) => {
+    return [
+    `/api/orders/${id}`
+    ] as const;
+    }
+
+
+export const getGetApiOrdersIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiOrdersId>>, TError = ProblemDetails>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiOrdersId>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiOrdersIdQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiOrdersId>>> = ({ signal }) => getApiOrdersId(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiOrdersId>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetApiOrdersIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiOrdersId>>>
+export type GetApiOrdersIdQueryError = ProblemDetails
+
+
+/** @summary The order with its lines, history and the customer's track record. */
+export function useGetApiOrdersId<TData = Awaited<ReturnType<typeof getApiOrdersId>>, TError = ProblemDetails>(
+ id: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiOrdersId>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getApiOrdersId>>,
+          TError,
+          Awaited<ReturnType<typeof getApiOrdersId>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/** @summary The order with its lines, history and the customer's track record. */
+export function useGetApiOrdersId<TData = Awaited<ReturnType<typeof getApiOrdersId>>, TError = ProblemDetails>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiOrdersId>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getApiOrdersId>>,
+          TError,
+          Awaited<ReturnType<typeof getApiOrdersId>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/** @summary The order with its lines, history and the customer's track record. */
+export function useGetApiOrdersId<TData = Awaited<ReturnType<typeof getApiOrdersId>>, TError = ProblemDetails>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiOrdersId>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/** @summary The order with its lines, history and the customer's track record. */
+export function useGetApiOrdersId<TData = Awaited<ReturnType<typeof getApiOrdersId>>, TError = ProblemDetails>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiOrdersId>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetApiOrdersIdQueryOptions(id,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getGetApiProductsUrl = (params?: GetApiProductsParams,) => {
   const normalizedParams = new URLSearchParams();
