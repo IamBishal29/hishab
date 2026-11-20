@@ -212,6 +212,21 @@ export interface CustomerLookupRequest {
   phone: string;
 }
 
+export interface CustomerOrderHistory {
+  previousOrders: number;
+  delivered: number;
+  returned: number;
+  cancelled: number;
+}
+
+/**
+ * The customer and their track record with this shop.
+ */
+export interface CustomerLookupResponse {
+  customer: CustomerDto;
+  history: CustomerOrderHistory;
+}
+
 export interface CustomerPage {
   items: CustomerDto[];
   page: number;
@@ -1309,11 +1324,12 @@ export const getPostApiCustomersLookupUrl = () => {
 }
 
 /**
- * @summary Quick-order auto-fill: finds the customer for a phone (any spelling). Check isBlocked before taking the order.
+ * @summary Quick-order auto-fill: finds the customer for a phone (any spelling), with their order
+history in this shop. 404 means a new customer. Check isBlocked before taking the order.
  */
-export const postApiCustomersLookup = async (customerLookupRequest: CustomerLookupRequest, options?: Parameters<typeof apiFetch>[1]): Promise<CustomerDto> => {
+export const postApiCustomersLookup = async (customerLookupRequest: CustomerLookupRequest, options?: Parameters<typeof apiFetch>[1]): Promise<CustomerLookupResponse> => {
 
-  return apiFetch<CustomerDto>(getPostApiCustomersLookupUrl(),
+  return apiFetch<CustomerLookupResponse>(getPostApiCustomersLookupUrl(),
   {
     ...options,
     method: 'POST',
@@ -1360,7 +1376,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type PostApiCustomersLookupMutationError = ValidationProblemDetails | ProblemDetails
     export type PostApiCustomersLookupMutationVariables = {data: CustomerLookupRequest}
 
-    /** @summary Quick-order auto-fill: finds the customer for a phone (any spelling). Check isBlocked before taking the order. */
+    /**
+ * @summary Quick-order auto-fill: finds the customer for a phone (any spelling), with their order
+history in this shop. 404 means a new customer. Check isBlocked before taking the order.
+ */
 export const usePostApiCustomersLookup = <TError = ValidationProblemDetails | ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiCustomersLookup>>, TError,PostApiCustomersLookupMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient): UseMutationResult<
