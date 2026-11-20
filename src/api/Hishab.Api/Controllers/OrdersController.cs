@@ -1,9 +1,9 @@
-using Hishab.Domain.Couriers;
-using Hishab.Application.Couriers;
 using FluentValidation;
 using Hishab.Api.Auth;
+using Hishab.Application.Couriers;
 using Hishab.Application.Orders;
 using Hishab.Domain.Common;
+using Hishab.Domain.Couriers;
 using Hishab.Domain.Orders;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
