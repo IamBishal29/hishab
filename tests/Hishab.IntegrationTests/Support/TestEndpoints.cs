@@ -60,4 +60,8 @@ public sealed class PolicyProbeController : ControllerBase
     [HttpGet("see-profit")]
     [Microsoft.AspNetCore.Authorization.Authorize(Policy = Hishab.Api.Auth.Policies.CanSeeProfit)]
     public IActionResult SeeProfit() => Ok();
+
+    [HttpGet("view-audit")]
+    [Microsoft.AspNetCore.Authorization.Authorize(Policy = Hishab.Api.Auth.Policies.CanViewAudit)]
+    public IActionResult ViewAudit() => Ok();
 }

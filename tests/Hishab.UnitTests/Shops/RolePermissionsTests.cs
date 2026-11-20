@@ -23,10 +23,11 @@ public class RolePermissionsTests
     [InlineData(ShopRole.Manager)]
     [InlineData(ShopRole.Moderator)]
     [InlineData(ShopRole.Packer)]
-    public void Only_the_owner_sees_profit_and_manages_staff(ShopRole role)
+    public void Only_the_owner_sees_profit_manages_staff_and_reads_the_audit_log(ShopRole role)
     {
         RolePermissions.Has(role, Permission.SeeProfit).ShouldBeFalse();
         RolePermissions.Has(role, Permission.ManageStaff).ShouldBeFalse();
+        RolePermissions.Has(role, Permission.ViewAudit).ShouldBeFalse();
     }
 
     [Fact]
