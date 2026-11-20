@@ -46,8 +46,12 @@ dotnet user-secrets set "Otp:HashKey" "$(openssl rand -base64 32)" --project src
 dotnet user-secrets set "Jwt:SigningKey" "$(openssl rand -base64 32)" --project src/api/Hishab.Api
 dotnet run --project src/api/Hishab.Api           # dev OTP codes appear in the console log
 
-# 3. Web  ->  http://localhost:5173
+# 3. Web  ->  http://localhost:5173 (proxies /api to the API, so run both)
 cd src/web && npm ci && npm run dev
+
+# API contract changed? Refresh the snapshot, then regenerate the typed client
+cd src/api && HISHAB_UPDATE_OPENAPI=1 dotnet test --filter-class "*OpenApiSnapshotTests"
+cd src/web && npm run api:generate
 ```
 
 ## Tests and checks
