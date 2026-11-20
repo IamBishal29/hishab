@@ -1345,6 +1345,266 @@
         }
       }
     },
+    "/api/orders": {
+      "post": {
+        "tags": [
+          "Orders"
+        ],
+        "summary": "Creates an order in one request. Send a new Idempotency-Key (e.g. a UUID) per order form\nsubmission: retrying with the same key returns the first order instead of creating another.",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOrderRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOrderRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOrderRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Created",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderDetails"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment Required",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/orders/{id}": {
+      "get": {
+        "tags": [
+          "Orders"
+        ],
+        "summary": "The order with its lines, history and the customer's track record.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/products": {
       "get": {
         "tags": [
@@ -3174,6 +3434,111 @@
           null
         ]
       },
+      "CreateOrderLineRequest": {
+        "required": [
+          "variantId",
+          "quantity"
+        ],
+        "type": "object",
+        "properties": {
+          "variantId": {
+            "type": "string",
+            "description": "The catalogue variant; name, SKU, price and cost are copied from it.",
+            "format": "uuid"
+          },
+          "quantity": {
+            "examples": [
+              2
+            ],
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "CreateOrderRequest": {
+        "required": [
+          "phone",
+          "isInsideDhaka",
+          "source",
+          "lines"
+        ],
+        "type": "object",
+        "properties": {
+          "phone": {
+            "examples": [
+              "01912345678"
+            ],
+            "type": "string",
+            "description": "The buyer's mobile number; matches an existing customer or creates one."
+          },
+          "customerName": {
+            "examples": [
+              "Rahima Begum"
+            ],
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "deliveryAddress": {
+            "examples": [
+              "House 4, Road 2, Mirpur 10, Dhaka"
+            ],
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Defaults to the customer's saved address."
+          },
+          "isInsideDhaka": {
+            "examples": [
+              true
+            ],
+            "type": "boolean",
+            "description": "Picks the shop's inside or outside Dhaka delivery charge."
+          },
+          "source": {
+            "examples": [
+              "Facebook"
+            ],
+            "$ref": "#/components/schemas/OrderSource"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CreateOrderLineRequest"
+            }
+          },
+          "deliveryCharge": {
+            "examples": [
+              60
+            ],
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "Overrides the shop's delivery charge (BDT), e.g. free delivery for a loyal buyer.",
+            "format": "double"
+          },
+          "advancePaid": {
+            "examples": [
+              0
+            ],
+            "type": "number",
+            "description": "Paid before delivery (bKash, Nagad), BDT.",
+            "format": "double"
+          },
+          "note": {
+            "examples": [
+              "Call before 5 pm"
+            ],
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "CreateProductRequest": {
         "required": [
           "name",
@@ -3310,6 +3675,60 @@
           }
         }
       },
+      "CustomerSummary": {
+        "required": [
+          "id",
+          "phone",
+          "name",
+          "isBlocked",
+          "blockedReason",
+          "previousOrders",
+          "delivered",
+          "returned",
+          "cancelled"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "isBlocked": {
+            "type": "boolean"
+          },
+          "blockedReason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "previousOrders": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "delivered": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "returned": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "cancelled": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "FindOrCreateCustomerRequest": {
         "required": [
           "phone"
@@ -3430,6 +3849,235 @@
           },
           "role": {
             "type": "string"
+          }
+        }
+      },
+      "OrderDetails": {
+        "required": [
+          "order",
+          "customer",
+          "warnings"
+        ],
+        "type": "object",
+        "properties": {
+          "order": {
+            "$ref": "#/components/schemas/OrderDto"
+          },
+          "customer": {
+            "$ref": "#/components/schemas/CustomerSummary"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "OrderDto": {
+        "required": [
+          "id",
+          "number",
+          "status",
+          "source",
+          "deliveryAddress",
+          "isInsideDhaka",
+          "lines",
+          "subtotal",
+          "deliveryCharge",
+          "total",
+          "advancePaid",
+          "codAmount",
+          "note",
+          "createdAt",
+          "history"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "number": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "status": {
+            "$ref": "#/components/schemas/OrderStatus"
+          },
+          "source": {
+            "$ref": "#/components/schemas/OrderSource"
+          },
+          "deliveryAddress": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "isInsideDhaka": {
+            "type": "boolean"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrderLineDto"
+            }
+          },
+          "subtotal": {
+            "type": "number",
+            "format": "double"
+          },
+          "deliveryCharge": {
+            "type": "number",
+            "format": "double"
+          },
+          "total": {
+            "type": "number",
+            "format": "double"
+          },
+          "advancePaid": {
+            "type": "number",
+            "format": "double"
+          },
+          "codAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "history": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrderStatusChangeDto"
+            }
+          }
+        }
+      },
+      "OrderLineDto": {
+        "required": [
+          "productVariantId",
+          "productName",
+          "variantLabel",
+          "sku",
+          "unitPrice",
+          "unitCost",
+          "quantity",
+          "lineTotal"
+        ],
+        "type": "object",
+        "properties": {
+          "productVariantId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "productName": {
+            "type": "string"
+          },
+          "variantLabel": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "sku": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "unitPrice": {
+            "type": "number",
+            "format": "double"
+          },
+          "unitCost": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "quantity": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "lineTotal": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "OrderSource": {
+        "enum": [
+          "Facebook",
+          "Instagram",
+          "WhatsApp",
+          "Phone",
+          "WalkIn"
+        ]
+      },
+      "OrderStatus": {
+        "enum": [
+          "New",
+          "Confirmed",
+          "Cancelled",
+          "Booked",
+          "InTransit",
+          "Delivered",
+          "Returned",
+          "CodSettled",
+          "ReceivedBack"
+        ]
+      },
+      "OrderStatusChangeDto": {
+        "required": [
+          "from",
+          "to",
+          "changedBy",
+          "changedAt",
+          "note"
+        ],
+        "type": "object",
+        "properties": {
+          "from": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/OrderStatus"
+              }
+            ]
+          },
+          "to": {
+            "$ref": "#/components/schemas/OrderStatus"
+          },
+          "changedBy": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "changedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -4066,6 +4714,9 @@
     },
     {
       "name": "Customers"
+    },
+    {
+      "name": "Orders"
     },
     {
       "name": "Products"
