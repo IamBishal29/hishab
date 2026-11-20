@@ -169,6 +169,10 @@ Never read, print or commit `.env`, user-secrets, tokens or keys. Put placeholde
   login); removal is a hard delete. Tests: `factory.InviteAndSignInAsync(client, owner, role)`.
   User limit placeholder `IShopPlanLimits` (15) until plans (M2).
 - OpenAPI: XML comments in `Hishab.Api` (`<summary>`, `<example>`) feed the document.
+- Audit: mark entities `IAuditable` (Domain); `AuditInterceptor` writes `AuditEntry` rows in the
+  same SaveChanges. In EF config mark personal fields `.IsPersonalData(PersonalDataKind.Phone|Text)`
+  and noise `.IsNotAudited()`. Do not use ExecuteUpdate/ExecuteDelete on auditable entities.
+  Acting user via `IRequestContext` (`HttpRequestContext` in the API; background jobs supply one).
   Entities with a FK to shops: pass `newTenant` to `CrossTenantAssert` to create real shops.
 - Run: `dotnet run --project src/api/Hishab.Api` (http://localhost:5125, `/health`,
   `/scalar`); `cd src/web && npm run dev` (http://localhost:5173).
