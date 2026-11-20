@@ -2,11 +2,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
-using Hishab.Application.Common.Tenancy;
-using Hishab.Application.Shops.Auth;
 using Hishab.Domain.Shops;
-using Hishab.Infrastructure.Identity;
-using Hishab.Infrastructure.Persistence;
 using Hishab.IntegrationTests.Support;
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.Extensions.DependencyInjection;
@@ -51,21 +47,6 @@ public class ShopProfileTests(HishabApiFactory factory) : IClassFixture<HishabAp
 
     private static async Task<JsonElement> Json(HttpResponseMessage response) =>
         JsonDocument.Parse(await response.Content.ReadAsStringAsync(Ct)).RootElement.Clone();
-
-    /// <summary>Adds a staff member to the owner's shop and signs them in (staff invites arrive in #8).</summary>
-    private async Task<string> StaffToken(Guid shopId, ShopRole role)
-    {
-        using var scope = factory.Services.CreateScope();
-        scope.ServiceProvider.GetRequiredService<ITenantContext>().SetTenant(shopId);
-        var db = scope.ServiceProvider.GetRequiredService<HishabDbContext>();
-        var phone = "+88" + AuthSession.NewPhone();
-        var user = new HishabUser { Id = Guid.NewGuid(), UserName = phone, NormalizedUserName = phone, PhoneNumber = phone, Role = role };
-        db.Users.Add(user);
-        await db.SaveChangesAsync(Ct);
-
-        var tokens = await scope.ServiceProvider.GetRequiredService<IAuthTokenService>().IssueAsync(user.Id, shopId, role, Ct);
-        return tokens.AccessToken;
-    }
 
     [Fact]
     public async Task New_shop_has_default_profile_and_delivery_charges()
@@ -144,7 +125,7 @@ public class ShopProfileTests(HishabApiFactory factory) : IClassFixture<HishabAp
     public async Task Only_owners_and_managers_manage_the_shop(ShopRole role, HttpStatusCode expected)
     {
         var owner = await factory.SignInAsync(_client, Ct);
-        var staff = await StaffToken(owner.GetProperty("shopId").GetGuid(), role);
+        var staff = (await factory.InviteAndSignInAsync(_client, owner, role.ToString(), Ct)).GetProperty("accessToken").GetString();
 
         (await Send(HttpMethod.Put, staff, _validUpdate)).StatusCode.ShouldBe(expected);
     }

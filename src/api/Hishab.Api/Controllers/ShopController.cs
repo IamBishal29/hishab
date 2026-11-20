@@ -86,7 +86,7 @@ public sealed record ShopResponse(
 /// <summary>The signed-in user's own shop. There is no shop id in the URL: the shop comes from the token.</summary>
 [ApiController]
 [Route("shop")]
-[Authorize(Policy = Policies.ManageShop)]
+[Authorize(Policy = Policies.CanManageShop)]
 [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
 [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
 public sealed class ShopController(IShopProfileService shops) : ControllerBase

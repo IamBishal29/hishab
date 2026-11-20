@@ -1,0 +1,163 @@
+using System.Net;
+using System.Net.Http.Json;
+using System.Text.Json;
+using Hishab.IntegrationTests.Support;
+
+namespace Hishab.IntegrationTests.Shops;
+
+public class StaffTests(HishabApiFactory factory) : IClassFixture<HishabApiFactory>
+{
+    private static CancellationToken Ct => TestContext.Current.CancellationToken;
+
+    private readonly HttpClient _client = factory.CreateClient();
+
+    private Task<JsonElement> NewOwner() => factory.SignInAsync(_client, Ct);
+
+    private async Task<HttpResponseMessage> Send(HttpMethod method, string path, JsonElement user, object? body = null)
+    {
+        using var request = new HttpRequestMessage(method, path);
+        request.Headers.Authorization = AuthSession.Bearer(user);
+        if (body is not null)
+        {
+            request.Content = JsonContent.Create(body);
+        }
+
+        return await _client.SendAsync(request, Ct);
+    }
+
+    private static async Task<JsonElement> Json(HttpResponseMessage response) =>
+        JsonDocument.Parse(await response.Content.ReadAsStringAsync(Ct)).RootElement.Clone();
+
+    private static Guid Id(JsonElement e, string property = "userId") => e.GetProperty(property).GetGuid();
+
+    [Fact]
+    public async Task Invited_phone_joins_the_owners_shop_at_first_sign_in()
+    {
+        var owner = await NewOwner();
+        var phone = AuthSession.NewPhone();
+
+        var invite = await Send(HttpMethod.Post, "/staff", owner, new { phone, role = "Moderator" });
+
+        invite.StatusCode.ShouldBe(HttpStatusCode.Created);
+        (await Json(invite)).GetProperty("status").GetString().ShouldBe("Invited");
+
+        await _client.PostAsJsonAsync("/auth/otp", new { phone }, Ct);
+        var login = await Json(await _client.PostAsJsonAsync(
+            "/auth/otp/verify", new { phone, code = factory.Otps.LatestCodeFor(phone), tokenDelivery = "Body" }, Ct));
+
+        Id(login, "shopId").ShouldBe(Id(owner, "shopId"));
+        login.GetProperty("role").GetString().ShouldBe("Moderator");
+        login.GetProperty("isNewShop").GetBoolean().ShouldBeFalse();
+
+        var team = await Json(await Send(HttpMethod.Get, "/staff", owner));
+        var member = team.EnumerateArray().Single(m => m.GetProperty("id").GetGuid() == Id(login));
+        member.GetProperty("status").GetString().ShouldBe("Active");
+        team.GetArrayLength().ShouldBe(2); // owner + moderator
+    }
+
+    [Fact]
+    public async Task Phone_that_already_belongs_to_a_shop_cannot_be_invited()
+    {
+        var owner = await NewOwner();
+        var otherShopsPhone = AuthSession.NewPhone();
+        await factory.SignInWithPhoneAsync(_client, otherShopsPhone, Ct);
+
+        var response = await Send(HttpMethod.Post, "/staff", owner, new { phone = otherShopsPhone, role = "Packer" });
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+    }
+
+    [Fact]
+    public async Task Inviting_the_same_phone_twice_conflicts()
+    {
+        var owner = await NewOwner();
+        var phone = AuthSession.NewPhone();
+        await Send(HttpMethod.Post, "/staff", owner, new { phone, role = "Packer" });
+
+        (await Send(HttpMethod.Post, "/staff", owner, new { phone, role = "Packer" })).StatusCode.ShouldBe(HttpStatusCode.Conflict);
+    }
+
+    [Theory]
+    [InlineData("Owner")]
+    [InlineData("Superuser")]
+    public async Task Only_staff_roles_can_be_given(string role)
+    {
+        var owner = await NewOwner();
+
+        var response = await Send(HttpMethod.Post, "/staff", owner, new { phone = AuthSession.NewPhone(), role });
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task Role_change_takes_effect_at_the_next_refresh()
+    {
+        var owner = await NewOwner();
+        var staff = await factory.InviteAndSignInAsync(_client, owner, "Moderator", Ct);
+
+        (await Send(HttpMethod.Put, $"/staff/{Id(staff)}/role", owner, new { role = "Packer" })).StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        var refreshed = await Json(await _client.PostAsJsonAsync("/auth/refresh", new { refreshToken = staff.GetProperty("refreshToken").GetString() }, Ct));
+        var me = await Json(await Send(HttpMethod.Get, "/auth/me", refreshed));
+        me.GetProperty("role").GetString().ShouldBe("Packer");
+    }
+
+    [Fact]
+    public async Task Removing_a_member_ends_their_sessions_and_frees_the_phone()
+    {
+        var owner = await NewOwner();
+        var staff = await factory.InviteAndSignInAsync(_client, owner, "Packer", Ct);
+
+        (await Send(HttpMethod.Delete, $"/staff/{Id(staff)}", owner)).StatusCode.ShouldBe(HttpStatusCode.NoContent);
+
+        var refresh = await _client.PostAsJsonAsync("/auth/refresh", new { refreshToken = staff.GetProperty("refreshToken").GetString() }, Ct);
+        refresh.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+        (await Json(await Send(HttpMethod.Get, "/staff", owner))).GetArrayLength().ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task Owner_cannot_be_removed_or_demoted()
+    {
+        var owner = await NewOwner();
+
+        (await Send(HttpMethod.Delete, $"/staff/{Id(owner)}", owner)).StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        (await Send(HttpMethod.Put, $"/staff/{Id(owner)}/role", owner, new { role = "Manager" })).StatusCode.ShouldBe(HttpStatusCode.Conflict);
+    }
+
+    [Fact]
+    public async Task Another_shops_member_is_not_found()
+    {
+        var ownerA = await NewOwner();
+        var staffA = await factory.InviteAndSignInAsync(_client, ownerA, "Packer", Ct);
+        var ownerB = await NewOwner();
+
+        (await Send(HttpMethod.Put, $"/staff/{Id(staffA)}/role", ownerB, new { role = "Manager" })).StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        (await Send(HttpMethod.Delete, $"/staff/{Id(staffA)}", ownerB)).StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        (await Json(await Send(HttpMethod.Get, "/staff", ownerB))).GetArrayLength().ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task Managers_cannot_manage_staff()
+    {
+        var owner = await NewOwner();
+        var manager = await factory.InviteAndSignInAsync(_client, owner, "Manager", Ct);
+
+        (await Send(HttpMethod.Get, "/staff", manager)).StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        (await Send(HttpMethod.Post, "/staff", manager, new { phone = AuthSession.NewPhone(), role = "Packer" })).StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task Invites_stop_at_the_user_limit()
+    {
+        var owner = await NewOwner();
+        for (var i = 1; i < 15; i++) // owner + 14 = placeholder limit of 15
+        {
+            (await Send(HttpMethod.Post, "/staff", owner, new { phone = AuthSession.NewPhone(), role = "Packer" })).EnsureSuccessStatusCode();
+        }
+
+        var response = await Send(HttpMethod.Post, "/staff", owner, new { phone = AuthSession.NewPhone(), role = "Packer" });
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        (await Json(response)).GetProperty("detail").GetString()!.ShouldContain("up to 15 users");
+    }
+}

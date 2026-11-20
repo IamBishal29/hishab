@@ -2,10 +2,10 @@
 
 ## Current
 - Milestone: M1 Foundation
-- Issue: #7 done, PR #45 open for review
-- Branch: feat/7-shop-profile
-- Next step: Syed merges PR #45, then `/next-task` picks #8 "Staff accounts and role-based
-  authorization" (extend `Policies` into the full role matrix; staff invite by phone).
+- Issue: #8 done, PR #46 open for review
+- Branch: feat/8-staff-roles
+- Next step: Syed merges PR #46, then `/next-task` picks #9 "Audit log via a SaveChanges
+  interceptor" (store user IDs without FK: users are hard-deleted on removal).
 
 ## Done
 - Product discovery: PRD written (docs/PRD.md); name chosen: Hishab
@@ -38,14 +38,18 @@
   replaced by real sign-in; 111 tests passing; learning note 05 (merged)
 - #7 Shop profile (PR #45): Money value object, Shop profile + delivery charges (60/120
   default, backfilled), shop tenant filter, GET/PUT /shop, FluentValidation global filter,
-  ManageShop policy, OpenAPI XML examples; 142 tests passing; learning note 06
+  ManageShop policy, OpenAPI XML examples; 142 tests passing; learning note 06 (merged)
+- #8 Staff + authorization (PR #46): Permission enum + RolePermissions matrix, one policy
+  per permission (PermissionHandler), POST/GET/PUT role/DELETE /staff (Owner only), invite =
+  pre-created user joining at first OTP login, hard delete, limit placeholder 15; 183 tests
+  passing; learning note 07
 
 ## Decisions waiting for Syed
 - `GETTING-STARTED.md` says to delete it in the first PR; the permission check blocked
   the deletion. Delete it, or say so and I'll do it in the next PR.
 - New: `Jwt:SigningKey` user-secret is required to run the API locally (README step 2).
-- PR #45 is ~830 lines excl. migrations (guideline ~600); half tests/docs. Say if #8
-  should be split up front (e.g. staff invite / role matrix).
+- Review the role matrix in PR #46 (e.g. should Managers manage staff?).
+- PR #46 is ~760 lines (no migration); still above ~600, mostly tests.
 - Later: optimistic concurrency (ETag + xmin) for PUT /shop if two managers editing at
   once becomes real; validate default courier against connected couriers (courier issue).
 - Web login (#10): the SPA must serialise refresh calls (strict reuse detection: two tabs
@@ -67,4 +71,5 @@
 - 2026-11-19: #5 PR B opened (#43, merged)
 - 2026-11-20: PR size guideline raised to ~600 lines incl. tests/docs (Syed)
 - 2026-11-20: #6 implemented, PR #44 open (refresh token: cookie + body, Syed's choice) (merged)
-- 2026-11-20: #7 implemented, PR #45 open
+- 2026-11-20: #7 implemented, PR #45 open (merged)
+- 2026-11-20: #8 implemented, PR #46 open

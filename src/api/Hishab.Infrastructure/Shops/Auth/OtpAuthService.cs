@@ -97,6 +97,13 @@ internal sealed partial class OtpAuthService(
         if (existing is not null)
         {
             tenant.SetTenant(existing.TenantId);
+            if (!existing.PhoneNumberConfirmed)
+            {
+                // An invited staff member's first sign-in: they have now proven the phone.
+                existing.PhoneNumberConfirmed = true;
+                await db.SaveChangesAsync(cancellationToken);
+            }
+
             return new OtpLogin(existing.Id, existing.TenantId, existing.Role, IsNewShop: false);
         }
 
