@@ -222,7 +222,12 @@ Never read, print or commit `.env`, user-secrets, tokens or keys. Put placeholde
   `orderFilters.ts` (untrusted input: bad values dropped); the cursor is not in the URL
   (`orderListQuery` = `useInfiniteQuery` on `nextCursor`). After any status change call
   `invalidateOrders(queryClient, ids)` (list prefix + each detail key). UI permission checks
-  come from `features/auth/permissions.ts` (display only; the API decides).
+  come from `features/auth/permissions.ts` (display only; the API decides). Order rows render via
+  `features/orders/OrderRow` (optional selection; `customer` = hidden | text | link).
+- Customer page (`features/customers/CustomerPage`, `/customers/:id`, Owner/Manager/Moderator):
+  every customer mutation calls `afterCustomerChange(queryClient, updated)` (writes this page,
+  invalidates order lists, order details and quick-order lookups). New screens that show customer
+  data must be added there.
 - Screenshots for UI PRs live in `docs/screenshots/NN-*.png` (390 px wide, headless Chrome).
 - Field-level rules belong in services via `IRequestContext.Has(permission)`, not only in controllers.
 - Audit: mark entities `IAuditable` (Domain); `AuditInterceptor` writes `AuditEntry` rows in the
