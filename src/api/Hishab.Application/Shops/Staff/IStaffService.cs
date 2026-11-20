@@ -11,7 +11,8 @@ public interface IStaffService
     /// Adds a person by phone with a staff role. They join the shop the next time they sign
     /// in with OTP; until then they are listed as <see cref="StaffStatus.Invited"/>.
     /// </summary>
-    /// <exception cref="Domain.Common.ConflictException">The phone already belongs to a shop, or the user limit is reached.</exception>
+    /// <exception cref="Domain.Common.ConflictException">The phone already belongs to a shop.</exception>
+    /// <exception cref="PlanLimitExceededException">The plan's user limit is reached.</exception>
     Task<StaffMember> InviteAsync(string phone, ShopRole role, CancellationToken cancellationToken);
 
     /// <exception cref="Domain.Common.NotFoundException">No such member in this shop.</exception>
@@ -33,10 +34,3 @@ public enum StaffStatus
 
 /// <summary>A team member. The phone is shown to the shop's owner only (the Owner-only staff endpoints); never logged.</summary>
 public sealed record StaffMember(Guid Id, string Phone, ShopRole Role, StaffStatus Status, DateTimeOffset CreatedAt);
-
-/// <summary>Plan limits. A placeholder until plans and billing arrive (M2).</summary>
-public interface IShopPlanLimits
-{
-    /// <summary>Users (owner included) the current shop may have.</summary>
-    Task<int> MaxUsersAsync(CancellationToken cancellationToken);
-}

@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Hishab.Domain.Shops;
 using Hishab.IntegrationTests.Support;
 
 namespace Hishab.IntegrationTests.Shops;
@@ -11,7 +12,13 @@ public class StaffTests(HishabApiFactory factory) : IClassFixture<HishabApiFacto
 
     private readonly HttpClient _client = factory.CreateClient();
 
-    private Task<JsonElement> NewOwner() => factory.SignInAsync(_client, Ct);
+    /// <summary>A new shop on Business (15 users), so tests other than the limit tests never hit the user limit.</summary>
+    private async Task<JsonElement> NewOwner()
+    {
+        var owner = await factory.SignInAsync(_client, Ct);
+        await factory.ChangePlanAsync(owner, Plan.Business, Ct);
+        return owner;
+    }
 
     private async Task<HttpResponseMessage> Send(HttpMethod method, string path, JsonElement user, object? body = null)
     {
@@ -147,17 +154,39 @@ public class StaffTests(HishabApiFactory factory) : IClassFixture<HishabApiFacto
     }
 
     [Fact]
-    public async Task Invites_stop_at_the_user_limit()
+    public async Task Free_plan_allows_only_the_owner()
     {
-        var owner = await NewOwner();
-        for (var i = 1; i < 15; i++) // owner + 14 = placeholder limit of 15
-        {
-            (await Send(HttpMethod.Post, "/api/staff", owner, new { phone = AuthSession.NewPhone(), role = "Packer" })).EnsureSuccessStatusCode();
-        }
+        var owner = await factory.SignInAsync(_client, Ct); // Free: 1 user
 
         var response = await Send(HttpMethod.Post, "/api/staff", owner, new { phone = AuthSession.NewPhone(), role = "Packer" });
 
-        response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
-        (await Json(response)).GetProperty("detail").GetString()!.ShouldContain("up to 15 users");
+        response.StatusCode.ShouldBe(HttpStatusCode.PaymentRequired);
+        (await Json(response)).GetProperty("detail").GetString().ShouldBe("Your Free plan allows 1 user. Upgrade your plan to add more.");
+    }
+
+    [Fact]
+    public async Task Invites_stop_at_the_plan_user_limit()
+    {
+        var owner = await factory.SignInAsync(_client, Ct);
+        await factory.ChangePlanAsync(owner, Plan.Starter, Ct); // 2 users: owner + 1
+
+        (await Send(HttpMethod.Post, "/api/staff", owner, new { phone = AuthSession.NewPhone(), role = "Packer" })).StatusCode.ShouldBe(HttpStatusCode.Created);
+        var second = await Send(HttpMethod.Post, "/api/staff", owner, new { phone = AuthSession.NewPhone(), role = "Packer" });
+
+        second.StatusCode.ShouldBe(HttpStatusCode.PaymentRequired);
+    }
+
+    [Fact]
+    public async Task Parallel_invites_never_exceed_the_user_limit()
+    {
+        var owner = await factory.SignInAsync(_client, Ct);
+        await factory.ChangePlanAsync(owner, Plan.Growth, Ct); // 5 users: owner + 4
+
+        var responses = await Task.WhenAll(Enumerable.Range(0, 8).Select(_ =>
+            Send(HttpMethod.Post, "/api/staff", owner, new { phone = AuthSession.NewPhone(), role = "Packer" })));
+
+        responses.Count(r => r.StatusCode == HttpStatusCode.Created).ShouldBe(4);
+        responses.Count(r => r.StatusCode == HttpStatusCode.PaymentRequired).ShouldBe(4);
+        (await Json(await Send(HttpMethod.Get, "/api/staff", owner))).GetArrayLength().ShouldBe(5);
     }
 }

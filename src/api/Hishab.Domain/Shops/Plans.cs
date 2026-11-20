@@ -101,9 +101,16 @@ public sealed class UsageCounter : ITenantOwned
 }
 
 /// <summary>The plan does not allow more: the shop must upgrade (HTTP 402).</summary>
-public sealed class PlanLimitExceededException(Plan plan, string resource, int limit)
-    : DomainException($"Your {plan} plan allows {limit} {resource}. Upgrade your plan to add more.")
+/// <param name="allowance">What the plan allows, ready to read: "1 user", "100 orders a month".</param>
+public sealed class PlanLimitExceededException(Plan plan, string allowance, int limit)
+    : DomainException($"Your {plan} plan allows {allowance}. Upgrade your plan to add more.")
 {
+    public static PlanLimitExceededException Users(Plan plan, int limit) =>
+        new(plan, limit == 1 ? "1 user" : $"{limit} users", limit);
+
+    public static PlanLimitExceededException Orders(Plan plan, int limit) =>
+        new(plan, $"{limit} orders a month", limit);
+
     public Plan Plan { get; } = plan;
 
     public int Limit { get; } = limit;

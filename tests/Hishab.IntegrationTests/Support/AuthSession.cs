@@ -2,6 +2,11 @@ using System.Globalization;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Hishab.Application.Common.Tenancy;
+using Hishab.Domain.Shops;
+using Hishab.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Hishab.IntegrationTests.Support;
 
@@ -29,16 +34,32 @@ public static class AuthSession
         return JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken)).RootElement.Clone();
     }
 
-    /// <summary>The owner invites a new phone with <paramref name="role"/>; that person then signs in with OTP and joins the shop.</summary>
+    /// <summary>
+    /// The owner invites a new phone with <paramref name="role"/>; that person then signs in with
+    /// OTP and joins the shop. Moves the shop to the Business plan first, because Free allows a
+    /// single user (tests of the limits themselves set plans explicitly).
+    /// </summary>
     public static async Task<JsonElement> InviteAndSignInAsync(
         this HishabApiFactory factory, HttpClient client, JsonElement owner, string role, CancellationToken cancellationToken)
     {
+        await factory.ChangePlanAsync(owner, Plan.Business, cancellationToken);
         var phone = NewPhone();
         using var invite = new HttpRequestMessage(HttpMethod.Post, "/api/staff") { Content = JsonContent.Create(new { phone, role }) };
         invite.Headers.Authorization = Bearer(owner);
         (await client.SendAsync(invite, cancellationToken)).EnsureSuccessStatusCode();
 
         return await factory.SignInWithPhoneAsync(client, phone, cancellationToken);
+    }
+
+    /// <summary>Puts the owner's shop on <paramref name="plan"/>. Stands in for billing, which does not exist yet.</summary>
+    public static async Task ChangePlanAsync(this HishabApiFactory factory, JsonElement owner, Plan plan, CancellationToken cancellationToken)
+    {
+        using var scope = factory.Services.CreateScope();
+        scope.ServiceProvider.GetRequiredService<ITenantContext>().SetTenant(owner.GetProperty("shopId").GetGuid());
+        var db = scope.ServiceProvider.GetRequiredService<HishabDbContext>();
+        var shop = await db.Shops.SingleAsync(cancellationToken);
+        shop.ChangePlan(plan);
+        await db.SaveChangesAsync(cancellationToken);
     }
 
     public static AuthenticationHeaderValue Bearer(JsonElement tokens) =>

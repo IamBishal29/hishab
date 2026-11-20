@@ -46,6 +46,8 @@ public class HishabDbContext : IdentityUserContext<HishabUser, Guid>
 
     public DbSet<AuditEntry> AuditEntries => Set<AuditEntry>();
 
+    public DbSet<UsageCounter> UsageCounters => Set<UsageCounter>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder); // Identity's own mapping first, ours on top
