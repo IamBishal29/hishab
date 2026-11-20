@@ -79,6 +79,30 @@ export const CourierProvider = {
   Steadfast: 'Steadfast',
 } as const;
 
+export interface VariantRequest {
+  /** Stock-keeping unit; stored upper-case, unique among the shop's active variants. */
+  sku: string;
+  /** @nullable */
+  size?: string | null;
+  /** @nullable */
+  colour?: string | null;
+  /** Selling price, BDT. */
+  price: number;
+  /**
+     * What the shop paid, BDT. Owner only; omit it to keep the current cost.
+     * @nullable
+     */
+  costPrice?: number | null;
+}
+
+export interface CreateProductRequest {
+  name: string;
+  /** @nullable */
+  description?: string | null;
+  /** At least one. A product without sizes or colours has one variant without them. */
+  variants: VariantRequest[];
+}
+
 export interface InviteStaffRequest {
   /** Bangladeshi mobile number, any common spelling. */
   phone: string;
@@ -132,12 +156,46 @@ export interface ProblemDetails {
   instance?: string | null;
 }
 
+export interface VariantDto {
+  id: string;
+  sku: string;
+  /** @nullable */
+  size: string | null;
+  /** @nullable */
+  colour: string | null;
+  price: number;
+  /** @nullable */
+  costPrice: number | null;
+}
+
+export interface ProductDto {
+  id: string;
+  name: string;
+  /** @nullable */
+  description: string | null;
+  createdAt: string;
+  variants: VariantDto[];
+}
+
+export interface ProductPage {
+  items: ProductDto[];
+  page: number;
+  pageSize: number;
+  totalCount: number;
+}
+
 /**
  * Leave string? RefreshTokenRequest.RefreshToken empty to use the cookie.
  */
 export interface RefreshTokenRequest {
   /** @nullable */
   refreshToken: string | null;
+}
+
+export interface RenameProductRequest {
+  name: string;
+  /** @nullable */
+  description?: string | null;
 }
 
 export interface RequestOtpRequest {
@@ -260,6 +318,13 @@ export type GetApiAuditParams = {
   /** Starts at 1. */
   Page?: number;
   /** 1 to 100. */
+  PageSize?: number;
+};
+
+export type GetApiProductsParams = {
+  /** Part of a product name or SKU, case-insensitive. */
+  Search?: string;
+  Page?: number;
   PageSize?: number;
 };
 
@@ -802,6 +867,639 @@ export function useGetApiAuthMe<TData = Awaited<ReturnType<typeof getApiAuthMe>>
 
 
 
+
+export const getGetApiProductsUrl = (params?: GetApiProductsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/products?${stringifiedParams}` : `/api/products`
+}
+
+/**
+ * @summary Searches active products by name or SKU, ordered by name.
+ */
+export const getApiProducts = async (params?: GetApiProductsParams, options?: Parameters<typeof apiFetch>[1]): Promise<ProductPage> => {
+
+  return apiFetch<ProductPage>(getGetApiProductsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetApiProductsQueryKey = (params?: GetApiProductsParams,) => {
+    return [
+    `/api/products`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetApiProductsQueryOptions = <TData = Awaited<ReturnType<typeof getApiProducts>>, TError = ValidationProblemDetails | ProblemDetails>(params?: GetApiProductsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiProducts>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiProductsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiProducts>>> = ({ signal }) => getApiProducts(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiProducts>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetApiProductsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiProducts>>>
+export type GetApiProductsQueryError = ValidationProblemDetails | ProblemDetails
+
+
+/** @summary Searches active products by name or SKU, ordered by name. */
+export function useGetApiProducts<TData = Awaited<ReturnType<typeof getApiProducts>>, TError = ValidationProblemDetails | ProblemDetails>(
+ params: undefined |  GetApiProductsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiProducts>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getApiProducts>>,
+          TError,
+          Awaited<ReturnType<typeof getApiProducts>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/** @summary Searches active products by name or SKU, ordered by name. */
+export function useGetApiProducts<TData = Awaited<ReturnType<typeof getApiProducts>>, TError = ValidationProblemDetails | ProblemDetails>(
+ params?: GetApiProductsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiProducts>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getApiProducts>>,
+          TError,
+          Awaited<ReturnType<typeof getApiProducts>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/** @summary Searches active products by name or SKU, ordered by name. */
+export function useGetApiProducts<TData = Awaited<ReturnType<typeof getApiProducts>>, TError = ValidationProblemDetails | ProblemDetails>(
+ params?: GetApiProductsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiProducts>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/** @summary Searches active products by name or SKU, ordered by name. */
+export function useGetApiProducts<TData = Awaited<ReturnType<typeof getApiProducts>>, TError = ValidationProblemDetails | ProblemDetails>(
+ params?: GetApiProductsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiProducts>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetApiProductsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getPostApiProductsUrl = () => {
+
+
+
+
+  return `/api/products`
+}
+
+export const postApiProducts = async (createProductRequest: CreateProductRequest, options?: Parameters<typeof apiFetch>[1]): Promise<ProductDto> => {
+
+  return apiFetch<ProductDto>(getPostApiProductsUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: getHeaders({ 'Content-Type': 'application/json' }, options?.headers),
+    body: JSON.stringify(createProductRequest)
+  }
+);}
+
+
+
+
+
+export const getPostApiProductsMutationKey = () => ['postApiProducts'] as const;
+
+export const getPostApiProductsMutationOptions = <TError = ValidationProblemDetails | ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiProducts>>, TError,PostApiProductsMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiProducts>>, TError,PostApiProductsMutationVariables, TContext> => {
+
+const mutationKey = getPostApiProductsMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiProducts>>, PostApiProductsMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  postApiProducts(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiProductsMutationResult = NonNullable<Awaited<ReturnType<typeof postApiProducts>>>
+    export type PostApiProductsMutationBody = CreateProductRequest
+    export type PostApiProductsMutationError = ValidationProblemDetails | ProblemDetails
+    export type PostApiProductsMutationVariables = {data: CreateProductRequest}
+
+    export const usePostApiProducts = <TError = ValidationProblemDetails | ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiProducts>>, TError,PostApiProductsMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof postApiProducts>>,
+        TError,
+        PostApiProductsMutationVariables,
+        TContext
+      > => {
+      return useMutation(getPostApiProductsMutationOptions(options), queryClient);
+    }
+
+export const getGetApiProductsIdUrl = (id: string,) => {
+
+
+
+
+  return `/api/products/${id}`
+}
+
+export const getApiProductsId = async (id: string, options?: Parameters<typeof apiFetch>[1]): Promise<ProductDto> => {
+
+  return apiFetch<ProductDto>(getGetApiProductsIdUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetApiProductsIdQueryKey = (id: string,) => {
+    return [
+    `/api/products/${id}`
+    ] as const;
+    }
+
+
+export const getGetApiProductsIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiProductsId>>, TError = ProblemDetails>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiProductsId>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiProductsIdQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiProductsId>>> = ({ signal }) => getApiProductsId(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiProductsId>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetApiProductsIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiProductsId>>>
+export type GetApiProductsIdQueryError = ProblemDetails
+
+
+export function useGetApiProductsId<TData = Awaited<ReturnType<typeof getApiProductsId>>, TError = ProblemDetails>(
+ id: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiProductsId>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getApiProductsId>>,
+          TError,
+          Awaited<ReturnType<typeof getApiProductsId>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetApiProductsId<TData = Awaited<ReturnType<typeof getApiProductsId>>, TError = ProblemDetails>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiProductsId>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getApiProductsId>>,
+          TError,
+          Awaited<ReturnType<typeof getApiProductsId>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetApiProductsId<TData = Awaited<ReturnType<typeof getApiProductsId>>, TError = ProblemDetails>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiProductsId>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetApiProductsId<TData = Awaited<ReturnType<typeof getApiProductsId>>, TError = ProblemDetails>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiProductsId>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetApiProductsIdQueryOptions(id,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getPutApiProductsIdUrl = (id: string,) => {
+
+
+
+
+  return `/api/products/${id}`
+}
+
+/**
+ * @summary Changes the name and description.
+ */
+export const putApiProductsId = async (id: string,
+    renameProductRequest: RenameProductRequest, options?: Parameters<typeof apiFetch>[1]): Promise<ProductDto> => {
+
+  return apiFetch<ProductDto>(getPutApiProductsIdUrl(id),
+  {
+    ...options,
+    method: 'PUT',
+    headers: getHeaders({ 'Content-Type': 'application/json' }, options?.headers),
+    body: JSON.stringify(renameProductRequest)
+  }
+);}
+
+
+
+
+
+export const getPutApiProductsIdMutationKey = () => ['putApiProductsId'] as const;
+
+export const getPutApiProductsIdMutationOptions = <TError = ValidationProblemDetails | ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiProductsId>>, TError,PutApiProductsIdMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof putApiProductsId>>, TError,PutApiProductsIdMutationVariables, TContext> => {
+
+const mutationKey = getPutApiProductsIdMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof putApiProductsId>>, PutApiProductsIdMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  putApiProductsId(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PutApiProductsIdMutationResult = NonNullable<Awaited<ReturnType<typeof putApiProductsId>>>
+    export type PutApiProductsIdMutationBody = RenameProductRequest
+    export type PutApiProductsIdMutationError = ValidationProblemDetails | ProblemDetails
+    export type PutApiProductsIdMutationVariables = {id: string;data: RenameProductRequest}
+
+    /** @summary Changes the name and description. */
+export const usePutApiProductsId = <TError = ValidationProblemDetails | ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiProductsId>>, TError,PutApiProductsIdMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof putApiProductsId>>,
+        TError,
+        PutApiProductsIdMutationVariables,
+        TContext
+      > => {
+      return useMutation(getPutApiProductsIdMutationOptions(options), queryClient);
+    }
+
+export const getDeleteApiProductsIdUrl = (id: string,) => {
+
+
+
+
+  return `/api/products/${id}`
+}
+
+/**
+ * @summary Soft delete: the product leaves the catalogue; past orders keep it.
+ */
+export const deleteApiProductsId = async (id: string, options?: Parameters<typeof apiFetch>[1]): Promise<void> => {
+
+  return apiFetch<void>(getDeleteApiProductsIdUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteApiProductsIdMutationKey = () => ['deleteApiProductsId'] as const;
+
+export const getDeleteApiProductsIdMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteApiProductsId>>, TError,DeleteApiProductsIdMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteApiProductsId>>, TError,DeleteApiProductsIdMutationVariables, TContext> => {
+
+const mutationKey = getDeleteApiProductsIdMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteApiProductsId>>, DeleteApiProductsIdMutationVariables> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteApiProductsId(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteApiProductsIdMutationResult = NonNullable<Awaited<ReturnType<typeof deleteApiProductsId>>>
+
+    export type DeleteApiProductsIdMutationError = ProblemDetails
+    export type DeleteApiProductsIdMutationVariables = {id: string}
+
+    /** @summary Soft delete: the product leaves the catalogue; past orders keep it. */
+export const useDeleteApiProductsId = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteApiProductsId>>, TError,DeleteApiProductsIdMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof deleteApiProductsId>>,
+        TError,
+        DeleteApiProductsIdMutationVariables,
+        TContext
+      > => {
+      return useMutation(getDeleteApiProductsIdMutationOptions(options), queryClient);
+    }
+
+export const getPostApiProductsIdVariantsUrl = (id: string,) => {
+
+
+
+
+  return `/api/products/${id}/variants`
+}
+
+export const postApiProductsIdVariants = async (id: string,
+    variantRequest: VariantRequest, options?: Parameters<typeof apiFetch>[1]): Promise<ProductDto> => {
+
+  return apiFetch<ProductDto>(getPostApiProductsIdVariantsUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: getHeaders({ 'Content-Type': 'application/json' }, options?.headers),
+    body: JSON.stringify(variantRequest)
+  }
+);}
+
+
+
+
+
+export const getPostApiProductsIdVariantsMutationKey = () => ['postApiProductsIdVariants'] as const;
+
+export const getPostApiProductsIdVariantsMutationOptions = <TError = ValidationProblemDetails | ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiProductsIdVariants>>, TError,PostApiProductsIdVariantsMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiProductsIdVariants>>, TError,PostApiProductsIdVariantsMutationVariables, TContext> => {
+
+const mutationKey = getPostApiProductsIdVariantsMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiProductsIdVariants>>, PostApiProductsIdVariantsMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  postApiProductsIdVariants(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiProductsIdVariantsMutationResult = NonNullable<Awaited<ReturnType<typeof postApiProductsIdVariants>>>
+    export type PostApiProductsIdVariantsMutationBody = VariantRequest
+    export type PostApiProductsIdVariantsMutationError = ValidationProblemDetails | ProblemDetails
+    export type PostApiProductsIdVariantsMutationVariables = {id: string;data: VariantRequest}
+
+    export const usePostApiProductsIdVariants = <TError = ValidationProblemDetails | ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiProductsIdVariants>>, TError,PostApiProductsIdVariantsMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof postApiProductsIdVariants>>,
+        TError,
+        PostApiProductsIdVariantsMutationVariables,
+        TContext
+      > => {
+      return useMutation(getPostApiProductsIdVariantsMutationOptions(options), queryClient);
+    }
+
+export const getPutApiProductsIdVariantsVariantIdUrl = (id: string,
+    variantId: string,) => {
+
+
+
+
+  return `/api/products/${id}/variants/${variantId}`
+}
+
+/**
+ * @summary Changes a variant. Omit costPrice to keep the current cost.
+ */
+export const putApiProductsIdVariantsVariantId = async (id: string,
+    variantId: string,
+    variantRequest: VariantRequest, options?: Parameters<typeof apiFetch>[1]): Promise<ProductDto> => {
+
+  return apiFetch<ProductDto>(getPutApiProductsIdVariantsVariantIdUrl(id,variantId),
+  {
+    ...options,
+    method: 'PUT',
+    headers: getHeaders({ 'Content-Type': 'application/json' }, options?.headers),
+    body: JSON.stringify(variantRequest)
+  }
+);}
+
+
+
+
+
+export const getPutApiProductsIdVariantsVariantIdMutationKey = () => ['putApiProductsIdVariantsVariantId'] as const;
+
+export const getPutApiProductsIdVariantsVariantIdMutationOptions = <TError = ValidationProblemDetails | ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiProductsIdVariantsVariantId>>, TError,PutApiProductsIdVariantsVariantIdMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof putApiProductsIdVariantsVariantId>>, TError,PutApiProductsIdVariantsVariantIdMutationVariables, TContext> => {
+
+const mutationKey = getPutApiProductsIdVariantsVariantIdMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof putApiProductsIdVariantsVariantId>>, PutApiProductsIdVariantsVariantIdMutationVariables> = (props) => {
+          const {id,variantId,data} = props ?? {};
+
+          return  putApiProductsIdVariantsVariantId(id,variantId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PutApiProductsIdVariantsVariantIdMutationResult = NonNullable<Awaited<ReturnType<typeof putApiProductsIdVariantsVariantId>>>
+    export type PutApiProductsIdVariantsVariantIdMutationBody = VariantRequest
+    export type PutApiProductsIdVariantsVariantIdMutationError = ValidationProblemDetails | ProblemDetails
+    export type PutApiProductsIdVariantsVariantIdMutationVariables = {id: string;variantId: string;data: VariantRequest}
+
+    /** @summary Changes a variant. Omit costPrice to keep the current cost. */
+export const usePutApiProductsIdVariantsVariantId = <TError = ValidationProblemDetails | ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiProductsIdVariantsVariantId>>, TError,PutApiProductsIdVariantsVariantIdMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof putApiProductsIdVariantsVariantId>>,
+        TError,
+        PutApiProductsIdVariantsVariantIdMutationVariables,
+        TContext
+      > => {
+      return useMutation(getPutApiProductsIdVariantsVariantIdMutationOptions(options), queryClient);
+    }
+
+export const getDeleteApiProductsIdVariantsVariantIdUrl = (id: string,
+    variantId: string,) => {
+
+
+
+
+  return `/api/products/${id}/variants/${variantId}`
+}
+
+/**
+ * @summary Soft-deletes a variant. The last active variant cannot be removed (delete the product instead).
+ */
+export const deleteApiProductsIdVariantsVariantId = async (id: string,
+    variantId: string, options?: Parameters<typeof apiFetch>[1]): Promise<ProductDto> => {
+
+  return apiFetch<ProductDto>(getDeleteApiProductsIdVariantsVariantIdUrl(id,variantId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteApiProductsIdVariantsVariantIdMutationKey = () => ['deleteApiProductsIdVariantsVariantId'] as const;
+
+export const getDeleteApiProductsIdVariantsVariantIdMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteApiProductsIdVariantsVariantId>>, TError,DeleteApiProductsIdVariantsVariantIdMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteApiProductsIdVariantsVariantId>>, TError,DeleteApiProductsIdVariantsVariantIdMutationVariables, TContext> => {
+
+const mutationKey = getDeleteApiProductsIdVariantsVariantIdMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteApiProductsIdVariantsVariantId>>, DeleteApiProductsIdVariantsVariantIdMutationVariables> = (props) => {
+          const {id,variantId} = props ?? {};
+
+          return  deleteApiProductsIdVariantsVariantId(id,variantId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteApiProductsIdVariantsVariantIdMutationResult = NonNullable<Awaited<ReturnType<typeof deleteApiProductsIdVariantsVariantId>>>
+
+    export type DeleteApiProductsIdVariantsVariantIdMutationError = ProblemDetails
+    export type DeleteApiProductsIdVariantsVariantIdMutationVariables = {id: string;variantId: string}
+
+    /** @summary Soft-deletes a variant. The last active variant cannot be removed (delete the product instead). */
+export const useDeleteApiProductsIdVariantsVariantId = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteApiProductsIdVariantsVariantId>>, TError,DeleteApiProductsIdVariantsVariantIdMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof deleteApiProductsIdVariantsVariantId>>,
+        TError,
+        DeleteApiProductsIdVariantsVariantIdMutationVariables,
+        TContext
+      > => {
+      return useMutation(getDeleteApiProductsIdVariantsVariantIdMutationOptions(options), queryClient);
+    }
 
 export const getGetApiShopUsageUrl = () => {
 
