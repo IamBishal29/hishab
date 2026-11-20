@@ -20,7 +20,10 @@ internal sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
         builder.Ignore(o => o.CodAmount);
 
         builder.HasOne<Customer>().WithMany().HasForeignKey(o => o.CustomerId).OnDelete(DeleteBehavior.Restrict);
-        builder.HasIndex(o => new { o.TenantId, o.CreatedAt }); // newest first per shop; #16 adds filter indexes
+        // The order list reads newest first and pages by (created_at, id): with the sort key at the
+        // end of the index, Postgres walks it backwards and stops after one page (no sort, no OFFSET).
+        builder.HasIndex(o => new { o.TenantId, o.CreatedAt, o.Id });
+        builder.HasIndex(o => new { o.TenantId, o.Status, o.CreatedAt, o.Id }); // "Confirmed orders, newest first"
         builder.HasIndex(o => new { o.TenantId, o.Number }).IsUnique(); // "#1043" means one order per shop
 
         // Optimistic concurrency: every transition updates this row, so of two packers changing

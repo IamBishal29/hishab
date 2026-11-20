@@ -275,12 +275,15 @@ namespace Hishab.Infrastructure.Persistence.Migrations
                     b.HasIndex("TenantId")
                         .HasDatabaseName("ix_orders_tenant_id");
 
-                    b.HasIndex("TenantId", "CreatedAt")
-                        .HasDatabaseName("ix_orders_tenant_id_created_at");
-
                     b.HasIndex("TenantId", "Number")
                         .IsUnique()
                         .HasDatabaseName("ix_orders_tenant_id_number");
+
+                    b.HasIndex("TenantId", "CreatedAt", "Id")
+                        .HasDatabaseName("ix_orders_tenant_id_created_at_id");
+
+                    b.HasIndex("TenantId", "Status", "CreatedAt", "Id")
+                        .HasDatabaseName("ix_orders_tenant_id_status_created_at_id");
 
                     b.ToTable("orders", (string)null);
                 });
