@@ -1,3 +1,4 @@
+using Hishab.Domain.Couriers;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -181,8 +182,15 @@ internal sealed partial class OrderService(
             record.Cancelled);
 
         IReadOnlyList<string> warnings = customer.IsBlocked ? [OrderWarnings.CustomerBlocked] : [];
-        return new OrderDetails(ToDto(order), summary, warnings);
+        var shipment = await db.Shipments.AsNoTracking()
+            .Where(s => s.OrderId == order.Id)
+            .OrderByDescending(s => s.RequestedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+        return new OrderDetails(ToDto(order), summary, warnings, shipment is null ? null : ToDto(shipment));
     }
+
+    internal static ShipmentDto ToDto(Shipment s) =>
+        new(s.Id, s.Provider, s.State, s.ConsignmentId, s.TrackingCode, s.DeliveryFee?.Amount, s.Error, s.RequestedAt, s.BookedAt);
 
     private OrderDto ToDto(Order o)
     {

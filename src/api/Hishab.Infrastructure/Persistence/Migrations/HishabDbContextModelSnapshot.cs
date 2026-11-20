@@ -181,6 +181,94 @@ namespace Hishab.Infrastructure.Persistence.Migrations
                     b.ToTable("courier_accounts", (string)null);
                 });
 
+            modelBuilder.Entity("Hishab.Domain.Couriers.Shipment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("BookedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("booked_at");
+
+                    b.Property<string>("ConsignmentId")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("consignment_id");
+
+                    b.Property<decimal?>("DeliveryFee")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)")
+                        .HasColumnName("delivery_fee");
+
+                    b.Property<string>("Error")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("error");
+
+                    b.Property<string>("MerchantReference")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("merchant_reference");
+
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("order_id");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("provider");
+
+                    b.Property<DateTimeOffset>("RequestedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("requested_at");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("state");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("TrackingCode")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("tracking_code");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_shipments");
+
+                    b.HasIndex("OrderId")
+                        .HasDatabaseName("ix_shipments_order_id");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_shipments_tenant_id");
+
+                    b.HasIndex("TenantId", "OrderId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_shipments_one_live_per_order")
+                        .HasFilter("state IN ('Requested', 'Booked')");
+
+                    b.HasIndex("TenantId", "OrderId", "Provider")
+                        .IsUnique()
+                        .HasDatabaseName("ix_shipments_tenant_id_order_id_provider");
+
+                    b.ToTable("shipments", (string)null);
+                });
+
             modelBuilder.Entity("Hishab.Domain.Customers.Customer", b =>
                 {
                     b.Property<Guid>("Id")
@@ -875,6 +963,16 @@ namespace Hishab.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_courier_accounts_shops_tenant_id");
+                });
+
+            modelBuilder.Entity("Hishab.Domain.Couriers.Shipment", b =>
+                {
+                    b.HasOne("Hishab.Domain.Orders.Order", null)
+                        .WithMany()
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_shipments_orders_order_id");
                 });
 
             modelBuilder.Entity("Hishab.Domain.Orders.Order", b =>

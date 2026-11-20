@@ -66,6 +66,8 @@ public class HishabDbContext : IdentityUserContext<HishabUser, Guid>, IDataProte
 
     public DbSet<CourierAccount> CourierAccounts => Set<CourierAccount>();
 
+    public DbSet<Shipment> Shipments => Set<Shipment>();
+
     /// <summary>The Data Protection key ring, each key wrapped by the certificate (ADR 0007). Not tenant-owned.</summary>
     public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
 

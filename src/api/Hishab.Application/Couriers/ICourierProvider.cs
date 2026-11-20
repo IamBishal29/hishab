@@ -20,7 +20,12 @@ public interface ICourierProvider
 
     Task<CourierQuote> QuoteAsync(CourierCredentials credentials, ParcelRequest parcel, CancellationToken cancellationToken);
 
-    /// <summary>Books one parcel. A rejection is a result, not an exception; network failures throw.</summary>
+    /// <summary>
+    /// Books one parcel. Must be idempotent on <see cref="ParcelRequest.MerchantReference"/>: booking
+    /// a reference the courier already has returns that parcel (look it up if the courier answers
+    /// "duplicate"), never a second one. A rejection is a result; no answer at all throws
+    /// <see cref="CourierUnavailableException"/>.
+    /// </summary>
     Task<BookingResult> BookAsync(CourierCredentials credentials, ParcelRequest parcel, CancellationToken cancellationToken);
 
     /// <summary>Books several parcels; each result says whether its parcel was booked (partial success).</summary>

@@ -72,6 +72,8 @@ internal sealed partial class CourierAccountService(
     {
         var account = await FindAsync(provider, cancellationToken);
         db.CourierAccounts.Remove(account); // hard delete: the keys are gone, not hidden
+        var shop = await db.Shops.SingleAsync(cancellationToken);
+        shop.ForgetDefaultCourier(provider); // same SaveChanges: never a default the shop cannot book with
         await db.SaveChangesAsync(cancellationToken);
         LogDisconnected(logger, provider, account.Id);
     }
