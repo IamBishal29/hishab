@@ -88,7 +88,7 @@ describe('CustomerPage', () => {
     await user().click(await screen.findByRole('button', { name: 'Unblock' }))
 
     expect(await screen.findByRole('button', { name: 'Block customer' })).toBeInTheDocument()
-    expect(api.customerPages['c-1']?.customer.isBlocked).toBe(false)
+    expect(api.customerPages['c-1'].customer.isBlocked).toBe(false)
   })
 
   it('links order rows to the customer only for roles that can open customers', async () => {
