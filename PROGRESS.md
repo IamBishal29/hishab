@@ -1,10 +1,11 @@
 # Progress
 
 ## Current
-- Milestone: M2 Orders & customers; its last issue (#59) is in PR #61
-- Branch: feat/59-customer-page
-- Next step: Syed merges #61 (M2 complete), then `/next-task` starts M3 Couriers with #19
-  "ICourierProvider, courier accounts and the Fake courier".
+- Milestone: M3 Couriers (M1 and M2 complete)
+- Issue: #19 done, PR #62 open for review
+- Branch: feat/19-courier-provider-accounts
+- Next step: Syed sets the new `DataProtection:CertificateBase64` user-secret (README) and merges
+  #62, then `/next-task` picks #20 "Book a courier for one order".
 
 ## Done
 - Product discovery: PRD written (docs/PRD.md); name chosen: Hishab
@@ -95,6 +96,11 @@
   details form (server field errors), block/unblock, the customer's orders; afterCustomerChange()
   fans one change out to order lists, order details and quick-order lookups (test guards it);
   OrderRow extracted and shared; customer links for Owner/Manager/Moderator; 52 web tests; note 19
+- #19 Couriers (PR #62): ICourierProvider + registry, deterministic Fake courier (scriptable via
+  FakeCourierControl), CourierAccount with keys encrypted by Data Protection (key ring in Postgres,
+  wrapped by a certificate, purpose bound to the shop; ADR 0007), masked hints only, Free plan = 1
+  courier (shop-row lock; key rotation always allowed), GET/PUT/DELETE /api/couriers; tests migrate
+  before host start; 421 .NET tests; note 20. README commands smoke-tested end to end.
 
 ## Decisions waiting for Syed
 - `GETTING-STARTED.md` says to delete it in the first PR; the permission check blocked
@@ -118,6 +124,12 @@
 - Order list (#18): PR is ~1,250 lines (pages ~550, tests/fakes ~370, strings ~130); say if you
   want order detail split out. Filters take a lot of height at 360 px (could collapse later).
   Integration tests not run locally (Docker was off); web-only change, CI runs them.
+- **Action needed (#19):** the API now needs `DataProtection:CertificateBase64` to start. Run the
+  README "Data Protection certificate" lines once; I did not touch your user-secrets.
+- Couriers (#19): Managers can connect couriers (the #8 matrix gives them ManageShop). Owner-only
+  would need a new permission; say if you want it. Pathao's API wants a merchant login for its
+  token, while our guardrail says never store courier passwords: decide before the Pathao issue.
+  Disconnecting the shop's default courier does not clear `Shop.DefaultCourier` yet (booking issue).
 - Customer page (#59): blocking only warns, as since #13/#17 (orders are still allowed); say if blocked buyers
   should need an Owner override to order. PR is ~750 lines.
 - Stacked PRs: a stacked PR merged into its base branch after that base has landed does not
@@ -165,3 +177,5 @@
 - 2026-11-20: #57 merged into the #17 branch, not main; re-opened as #58. #56 split (web -> #59),
   API half from main (Syed's choice); PR #60 open
 - 2026-11-20: #58 and #60 merged; #59 implemented, PR #61 open
+- 2026-11-21: #61 merged (M2 complete); #19 as one PR with key ring in Postgres + certificate
+  (Syed's choices); PR #62 open
