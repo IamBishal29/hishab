@@ -7,15 +7,12 @@ import { z } from 'zod'
 import { usePostApiAuthOtp, usePostApiAuthOtpVerify } from '@/api/generated/hishab'
 import { FormField } from '@/components/FormField'
 import { Button } from '@/components/ui/button'
+import { bdMobilePattern } from '@/lib/phone'
 import { applyProblem } from '@/lib/problemErrors'
 import { startSession, useSession } from './useSession'
 
-// Same spellings the API accepts: 01712345678, +8801712345678, 01712-345678 ...
 const phoneSchema = z.object({
-  phone: z
-    .string()
-    .trim()
-    .regex(/^(?:\+?88)?[\s-]?01[3-9](?:[\s-]?\d){8}$/, 'login.phoneInvalid'),
+  phone: z.string().trim().regex(bdMobilePattern, 'login.phoneInvalid'),
 })
 const codeSchema = z.object({
   code: z
