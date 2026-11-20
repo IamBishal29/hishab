@@ -24,6 +24,8 @@ internal sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
         // end of the index, Postgres walks it backwards and stops after one page (no sort, no OFFSET).
         builder.HasIndex(o => new { o.TenantId, o.CreatedAt, o.Number });
         builder.HasIndex(o => new { o.TenantId, o.Status, o.CreatedAt, o.Number }); // "Confirmed orders, newest first"
+        // "This customer's orders, newest first" (the customer page); also serves the history counts.
+        builder.HasIndex(o => new { o.TenantId, o.CustomerId, o.CreatedAt, o.Number });
         builder.HasIndex(o => new { o.TenantId, o.Number }).IsUnique(); // "#1043" means one order per shop
 
         // Optimistic concurrency: every transition updates this row, so of two packers changing

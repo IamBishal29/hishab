@@ -102,6 +102,9 @@ public sealed class OrderListQuery
     /// <example>#1043</example>
     public string? Search { get; init; }
 
+    /// <summary>Only this customer's orders (the customer page).</summary>
+    public Guid? CustomerId { get; init; }
+
     /// <summary>The <c>nextCursor</c> of the previous page; omit for the first page.</summary>
     public string? Cursor { get; init; }
 
@@ -216,7 +219,7 @@ public sealed class OrdersController(IOrderService orders) : ControllerBase
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<OrderListPage>> List([FromQuery] OrderListQuery query, CancellationToken cancellationToken) =>
         Ok(await orders.ListAsync(
-            new OrderListFilter(query.Status, query.From, query.To, query.IsInsideDhaka, query.Source, query.Search),
+            new OrderListFilter(query.Status, query.From, query.To, query.IsInsideDhaka, query.Source, query.Search, query.CustomerId),
             query.Cursor,
             query.Limit,
             cancellationToken));

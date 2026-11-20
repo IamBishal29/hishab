@@ -84,6 +84,81 @@ public class OrderListAndActionsTests(HishabApiFactory factory) : IClassFixture<
         await db.Database.ExecuteSqlAsync($"UPDATE orders SET created_at = {createdAt} WHERE id = {id}", Ct);
     }
 
+    // Courier steps (Booked -> Delivered/Returned) have no endpoint yet, so tests put an order
+    // straight into a later status. The lifecycle itself is covered by the domain tests.
+    private async Task SetStatus(JsonElement owner, JsonElement order, string status)
+    {
+        using var scope = factory.Services.CreateScope();
+        scope.ServiceProvider.GetRequiredService<ITenantContext>().SetTenant(owner.GetProperty("shopId").GetGuid());
+        var db = scope.ServiceProvider.GetRequiredService<HishabDbContext>();
+        var id = order.GetProperty("id").GetGuid();
+        await db.Database.ExecuteSqlAsync($"UPDATE orders SET status = {status} WHERE id = {id}", Ct);
+    }
+
+    private async Task<Guid> CustomerIdOf(JsonElement owner, JsonElement order) =>
+        (await Json(await Send(HttpMethod.Get, $"/api/orders/{order.GetProperty("id").GetGuid()}", owner)))
+            .GetProperty("customer").GetProperty("id").GetGuid();
+
+    [Fact]
+    public async Task Customer_filter_lists_only_that_customers_orders_newest_first_with_paging()
+    {
+        var (owner, variant) = await ShopWithProduct();
+        var phone = BuyerPhone();
+        var first = await CreateOrder(owner, variant, phone: phone);
+        await CreateOrder(owner, variant); // someone else
+        await CreateOrder(owner, variant, phone: phone);
+        await CreateOrder(owner, variant, phone: phone);
+        var customerId = await CustomerIdOf(owner, first);
+
+        Numbers(await List(owner, $"?customerId={customerId}")).ShouldBe([4, 3, 1]);
+        var page1 = await List(owner, $"?customerId={customerId}&limit=2");
+        var page2 = await List(owner, $"?customerId={customerId}&limit=2&cursor={page1.GetProperty("nextCursor").GetString()}");
+        Numbers(page1).ShouldBe([4, 3]);
+        Numbers(page2).ShouldBe([1]);
+        page2.GetProperty("nextCursor").ValueKind.ShouldBe(JsonValueKind.Null);
+        Numbers(await List(owner, $"?customerId={customerId}&status=New&search=%233")).ShouldBe([3]); // combines with other filters
+    }
+
+    [Fact]
+    public async Task Customer_filter_with_another_shops_customer_finds_nothing()
+    {
+        var (shopA, variant) = await ShopWithProduct();
+        var shopB = await factory.SignInAsync(_client, Ct);
+        var customerInA = await CustomerIdOf(shopA, await CreateOrder(shopA, variant));
+
+        (await List(shopB, $"?customerId={customerInA}")).GetProperty("items").GetArrayLength().ShouldBe(0);
+        (await Send(HttpMethod.Get, "/api/orders?customerId=not-a-guid", shopA)).StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task Customer_details_count_outcomes_and_sum_what_was_delivered()
+    {
+        var (owner, variant) = await ShopWithProduct();
+        var phone = BuyerPhone();
+        var delivered = await CreateOrder(owner, variant, phone: phone);
+        var settled = await CreateOrder(owner, variant, phone: phone, insideDhaka: false);
+        var returned = await CreateOrder(owner, variant, phone: phone);
+        var cancelled = await CreateOrder(owner, variant, phone: phone);
+        await CreateOrder(owner, variant, phone: phone); // still New
+        await SetStatus(owner, delivered, "Delivered");
+        await SetStatus(owner, settled, "CodSettled");
+        await SetStatus(owner, returned, "Returned");
+        (await Send(HttpMethod.Post, $"/api/orders/{cancelled.GetProperty("id").GetGuid()}/cancel", owner)).StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        var response = await Send(HttpMethod.Get, $"/api/customers/{await CustomerIdOf(owner, delivered)}", owner);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var details = await Json(response);
+        details.GetProperty("customer").GetProperty("name").GetString().ShouldBe("Rahima Begum");
+        var history = details.GetProperty("history");
+        history.GetProperty("previousOrders").GetInt32().ShouldBe(5);
+        history.GetProperty("delivered").GetInt32().ShouldBe(2); // delivered + COD settled
+        history.GetProperty("returned").GetInt32().ShouldBe(1);
+        history.GetProperty("cancelled").GetInt32().ShouldBe(1);
+        details.GetProperty("deliveredValue").GetDecimal().ShouldBe(
+            delivered.GetProperty("total").GetDecimal() + settled.GetProperty("total").GetDecimal()); // 710 + 770
+    }
+
     [Fact]
     public async Task Filters_by_status_area_source_and_text()
     {

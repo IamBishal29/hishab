@@ -101,6 +101,12 @@ public sealed class CustomerListQueryValidator : AbstractValidator<CustomerListQ
 /// <summary>The customer and their track record with this shop.</summary>
 public sealed record CustomerLookupResponse(CustomerDto Customer, CustomerOrderHistory History);
 
+/// <summary>The customer page: details, track record and what they have paid for.</summary>
+/// <param name="Customer">The customer's details.</param>
+/// <param name="History">Order counts by outcome in this shop.</param>
+/// <param name="DeliveredValue">Sum of the totals of delivered and COD-settled orders, in BDT.</param>
+public sealed record CustomerDetails(CustomerDto Customer, CustomerOrderHistory History, decimal DeliveredValue);
+
 /// <summary>Customers of this shop. Staff who enter orders (Owner, Manager, Moderator).</summary>
 [ApiController]
 [Route("customers")]
@@ -145,11 +151,18 @@ public sealed class CustomersController(ICustomerService customers, ICustomerOrd
         return created ? Created($"/api/customers/{customer.Id}", customer) : Ok(customer);
     }
 
+    /// <summary>The customer with their order history in this shop (counts and delivered value).</summary>
     [HttpGet("{id:guid}")]
-    [ProducesResponseType<CustomerDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType<CustomerDetails>(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<CustomerDto>> Get(Guid id, CancellationToken cancellationToken) =>
-        Ok(await customers.GetAsync(id, cancellationToken));
+    public async Task<ActionResult<CustomerDetails>> Get(Guid id, CancellationToken cancellationToken)
+    {
+        var customer = await customers.GetAsync(id, cancellationToken); // 404 (also for another shop's customer)
+        return Ok(new CustomerDetails(
+            customer,
+            await history.ForAsync(id, null, cancellationToken),
+            await history.DeliveredValueAsync(id, cancellationToken)));
+    }
 
     /// <summary>Replaces name, address and notes. The phone (the customer's identity) cannot change.</summary>
     [HttpPut("{id:guid}")]

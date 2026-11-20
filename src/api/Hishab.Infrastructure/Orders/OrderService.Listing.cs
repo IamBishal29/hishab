@@ -27,6 +27,12 @@ internal sealed partial class OrderService
             orders = orders.Where(o => statuses.Contains(o.Status));
         }
 
+        if (filter.CustomerId is { } customerId)
+        {
+            // One buyer's orders: (tenant_id, customer_id, created_at, number) reads them newest first, no sort.
+            orders = orders.Where(o => o.CustomerId == customerId);
+        }
+
         if (filter.From is { } from)
         {
             var start = DhakaTime.StartOfDay(from);

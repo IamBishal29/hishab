@@ -2,6 +2,10 @@
 
 ## Current
 - Milestone: M2 Orders & customers (M1 complete)
+- Open PRs: #58 (#18 order list, landing #57 on main; CI green) and #60 (#56 customer history API)
+- Branch: feat/56-customer-history-api
+- Next step: Syed merges #58, then #60 (PROGRESS.md conflicts: keep #60's version, it includes
+  #18). Then `/next-task` picks #59 "Web: customer page" (needs both on main).
 - Issue: #18 done, PR #57 open for review (stacked on #55)
 - Branch: feat/18-order-list (base: feat/17-quick-order-form)
 - Next step: Syed merges #55, then I retarget PR #57 to `main`. Then `/next-task` picks the lowest open M2 issue (#56 customer page was split from #18).
@@ -82,6 +86,15 @@
   idempotency key kept while the outcome is unknown; lookup returns { customer, history };
   GET /api/shop readable by all staff; screenshots in docs/screenshots; 397 .NET + 30 web
   tests; note 16
+- #18 Order list + detail (PR #57 merged into the #17 branch after #55 had landed, so it never
+  reached main; re-opened as PR #58 against main, CI green): URL filters (orderFilters.ts,
+  bad values dropped), keyset "Load more" (useInfiniteQuery), bulk confirm/cancel with per-row
+  results, order detail timeline + confirm/cancel (409 message), invalidateOrders after changes,
+  packer read-only view; customer page split to #56; 45 web tests; note 17
+- #56 Customer history API (PR #60): GET /api/customers/{id} -> { customer, history,
+  deliveredValue } (computed on read from Order.Total), GET /api/orders?customerId= with a
+  (tenant, customer, created_at, number) index (EXPLAIN: 6 vs 84 buffers for a 2,000-order buyer
+  once tenant leads the index); 400 .NET tests; note 18. Web half split to #59.
 - #18 Order list + detail (PR #57, stacked on #55): URL filters (orderFilters.ts,
   bad values dropped), keyset "Load more" (useInfiniteQuery), bulk confirm/cancel with per-row
   results, order detail timeline + confirm/cancel (409 message), invalidateOrders after changes,
@@ -109,6 +122,8 @@
 - Order list (#18): PR is ~1,250 lines (pages ~550, tests/fakes ~370, strings ~130); say if you
   want order detail split out. Filters take a lot of height at 360 px (could collapse later).
   Integration tests not run locally (Docker was off); web-only change, CI runs them.
+- Stacked PRs: a stacked PR merged into its base branch after that base has landed does not
+  reach main. From now on I branch from main only, or retarget before you merge.
 - Git's credential manager has no GitHub login on this machine (push failed with "could not read
   Username"); I pushed via `gh auth git-credential` for that one command. To fix for good:
   `gh auth setup-git` (or sign in again through Git Credential Manager).
@@ -149,3 +164,5 @@
 - 2026-11-20: #16 implemented, PR #54 open (keyset cursor paging: Syed's choice) (merged)
 - 2026-11-20: #17 implemented, PR #55 open
 - 2026-11-20: #18 split (customer page -> #56) and stacked on #55 (Syed's choices); PR #57 open
+- 2026-11-20: #57 merged into the #17 branch, not main; re-opened as #58. #56 split (web -> #59),
+  API half from main (Syed's choice); PR #60 open

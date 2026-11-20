@@ -872,6 +872,7 @@
         "tags": [
           "Customers"
         ],
+        "summary": "The customer with their order history in this shop (counts and delivered value).",
         "parameters": [
           {
             "name": "id",
@@ -929,17 +930,17 @@
             "content": {
               "text/plain": {
                 "schema": {
-                  "$ref": "#/components/schemas/CustomerDto"
+                  "$ref": "#/components/schemas/CustomerDetails"
                 }
               },
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CustomerDto"
+                  "$ref": "#/components/schemas/CustomerDetails"
                 }
               },
               "text/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CustomerDto"
+                  "$ref": "#/components/schemas/CustomerDetails"
                 }
               }
             }
@@ -1563,6 +1564,15 @@
               "type": "string"
             },
             "example": "#1043"
+          },
+          {
+            "name": "CustomerId",
+            "in": "query",
+            "description": "Only this customer's orders (the customer page).",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
           },
           {
             "name": "Cursor",
@@ -4363,6 +4373,30 @@
             "description": "At least one. A product without sizes or colours has one variant without them."
           }
         }
+      },
+      "CustomerDetails": {
+        "required": [
+          "customer",
+          "history",
+          "deliveredValue"
+        ],
+        "type": "object",
+        "properties": {
+          "customer": {
+            "description": "The customer's details.",
+            "$ref": "#/components/schemas/CustomerDto"
+          },
+          "history": {
+            "description": "Order counts by outcome in this shop.",
+            "$ref": "#/components/schemas/CustomerOrderHistory"
+          },
+          "deliveredValue": {
+            "type": "number",
+            "description": "Sum of the totals of delivered and COD-settled orders, in BDT.",
+            "format": "double"
+          }
+        },
+        "description": "The customer page: details, track record and what they have paid for."
       },
       "CustomerDto": {
         "required": [
