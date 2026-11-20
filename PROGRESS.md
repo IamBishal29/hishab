@@ -2,10 +2,10 @@
 
 ## Current
 - Milestone: M2 Orders & customers (M1 complete)
-- Issue: #11 done, PR #49 open for review
-- Branch: feat/11-plan-limits
-- Next step: Syed merges PR #49, then `/next-task` picks #12 "Products with variants and
-  cost price".
+- Issue: #12 done, PR #50 open for review
+- Branch: feat/12-products
+- Next step: Syed merges PR #50, then `/next-task` picks #13 "Customers auto-created from
+  phone, with blocklist and notes" (phones are personal data: mask in logs and audit).
 
 ## Done
 - Product discovery: PRD written (docs/PRD.md); name chosen: Hishab
@@ -56,7 +56,11 @@
   Shop.Plan (Free default, backfilled), BillingPeriod (Dhaka months), usage_counters with an
   atomic reserve (no overshoot under parallel load), staff limit with a shop row lock (fixes
   the #8 race), 402 PlanLimitExceeded, GET /api/shop/usage, client regenerated; 221 .NET +
-  11 web tests; learning note 10
+  11 web tests; learning note 10 (merged)
+- #12 Products (PR #50): Product aggregate + variants (SKU rules, soft delete), soft-delete
+  filter convention, partial unique SKU index, ManageProducts (Owner, Manager), owner-only
+  cost prices enforced in the service (IRequestContext.Has, 403 on writes), search/paging,
+  client regenerated; 253 .NET + 11 web tests; learning note 11
 
 ## Decisions waiting for Syed
 - `GETTING-STARTED.md` says to delete it in the first PR; the permission check blocked
@@ -94,4 +98,6 @@
 - 2026-11-20: No AI-tool attribution on GitHub from now on (Syed)
 - 2026-11-20: #9 implemented, PR #47 open (merged)
 - 2026-11-20: #10 implemented, PR #48 open (API under /api and one PR: Syed's choices) (merged)
-- 2026-11-20: #11 implemented, PR #49 open (usage counter table: Syed's choice)
+- 2026-11-20: #11 implemented, PR #49 open (usage counter table: Syed's choice) (merged)
+- 2026-11-20: #12 implemented, PR #50 open (all read, Owner+Manager edit; 403 on manager
+  cost writes: Syed's choices)
