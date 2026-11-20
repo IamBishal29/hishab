@@ -201,6 +201,13 @@ Never read, print or commit `.env`, user-secrets, tokens or keys. Put placeholde
   the first order (201 + `Idempotent-Replayed: true`), a reused key with a different body -> 409.
   Order numbers: atomic `UPDATE shops SET last_order_number ... RETURNING`. Lock order per
   request: usage counter, then shop row (keep it, to avoid deadlocks).
+- Order list: `GET /api/orders` keyset-paged on `(created_at DESC, number DESC)` with an opaque
+  `OrderCursor`; indexes `(tenant, created_at, number)` and `(tenant, status, created_at, number)`.
+  New list filters: check `EXPLAIN (ANALYZE, BUFFERS)` and keep the sort key last in the index.
+  Dates in filters are Dhaka days: use `DhakaTime.StartOfDay` (Domain/Common), never UTC dates.
+- Status changes: `IOrderService.TransitionAsync` (409 on lifecycle or concurrent change);
+  bulk actions use `TransitionManyAsync` (one SaveChanges per order, per-order results with
+  `BulkErrors` codes, always 200). Every staff member can read orders; changes need `CanEnterOrders`.
 - Field-level rules belong in services via `IRequestContext.Has(permission)`, not only in controllers.
 - Audit: mark entities `IAuditable` (Domain); `AuditInterceptor` writes `AuditEntry` rows in the
   same SaveChanges. In EF config mark personal fields `.IsPersonalData(PersonalDataKind.Phone|Text)`
