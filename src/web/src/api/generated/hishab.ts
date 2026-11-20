@@ -113,7 +113,17 @@ export interface ChangeStaffRoleRequest {
   role: ShopRole;
 }
 
-export type CourierProvider = typeof CourierProvider[keyof typeof CourierProvider] | null;
+/**
+ * The courier's fields (see `fields` in GET /api/couriers), e.g. `{ "apiKey": "..." }`. Stored encrypted, never returned.
+ */
+export type ConnectCourierRequestCredentials = {[key: string]: string};
+
+export interface ConnectCourierRequest {
+  /** The courier's fields (see `fields` in GET /api/couriers), e.g. `{ "apiKey": "..." }`. Stored encrypted, never returned. */
+  credentials?: ConnectCourierRequestCredentials;
+}
+
+export type CourierProvider = typeof CourierProvider[keyof typeof CourierProvider];
 
 
 export const CourierProvider = {
@@ -121,6 +131,21 @@ export const CourierProvider = {
   Pathao: 'Pathao',
   Steadfast: 'Steadfast',
 } as const;
+
+export interface CourierCredentialField {
+  name: string;
+  label: string;
+}
+
+export interface CourierConnection {
+  provider: CourierProvider;
+  isConnected: boolean;
+  /** @nullable */
+  credentialHint: string | null;
+  /** @nullable */
+  connectedAt: string | null;
+  fields: CourierCredentialField[];
+}
 
 export interface CreateOrderLineRequest {
   /** The catalogue variant; name, SKU, price and cost are copied from it. */
@@ -1148,6 +1173,256 @@ export function useGetApiAuthMe<TData = Awaited<ReturnType<typeof getApiAuthMe>>
 
 
 
+
+export const getGetApiCouriersUrl = () => {
+
+
+
+
+  return `/api/couriers`
+}
+
+/**
+ * @summary Couriers Hishab supports, the fields each needs, and which ones this shop has connected. All staff.
+ */
+export const getApiCouriers = async ( options?: Parameters<typeof apiFetch>[1]): Promise<CourierConnection[]> => {
+
+  return apiFetch<CourierConnection[]>(getGetApiCouriersUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetApiCouriersQueryKey = () => {
+    return [
+    `/api/couriers`
+    ] as const;
+    }
+
+
+export const getGetApiCouriersQueryOptions = <TData = Awaited<ReturnType<typeof getApiCouriers>>, TError = ProblemDetails>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCouriers>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiCouriersQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiCouriers>>> = ({ signal }) => getApiCouriers({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiCouriers>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetApiCouriersQueryResult = NonNullable<Awaited<ReturnType<typeof getApiCouriers>>>
+export type GetApiCouriersQueryError = ProblemDetails
+
+
+/** @summary Couriers Hishab supports, the fields each needs, and which ones this shop has connected. All staff. */
+export function useGetApiCouriers<TData = Awaited<ReturnType<typeof getApiCouriers>>, TError = ProblemDetails>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCouriers>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getApiCouriers>>,
+          TError,
+          Awaited<ReturnType<typeof getApiCouriers>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/** @summary Couriers Hishab supports, the fields each needs, and which ones this shop has connected. All staff. */
+export function useGetApiCouriers<TData = Awaited<ReturnType<typeof getApiCouriers>>, TError = ProblemDetails>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCouriers>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getApiCouriers>>,
+          TError,
+          Awaited<ReturnType<typeof getApiCouriers>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/** @summary Couriers Hishab supports, the fields each needs, and which ones this shop has connected. All staff. */
+export function useGetApiCouriers<TData = Awaited<ReturnType<typeof getApiCouriers>>, TError = ProblemDetails>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCouriers>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/** @summary Couriers Hishab supports, the fields each needs, and which ones this shop has connected. All staff. */
+export function useGetApiCouriers<TData = Awaited<ReturnType<typeof getApiCouriers>>, TError = ProblemDetails>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCouriers>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetApiCouriersQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getPutApiCouriersProviderUrl = (provider: CourierProvider,) => {
+
+
+
+
+  return `/api/couriers/${provider}`
+}
+
+/**
+ * @summary Connects a courier, or replaces its keys. The keys are checked with the courier first
+(400 if rejected). A new courier counts against the plan (402 on the Free plan's second courier). Owner and Manager (ManageShop).
+ */
+export const putApiCouriersProvider = async (provider: CourierProvider,
+    connectCourierRequest: ConnectCourierRequest, options?: Parameters<typeof apiFetch>[1]): Promise<CourierConnection> => {
+
+  return apiFetch<CourierConnection>(getPutApiCouriersProviderUrl(provider),
+  {
+    ...options,
+    method: 'PUT',
+    headers: getHeaders({ 'Content-Type': 'application/json' }, options?.headers),
+    body: JSON.stringify(connectCourierRequest)
+  }
+);}
+
+
+
+
+
+export const getPutApiCouriersProviderMutationKey = () => ['putApiCouriersProvider'] as const;
+
+export const getPutApiCouriersProviderMutationOptions = <TError = ValidationProblemDetails | ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiCouriersProvider>>, TError,PutApiCouriersProviderMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof putApiCouriersProvider>>, TError,PutApiCouriersProviderMutationVariables, TContext> => {
+
+const mutationKey = getPutApiCouriersProviderMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof putApiCouriersProvider>>, PutApiCouriersProviderMutationVariables> = (props) => {
+          const {provider,data} = props ?? {};
+
+          return  putApiCouriersProvider(provider,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PutApiCouriersProviderMutationResult = NonNullable<Awaited<ReturnType<typeof putApiCouriersProvider>>>
+    export type PutApiCouriersProviderMutationBody = ConnectCourierRequest
+    export type PutApiCouriersProviderMutationError = ValidationProblemDetails | ProblemDetails
+    export type PutApiCouriersProviderMutationVariables = {provider: CourierProvider;data: ConnectCourierRequest}
+
+    /**
+ * @summary Connects a courier, or replaces its keys. The keys are checked with the courier first
+(400 if rejected). A new courier counts against the plan (402 on the Free plan's second courier). Owner and Manager (ManageShop).
+ */
+export const usePutApiCouriersProvider = <TError = ValidationProblemDetails | ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiCouriersProvider>>, TError,PutApiCouriersProviderMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof putApiCouriersProvider>>,
+        TError,
+        PutApiCouriersProviderMutationVariables,
+        TContext
+      > => {
+      return useMutation(getPutApiCouriersProviderMutationOptions(options), queryClient);
+    }
+
+export const getDeleteApiCouriersProviderUrl = (provider: CourierProvider,) => {
+
+
+
+
+  return `/api/couriers/${provider}`
+}
+
+/**
+ * @summary Disconnects a courier and deletes its keys. Owner and Manager (ManageShop).
+ */
+export const deleteApiCouriersProvider = async (provider: CourierProvider, options?: Parameters<typeof apiFetch>[1]): Promise<void> => {
+
+  return apiFetch<void>(getDeleteApiCouriersProviderUrl(provider),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteApiCouriersProviderMutationKey = () => ['deleteApiCouriersProvider'] as const;
+
+export const getDeleteApiCouriersProviderMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteApiCouriersProvider>>, TError,DeleteApiCouriersProviderMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteApiCouriersProvider>>, TError,DeleteApiCouriersProviderMutationVariables, TContext> => {
+
+const mutationKey = getDeleteApiCouriersProviderMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteApiCouriersProvider>>, DeleteApiCouriersProviderMutationVariables> = (props) => {
+          const {provider} = props ?? {};
+
+          return  deleteApiCouriersProvider(provider,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteApiCouriersProviderMutationResult = NonNullable<Awaited<ReturnType<typeof deleteApiCouriersProvider>>>
+
+    export type DeleteApiCouriersProviderMutationError = ProblemDetails
+    export type DeleteApiCouriersProviderMutationVariables = {provider: CourierProvider}
+
+    /** @summary Disconnects a courier and deletes its keys. Owner and Manager (ManageShop). */
+export const useDeleteApiCouriersProvider = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteApiCouriersProvider>>, TError,DeleteApiCouriersProviderMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof deleteApiCouriersProvider>>,
+        TError,
+        DeleteApiCouriersProviderMutationVariables,
+        TContext
+      > => {
+      return useMutation(getDeleteApiCouriersProviderMutationOptions(options), queryClient);
+    }
 
 export const getGetApiCustomersUrl = (params?: GetApiCustomersParams,) => {
   const normalizedParams = new URLSearchParams();
