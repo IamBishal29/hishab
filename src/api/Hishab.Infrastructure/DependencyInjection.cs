@@ -102,6 +102,7 @@ public static class DependencyInjection
         services.AddSingleton<ICourierProviderRegistry, CourierProviderRegistry>();
         services.AddSingleton<ICourierCredentialProtector, CourierCredentialProtector>();
         services.AddScoped<ICourierAccountService, CourierAccountService>();
+        services.AddScoped<IShipmentService, ShipmentService>();
     }
 
     private static void AddTokens(IServiceCollection services, IConfiguration configuration)

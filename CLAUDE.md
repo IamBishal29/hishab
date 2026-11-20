@@ -240,6 +240,12 @@ Never read, print or commit `.env`, user-secrets, tokens or keys. Put placeholde
   key ring in `data_protection_keys`, wrapped by the certificate; purpose includes the shop ID).
   Endpoints `/api/couriers` (GET all staff; PUT/DELETE `{provider}` need `CanManageShop`).
   Integration tests migrate before the host starts (hosted services read tables at startup).
+- Booking: `IShipmentService.BookAsync` (`POST /api/orders/{id}/book`, `CanPack`). Three steps: commit
+  `Shipment` = Requested (intent, reference = order ID), call `ICourierProvider.BookAsync` (must be
+  idempotent on `MerchantReference`), then Shipment + Order -> Booked in one SaveChanges. Partial
+  unique index `ux_shipments_one_live_per_order`; rejected shipments are retried on the same row;
+  `CourierUnavailableException` -> 503 (retry is safe). `OrderDetails.shipment` = latest shipment.
+  Tests: `BookingApiFactory` adds a `ScriptedCourier` (lose next answer / reject next parcel).
 - Screenshots for UI PRs live in `docs/screenshots/NN-*.png` (390 px wide, headless Chrome).
 - Field-level rules belong in services via `IRequestContext.Has(permission)`, not only in controllers.
 - Audit: mark entities `IAuditable` (Domain); `AuditInterceptor` writes `AuditEntry` rows in the

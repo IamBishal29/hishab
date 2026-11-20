@@ -2238,6 +2238,207 @@
         }
       }
     },
+    "/api/orders/{id}/book": {
+      "post": {
+        "tags": [
+          "Orders"
+        ],
+        "summary": "Books a Confirmed order with a courier (the shop's default when none is given) and moves it\nto Booked. Safe to retry: an already booked order returns its booking, and the courier\nalways receives the same reference, so it never books the parcel twice. 409 if the order is\nnot Confirmed; 400 if no courier is connected or the courier refuses the parcel; 503 if the\ncourier did not answer (retry).",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/BookOrderRequest"
+                  }
+                ]
+              }
+            },
+            "text/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/BookOrderRequest"
+                  }
+                ]
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/BookOrderRequest"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderDetails"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/orders/{id}/cancel": {
       "post": {
         "tags": [
@@ -4425,6 +4626,25 @@
           }
         }
       },
+      "BookOrderRequest": {
+        "type": "object",
+        "properties": {
+          "courier": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "description": "The courier to book with; omit to use the shop's default courier.",
+                "examples": [
+                  "Fake"
+                ],
+                "$ref": "#/components/schemas/CourierProvider"
+              }
+            ]
+          }
+        }
+      },
       "BulkActionResult": {
         "required": [
           "succeeded",
@@ -5105,7 +5325,8 @@
         "required": [
           "order",
           "customer",
-          "warnings"
+          "warnings",
+          "shipment"
         ],
         "type": "object",
         "properties": {
@@ -5120,6 +5341,16 @@
             "items": {
               "type": "string"
             }
+          },
+          "shipment": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ShipmentDto"
+              }
+            ]
           }
         }
       },
@@ -5586,6 +5817,75 @@
             "type": "string"
           }
         }
+      },
+      "ShipmentDto": {
+        "required": [
+          "id",
+          "provider",
+          "state",
+          "consignmentId",
+          "trackingCode",
+          "deliveryFee",
+          "error",
+          "requestedAt",
+          "bookedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "provider": {
+            "$ref": "#/components/schemas/CourierProvider"
+          },
+          "state": {
+            "$ref": "#/components/schemas/ShipmentState"
+          },
+          "consignmentId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "trackingCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "deliveryFee": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "error": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "requestedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "bookedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "ShipmentState": {
+        "enum": [
+          "Requested",
+          "Booked",
+          "Rejected"
+        ]
       },
       "ShopResponse": {
         "required": [

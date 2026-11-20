@@ -77,6 +77,15 @@ public sealed class Shop : IAuditable
     /// first: the entity must stay valid whoever calls it (a job, an import, a future endpoint).
     /// </summary>
     /// <exception cref="DomainValidationException">A value breaks a rule; keyed by field.</exception>
+    /// <summary>Called when a courier is disconnected: a default the shop cannot use is no default.</summary>
+    public void ForgetDefaultCourier(CourierProvider provider)
+    {
+        if (DefaultCourier == provider)
+        {
+            DefaultCourier = null;
+        }
+    }
+
     public void UpdateProfile(
         string name,
         string? logoUrl,

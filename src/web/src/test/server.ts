@@ -130,6 +130,7 @@ export function detailsOf(item: OrderListItem): OrderDetails {
       cancelled: 0,
     },
     warnings: [],
+    shipment: null,
   }
 }
 

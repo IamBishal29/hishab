@@ -1,4 +1,5 @@
 using Hishab.Domain.Common;
+using Hishab.Domain.Couriers;
 using Hishab.Domain.Shops;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
@@ -30,6 +31,7 @@ public sealed partial class DomainExceptionHandler(
             AuthenticationFailedException => (StatusCodes.Status401Unauthorized, "Authentication failed"),
             ForbiddenException => (StatusCodes.Status403Forbidden, "Not allowed"),
             PlanLimitExceededException => (StatusCodes.Status402PaymentRequired, "Plan limit reached"),
+            CourierUnavailableException => (StatusCodes.Status503ServiceUnavailable, "Courier unavailable"),
             _ => (StatusCodes.Status422UnprocessableEntity, "Business rule violated"),
         };
 

@@ -1,3 +1,4 @@
+using Hishab.Domain.Couriers;
 using Hishab.Domain.Orders;
 
 namespace Hishab.Application.Orders;
@@ -94,7 +95,19 @@ public sealed record OrderLineInput(Guid VariantId, int Quantity);
 public sealed record CreateOrderResult(OrderDetails Details, bool Replayed);
 
 /// <summary>The order, the customer's track record with this shop, and warnings for the person taking the order.</summary>
-public sealed record OrderDetails(OrderDto Order, CustomerSummary Customer, IReadOnlyList<string> Warnings);
+/// <param name="Shipment">The latest courier booking for this order, if any.</param>
+public sealed record OrderDetails(OrderDto Order, CustomerSummary Customer, IReadOnlyList<string> Warnings, ShipmentDto? Shipment);
+
+public sealed record ShipmentDto(
+    Guid Id,
+    CourierProvider Provider,
+    ShipmentState State,
+    string? ConsignmentId,
+    string? TrackingCode,
+    decimal? DeliveryFee,
+    string? Error,
+    DateTimeOffset RequestedAt,
+    DateTimeOffset? BookedAt);
 
 public sealed record OrderDto(
     Guid Id,
