@@ -1,6 +1,7 @@
 using System.Globalization;
 using Hishab.Domain.Common;
 using Hishab.Domain.Customers;
+using Hishab.Domain.Orders;
 using Hishab.Domain.Products;
 using Hishab.Domain.Shops;
 using Hishab.Infrastructure.Identity;
@@ -127,6 +128,36 @@ public class TenantIsolationTests(TenancyDatabaseFixture fixture) : IClassFixtur
             id => fixture.CreateContext(id),
             () => Customer.Create(Phone.Parse("01912345678"), "Rahima", "Mirpur", DateTimeOffset.UtcNow),
             Ct);
+    }
+
+    [Fact]
+    public async Task Orders_with_lines_and_history_are_isolated_between_shops()
+    {
+        var customers = new List<Guid>();
+        await CrossTenantAssert.IsIsolatedAsync(
+            id => fixture.CreateContext(id),
+            () => Order.Create(
+                customers[0],
+                "Mirpur",
+                true,
+                OrderSource.Phone,
+                [new OrderLineDetails(null, "Polo", null, "P1", Money.Bdt(650m), null, 1)],
+                Money.Bdt(60m),
+                Money.Zero,
+                null,
+                null,
+                DateTimeOffset.UtcNow),
+            Ct,
+            newTenant: async () =>
+            {
+                var tenant = Guid.NewGuid(); // orders have a foreign key to customers
+                await using var db = fixture.CreateContext(tenant);
+                var customer = Customer.Create(Phone.Parse("01912345678"), null, null, DateTimeOffset.UtcNow);
+                db.Add(customer);
+                await db.SaveChangesAsync(Ct);
+                customers.Add(customer.Id); // the order is created for tenant A, the first one
+                return tenant;
+            });
     }
 
     [Fact]
