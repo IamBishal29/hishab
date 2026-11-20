@@ -2,6 +2,7 @@ import type { ReactElement } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, Navigate, Outlet, useLocation, useNavigate } from 'react-router'
 import { Button } from '@/components/ui/button'
+import { canEnterOrders } from '@/features/auth/permissions'
 import { endSession, useSession } from '@/features/auth/useSession'
 
 /** Protected routes: wait for the session (a reload restores it from the refresh cookie), else go to login. */
@@ -45,9 +46,6 @@ export function AppShell(): ReactElement {
   )
 }
 
-// Mirrors the API's EnterOrders permission; the API still decides (403 for anyone else).
-const canEnterOrders = new Set<string>(['Owner', 'Manager', 'Moderator'])
-
 export function HomePage(): ReactElement {
   const { t } = useTranslation()
   const { data: session } = useSession()
@@ -55,11 +53,16 @@ export function HomePage(): ReactElement {
     <section className="mx-auto max-w-md">
       <h1 className="text-2xl font-bold">{t('home.title')}</h1>
       <p className="text-muted-foreground">{t('home.signedInAs', { role: session?.role ?? '' })}</p>
-      {session && canEnterOrders.has(session.role) && (
-        <Button asChild className="mt-4">
-          <Link to="/orders/new">{t('home.newOrder')}</Link>
+      <div className="mt-4 flex gap-2">
+        <Button asChild variant="outline">
+          <Link to="/orders">{t('home.orders')}</Link>
         </Button>
-      )}
+        {canEnterOrders(session?.role) && (
+          <Button asChild>
+            <Link to="/orders/new">{t('home.newOrder')}</Link>
+          </Button>
+        )}
+      </div>
     </section>
   )
 }
