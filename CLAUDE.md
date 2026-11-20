@@ -208,6 +208,12 @@ Never read, print or commit `.env`, user-secrets, tokens or keys. Put placeholde
 - Status changes: `IOrderService.TransitionAsync` (409 on lifecycle or concurrent change);
   bulk actions use `TransitionManyAsync` (one SaveChanges per order, per-order results with
   `BulkErrors` codes, always 200). Every staff member can read orders; changes need `CanEnterOrders`.
+- Quick order form (`features/orders/QuickOrderPage`): lookup via `useCustomerLookup` (debounced,
+  keyed by `normalizePhone`, 404 = new customer, returns `{ customer, history }`); auto-fill only
+  empty or previously auto-filled fields; `useIdempotencyKey` keeps the key while the outcome is
+  unknown (network/5xx) and drops it after success or a 4xx. `applyProblem` maps `lines[0].x` to
+  `lines.0.x`. Shared phone pattern in `lib/phone.ts`. `GET /api/shop` is readable by all staff.
+- Screenshots for UI PRs live in `docs/screenshots/NN-*.png` (390 px wide, headless Chrome).
 - Field-level rules belong in services via `IRequestContext.Has(permission)`, not only in controllers.
 - Audit: mark entities `IAuditable` (Domain); `AuditInterceptor` writes `AuditEntry` rows in the
   same SaveChanges. In EF config mark personal fields `.IsPersonalData(PersonalDataKind.Phone|Text)`

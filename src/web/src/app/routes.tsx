@@ -1,5 +1,6 @@
 import type { RouteObject } from 'react-router'
 import { LoginPage } from '@/features/auth/LoginPage'
+import { QuickOrderPage } from '@/features/orders/QuickOrderPage'
 import { ShopSetupPage } from '@/features/shops/ShopSetupPage'
 import { AppShell, HomePage, RequireSession } from './AppShell'
 
@@ -13,6 +14,7 @@ export const routes: RouteObject[] = [
         children: [
           { index: true, element: <HomePage /> },
           { path: 'setup', element: <ShopSetupPage /> },
+          { path: 'orders/new', element: <QuickOrderPage /> },
         ],
       },
     ],

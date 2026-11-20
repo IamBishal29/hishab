@@ -20,6 +20,7 @@ namespace Hishab.Infrastructure.Orders;
 internal sealed partial class OrderService(
     HishabDbContext db,
     ICustomerService customers,
+    ICustomerOrderHistory history,
     IPlanLimitService limits,
     ITenantContext tenant,
     IRequestContext request,
@@ -167,24 +168,17 @@ internal sealed partial class OrderService(
     private async Task<OrderDetails> DetailsAsync(Order order, CancellationToken cancellationToken)
     {
         var customer = await customers.GetAsync(order.CustomerId, cancellationToken);
-        var earlier = await db.Orders.AsNoTracking()
-            .Where(o => o.CustomerId == order.CustomerId && o.Id != order.Id)
-            .GroupBy(o => o.Status)
-            .Select(g => new { Status = g.Key, Count = g.Count() })
-            .ToDictionaryAsync(x => x.Status, x => x.Count, cancellationToken);
-
-        int Count(params OrderStatus[] statuses) => statuses.Sum(s => earlier.GetValueOrDefault(s));
-
+        var record = await history.ForAsync(order.CustomerId, order.Id, cancellationToken);
         var summary = new CustomerSummary(
             customer.Id,
             customer.Phone,
             customer.Name,
             customer.IsBlocked,
             customer.BlockedReason,
-            PreviousOrders: earlier.Values.Sum(),
-            Delivered: Count(OrderStatus.Delivered, OrderStatus.CodSettled),
-            Returned: Count(OrderStatus.Returned, OrderStatus.ReceivedBack),
-            Cancelled: Count(OrderStatus.Cancelled));
+            record.PreviousOrders,
+            record.Delivered,
+            record.Returned,
+            record.Cancelled);
 
         IReadOnlyList<string> warnings = customer.IsBlocked ? [OrderWarnings.CustomerBlocked] : [];
         return new OrderDetails(ToDto(order), summary, warnings);

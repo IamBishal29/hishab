@@ -132,6 +132,14 @@ public class QuickOrderTests(HishabApiFactory factory) : IClassFixture<HishabApi
         second.GetProperty("customer").GetProperty("id").GetGuid().ShouldBe(first.GetProperty("customer").GetProperty("id").GetGuid());
         second.GetProperty("customer").GetProperty("previousOrders").GetInt32().ShouldBe(1);
         second.GetProperty("order").GetProperty("number").GetInt32().ShouldBe(2);
+
+        // The quick-order form's lookup shows the same track record before the next order.
+        (await Send(HttpMethod.Post, $"/api/orders/{first.GetProperty("order").GetProperty("id").GetGuid()}/cancel", owner)).EnsureSuccessStatusCode();
+        var lookup = await Json(await Send(HttpMethod.Post, "/api/customers/lookup", owner, new { phone }));
+        lookup.GetProperty("customer").GetProperty("name").GetString().ShouldBe("Rahima Begum");
+        var history = lookup.GetProperty("history");
+        history.GetProperty("previousOrders").GetInt32().ShouldBe(2);
+        history.GetProperty("cancelled").GetInt32().ShouldBe(1);
     }
 
     [Fact]

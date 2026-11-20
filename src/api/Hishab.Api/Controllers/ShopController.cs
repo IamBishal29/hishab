@@ -83,16 +83,21 @@ public sealed record ShopResponse(
         p.Id, p.Name, p.LogoUrl, p.PickupAddress, p.DefaultCourier, p.DeliveryChargeInsideDhaka, p.DeliveryChargeOutsideDhaka);
 }
 
-/// <summary>The signed-in user's own shop. There is no shop id in the URL: the shop comes from the token.</summary>
+/// <summary>
+/// The signed-in user's own shop. There is no shop id in the URL: the shop comes from the token.
+/// Every staff member can read the profile (the order form needs the delivery charges); changing
+/// it and seeing plan usage need <see cref="Policies.CanManageShop"/>.
+/// </summary>
 [ApiController]
 [Route("shop")]
-[Authorize(Policy = Policies.CanManageShop)]
+[Authorize]
 [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
 [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
 public sealed class ShopController(IShopProfileService shops, IPlanLimitService limits) : ControllerBase
 {
     /// <summary>The plan, and used / limit for this billing month (Dhaka calendar month). A null limit means unlimited.</summary>
     [HttpGet("usage")]
+    [Authorize(Policy = Policies.CanManageShop)]
     [ProducesResponseType<ShopUsage>(StatusCodes.Status200OK)]
     public async Task<ActionResult<ShopUsage>> Usage(CancellationToken cancellationToken) =>
         Ok(await limits.GetUsageAsync(cancellationToken));
@@ -105,6 +110,7 @@ public sealed class ShopController(IShopProfileService shops, IPlanLimitService 
 
     /// <summary>Replaces the shop profile and delivery charges (Owner or Manager).</summary>
     [HttpPut]
+    [Authorize(Policy = Policies.CanManageShop)]
     [ProducesResponseType<ShopResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<ShopResponse>> Update(UpdateShopRequest request, CancellationToken cancellationToken) =>
