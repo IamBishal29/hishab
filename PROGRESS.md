@@ -2,10 +2,10 @@
 
 ## Current
 - Milestone: M2 Orders & customers (M1 complete)
-- Issue: #16 done, PR #54 open for review
-- Branch: feat/16-order-search-bulk
-- Next step: Syed merges PR #54, then `/next-task` picks #17 "Web: quick order form" (uses
-  POST /api/orders with a fresh Idempotency-Key per form submission; customer lookup by phone).
+- Issue: #17 done, PR #55 open for review
+- Branch: feat/17-quick-order-form
+- Next step: Syed merges PR #55, then `/next-task` picks #18 "Web: order list, bulk actions and
+  customer page" (uses GET /api/orders keyset cursor, bulk confirm/cancel per-order results).
 
 ## Done
 - Product discovery: PRD written (docs/PRD.md); name chosen: Hishab
@@ -77,7 +77,12 @@
 - #16 Order search + bulk (PR #54): GET /api/orders (status, Dhaka dates, area, source, text;
   keyset cursor on (created_at, number)), indexes checked with EXPLAIN (keyset 7 buffers vs
   OFFSET 847 + disk sort at row 40k), confirm/cancel (409 on lifecycle or concurrent change),
-  bulk confirm/cancel with per-order results, DhakaTime helper; 395 .NET tests; note 15
+  bulk confirm/cancel with per-order results, DhakaTime helper; 395 .NET tests; note 15 (merged)
+- #17 Quick order form (PR #55): phone-first debounced lookup (auto-fills only empty fields,
+  history + blocked warning), product picker, live totals, RHF + Zod with server line errors,
+  idempotency key kept while the outcome is unknown; lookup returns { customer, history };
+  GET /api/shop readable by all staff; screenshots in docs/screenshots; 397 .NET + 30 web
+  tests; note 16
 
 ## Decisions waiting for Syed
 - `GETTING-STARTED.md` says to delete it in the first PR; the permission check blocked
@@ -95,6 +100,9 @@
 - Order list (#16): courier filter waits for courier booking; "area" = inside/outside Dhaka for
   now; bulk returns 200 with per-order results (207 is the alternative); ILIKE search would
   need a pg_trgm index at very large volumes.
+- Quick order form (#17): GET /api/shop opened to all staff (delivery charges for the form);
+  form keeps the order channel after save; PR is ~1,200 lines (could have been split
+  backend/web). Smoke-tested against a throwaway Postgres container with process-only secrets.
 - Later hardening for the audit log: DB role without UPDATE/DELETE on audit_entries, or a
   hash chain (tamper-evidence); decide when deployment is planned.
 - Later: optimistic concurrency (ETag + xmin) for PUT /shop if two managers editing at
@@ -129,4 +137,5 @@
 - 2026-11-20: #13 implemented, PR #51 open (phone lookup via POST body: Syed's choice) (merged)
 - 2026-11-20: #14 implemented, PR #52 open (merged)
 - 2026-11-20: #15 implemented, PR #53 open (merged)
-- 2026-11-20: #16 implemented, PR #54 open (keyset cursor paging: Syed's choice)
+- 2026-11-20: #16 implemented, PR #54 open (keyset cursor paging: Syed's choice) (merged)
+- 2026-11-20: #17 implemented, PR #55 open
