@@ -118,7 +118,7 @@
 - Order list (#18): PR is ~1,250 lines (pages ~550, tests/fakes ~370, strings ~130); say if you
   want order detail split out. Filters take a lot of height at 360 px (could collapse later).
   Integration tests not run locally (Docker was off); web-only change, CI runs them.
-- Customer page (#59): blocking only warns (the PRD's "warn, don't refuse"); say if blocked buyers
+- Customer page (#59): blocking only warns, as since #13/#17 (orders are still allowed); say if blocked buyers
   should need an Owner override to order. PR is ~750 lines.
 - Stacked PRs: a stacked PR merged into its base branch after that base has landed does not
   reach main. From now on I branch from main only, or retarget before you merge.
