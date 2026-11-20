@@ -2,11 +2,11 @@
 
 ## Current
 - Milestone: M2 Orders & customers (M1 complete)
-- Issue: #13 done, PR #51 open for review
-- Branch: feat/13-customers
-- Next step: Syed merges PR #51, then `/next-task` picks #14 "Order aggregate, state machine
-  and status history" (order lines must snapshot name/SKU/price; call ReserveOrderAsync and
-  FindOrCreateAsync inside the order transaction).
+- Issue: #14 done, PR #52 open for review
+- Branch: feat/14-order-aggregate
+- Next step: Syed merges PR #52, then `/next-task` picks #15 "Quick order API" (POST /orders in
+  one transaction: FindOrCreateAsync + ReserveOrderAsync + Order.Create; delivery charge from
+  shop settings; idempotency key; short order number; map DbUpdateConcurrencyException to 409).
 
 ## Done
 - Product discovery: PRD written (docs/PRD.md); name chosen: Hishab
@@ -65,7 +65,11 @@
 - #13 Customers (PR #51): Customer per (tenant, E.164 phone) with unique index, race-safe
   find-or-create (unique violation -> read winner; savepoint-safe), POST lookup (phone in body),
   block/unblock, notes, search by name/digits, personal data masked in audit, IDs-only logs;
-  270 .NET + 11 web tests; learning note 12
+  270 .NET + 11 web tests; learning note 12 (merged)
+- #14 Order aggregate (PR #52): Order + owned lines (snapshots incl. cost) + status history
+  (sequence), OrderLifecycle table from the PRD (TransitionTo, 409 on invalid), totals/COD,
+  xmin row version, concurrent saves -> DbUpdateConcurrencyException; 9 allowed + 72
+  forbidden transition tests; 365 .NET tests; learning note 13
 
 ## Decisions waiting for Syed
 - `GETTING-STARTED.md` says to delete it in the first PR; the permission check blocked
@@ -75,6 +79,8 @@
   and set POSTGRES_PASSWORD (I used a throwaway container for the smoke test).
 - Web follow-ups: Bangla server messages (API errors are English), route code-splitting
   (bundle 181 kB gzip), 4 moderate dev-only npm audit findings.
+- Order lifecycle follows the PRD exactly: no cancel after booking, no return after delivery.
+  Confirm with sellers whether courier-side cancellations need a Booked -> Cancelled move.
 - Later hardening for the audit log: DB role without UPDATE/DELETE on audit_entries, or a
   hash chain (tamper-evidence); decide when deployment is planned.
 - Later: optimistic concurrency (ETag + xmin) for PUT /shop if two managers editing at
@@ -106,4 +112,5 @@
 - 2026-11-20: #11 implemented, PR #49 open (usage counter table: Syed's choice) (merged)
 - 2026-11-20: #12 implemented, PR #50 open (all read, Owner+Manager edit; 403 on manager
   cost writes: Syed's choices) (merged)
-- 2026-11-20: #13 implemented, PR #51 open (phone lookup via POST body: Syed's choice)
+- 2026-11-20: #13 implemented, PR #51 open (phone lookup via POST body: Syed's choice) (merged)
+- 2026-11-20: #14 implemented, PR #52 open

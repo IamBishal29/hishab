@@ -192,6 +192,10 @@ Never read, print or commit `.env`, user-secrets, tokens or keys. Put placeholde
 - Customers: one per (TenantId, normalised E.164 phone), unique index. Use
   `ICustomerService.FindOrCreateAsync` (race-safe: unique violation -> read the winner; safe
   inside a transaction via EF savepoints). Phones never in URLs (`POST /api/customers/lookup`).
+- Orders: `Order` aggregate (owned `Lines` + `History`, `xmin` row version). Change status only
+  via `Order.TransitionTo` (table `OrderLifecycle`, from the PRD; invalid -> 409). Lines snapshot
+  name/label/SKU/price/cost. Concurrent saves of one order -> `DbUpdateConcurrencyException`
+  (map to 409 "reload and retry"). Order lines have no TenantId: always query through orders.
 - Field-level rules belong in services via `IRequestContext.Has(permission)`, not only in controllers.
 - Audit: mark entities `IAuditable` (Domain); `AuditInterceptor` writes `AuditEntry` rows in the
   same SaveChanges. In EF config mark personal fields `.IsPersonalData(PersonalDataKind.Phone|Text)`

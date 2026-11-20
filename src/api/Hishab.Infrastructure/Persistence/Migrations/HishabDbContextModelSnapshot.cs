@@ -159,6 +159,83 @@ namespace Hishab.Infrastructure.Persistence.Migrations
                     b.ToTable("customers", (string)null);
                 });
 
+            modelBuilder.Entity("Hishab.Domain.Orders.Order", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<decimal>("AdvancePaid")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)")
+                        .HasColumnName("advance_paid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("CustomerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("customer_id");
+
+                    b.Property<string>("DeliveryAddress")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("delivery_address")
+                        .HasAnnotation("Hishab:Audit:Personal", PersonalDataKind.Text);
+
+                    b.Property<decimal>("DeliveryCharge")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)")
+                        .HasColumnName("delivery_charge");
+
+                    b.Property<bool>("IsInsideDhaka")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_inside_dhaka");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("note");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("source");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_orders");
+
+                    b.HasIndex("CustomerId")
+                        .HasDatabaseName("ix_orders_customer_id");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_orders_tenant_id");
+
+                    b.HasIndex("TenantId", "CreatedAt")
+                        .HasDatabaseName("ix_orders_tenant_id_created_at");
+
+                    b.ToTable("orders", (string)null);
+                });
+
             modelBuilder.Entity("Hishab.Domain.Products.Product", b =>
                 {
                     b.Property<Guid>("Id")
@@ -655,6 +732,129 @@ namespace Hishab.Infrastructure.Persistence.Migrations
                         .HasName("pk_user_tokens");
 
                     b.ToTable("user_tokens", (string)null);
+                });
+
+            modelBuilder.Entity("Hishab.Domain.Orders.Order", b =>
+                {
+                    b.HasOne("Hishab.Domain.Customers.Customer", null)
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_orders_customers_customer_id");
+
+                    b.OwnsMany("Hishab.Domain.Orders.OrderLine", "Lines", b1 =>
+                        {
+                            b1.Property<Guid>("Id")
+                                .HasColumnType("uuid")
+                                .HasColumnName("id");
+
+                            b1.Property<Guid>("OrderId")
+                                .HasColumnType("uuid")
+                                .HasColumnName("order_id");
+
+                            b1.Property<string>("ProductName")
+                                .IsRequired()
+                                .HasMaxLength(200)
+                                .HasColumnType("character varying(200)")
+                                .HasColumnName("product_name");
+
+                            b1.Property<Guid?>("ProductVariantId")
+                                .HasColumnType("uuid")
+                                .HasColumnName("product_variant_id");
+
+                            b1.Property<int>("Quantity")
+                                .HasColumnType("integer")
+                                .HasColumnName("quantity");
+
+                            b1.Property<string>("Sku")
+                                .HasMaxLength(64)
+                                .HasColumnType("character varying(64)")
+                                .HasColumnName("sku");
+
+                            b1.Property<decimal?>("UnitCost")
+                                .HasPrecision(12, 2)
+                                .HasColumnType("numeric(12,2)")
+                                .HasColumnName("unit_cost");
+
+                            b1.Property<decimal>("UnitPrice")
+                                .HasPrecision(12, 2)
+                                .HasColumnType("numeric(12,2)")
+                                .HasColumnName("unit_price");
+
+                            b1.Property<string>("VariantLabel")
+                                .HasMaxLength(110)
+                                .HasColumnType("character varying(110)")
+                                .HasColumnName("variant_label");
+
+                            b1.HasKey("Id")
+                                .HasName("pk_order_lines");
+
+                            b1.HasIndex("OrderId")
+                                .HasDatabaseName("ix_order_lines_order_id");
+
+                            b1.ToTable("order_lines", (string)null);
+
+                            b1.WithOwner()
+                                .HasForeignKey("OrderId")
+                                .HasConstraintName("fk_order_lines_orders_order_id");
+                        });
+
+                    b.OwnsMany("Hishab.Domain.Orders.OrderStatusChange", "History", b1 =>
+                        {
+                            b1.Property<Guid>("Id")
+                                .HasColumnType("uuid")
+                                .HasColumnName("id");
+
+                            b1.Property<DateTimeOffset>("ChangedAt")
+                                .HasColumnType("timestamp with time zone")
+                                .HasColumnName("changed_at");
+
+                            b1.Property<Guid?>("ChangedBy")
+                                .HasColumnType("uuid")
+                                .HasColumnName("changed_by");
+
+                            b1.Property<string>("From")
+                                .HasMaxLength(16)
+                                .HasColumnType("character varying(16)")
+                                .HasColumnName("from");
+
+                            b1.Property<string>("Note")
+                                .HasMaxLength(500)
+                                .HasColumnType("character varying(500)")
+                                .HasColumnName("note");
+
+                            b1.Property<Guid>("OrderId")
+                                .HasColumnType("uuid")
+                                .HasColumnName("order_id");
+
+                            b1.Property<int>("Sequence")
+                                .HasColumnType("integer")
+                                .HasColumnName("sequence");
+
+                            b1.Property<string>("To")
+                                .IsRequired()
+                                .HasMaxLength(16)
+                                .HasColumnType("character varying(16)")
+                                .HasColumnName("to");
+
+                            b1.HasKey("Id")
+                                .HasName("pk_order_status_changes");
+
+                            b1.HasIndex("OrderId", "Sequence")
+                                .IsUnique()
+                                .HasDatabaseName("ix_order_status_changes_order_id_sequence");
+
+                            b1.ToTable("order_status_changes", (string)null);
+
+                            b1.WithOwner()
+                                .HasForeignKey("OrderId")
+                                .HasConstraintName("fk_order_status_changes_orders_order_id");
+                        });
+
+                    b.Navigation("History");
+
+                    b.Navigation("Lines");
                 });
 
             modelBuilder.Entity("Hishab.Domain.Products.ProductVariant", b =>
