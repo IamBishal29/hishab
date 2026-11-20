@@ -9,7 +9,7 @@ namespace Hishab.Infrastructure.Identity;
 /// One user belongs to one shop (ADR 0006), so the user row is tenant-owned and the tenant
 /// filter applies to it like to any other shop data.
 /// </summary>
-public sealed class HishabUser : IdentityUser<Guid>, ITenantOwned
+public sealed class HishabUser : IdentityUser<Guid>, ITenantOwned, IAuditable
 {
     public Guid TenantId { get; set; }
 

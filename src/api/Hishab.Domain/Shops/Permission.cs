@@ -20,6 +20,9 @@ public enum Permission
 
     /// <summary>See cost prices, profit and payouts (PRD: only the Owner sees profit).</summary>
     SeeProfit,
+
+    /// <summary>Read the audit log (who changed what).</summary>
+    ViewAudit,
 }
 
 /// <summary>

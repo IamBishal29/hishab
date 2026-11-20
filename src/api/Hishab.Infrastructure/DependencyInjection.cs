@@ -1,9 +1,11 @@
+using Hishab.Application.Common.Auditing;
 using Hishab.Application.Common.Tenancy;
 using Hishab.Application.Shops;
 using Hishab.Application.Shops.Auth;
 using Hishab.Application.Shops.Staff;
 using Hishab.Infrastructure.Identity;
 using Hishab.Infrastructure.Persistence;
+using Hishab.Infrastructure.Persistence.Auditing;
 using Hishab.Infrastructure.Persistence.Tenancy;
 using Hishab.Infrastructure.Shops;
 using Hishab.Infrastructure.Shops.Auth;
@@ -26,9 +28,12 @@ public static class DependencyInjection
 
         services.AddScoped<ITenantContext, TenantContext>();
 
+        services.TryAddScoped<IRequestContext, NoRequestContext>(); // the API registers the HTTP one
+        services.AddScoped<AuditInterceptor>();
         services.AddDbContext<HishabDbContext>((sp, options) => options
             .UseNpgsql(sp.GetRequiredService<IOptions<DatabaseOptions>>().Value.ConnectionString)
-            .UseSnakeCaseNamingConvention());
+            .UseSnakeCaseNamingConvention()
+            .AddInterceptors(sp.GetRequiredService<AuditInterceptor>()));
 
         services.TryAddSingleton(TimeProvider.System);
 
@@ -39,6 +44,7 @@ public static class DependencyInjection
         AddTokens(services, configuration);
         services.AddScoped<IShopProfileService, ShopProfileService>();
         services.AddScoped<IStaffService, StaffService>();
+        services.AddScoped<IAuditLog, AuditLog>();
         services.AddSingleton<IShopPlanLimits, PlaceholderPlanLimits>();
 
         // Same DbContext and connection string as the app, so "healthy" means the app can really reach its data.

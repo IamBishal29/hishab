@@ -1,6 +1,7 @@
 using Hishab.Domain.Common;
 using Hishab.Domain.Shops;
 using Hishab.Infrastructure.Identity;
+using Hishab.Infrastructure.Persistence.Auditing;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -14,7 +15,7 @@ internal sealed class ShopConfiguration : IEntityTypeConfiguration<Shop>
         builder.ToTable("shops");
         builder.Property(s => s.Name).HasMaxLength(Shop.NameMaxLength);
         builder.Property(s => s.LogoUrl).HasMaxLength(Shop.LogoUrlMaxLength);
-        builder.Property(s => s.PickupAddress).HasMaxLength(Shop.PickupAddressMaxLength);
+        builder.Property(s => s.PickupAddress).HasMaxLength(Shop.PickupAddressMaxLength).IsPersonalData(PersonalDataKind.Text);
         builder.Property(s => s.DefaultCourier).HasConversion<string>().HasMaxLength(16);
     }
 }
@@ -45,6 +46,13 @@ internal sealed class HishabUserConfiguration : IEntityTypeConfiguration<HishabU
     {
         builder.ToTable("users");
         builder.Property(u => u.Role).HasConversion<string>().HasMaxLength(16);
+
+        // Audit: the phone lives in UserName and PhoneNumber; normalized copies add nothing.
+        builder.Property(u => u.UserName).IsPersonalData(PersonalDataKind.Phone);
+        builder.Property(u => u.PhoneNumber).IsPersonalData(PersonalDataKind.Phone);
+        builder.Property(u => u.Email).IsPersonalData(PersonalDataKind.Text);
+        builder.Property(u => u.NormalizedUserName).IsNotAudited();
+        builder.Property(u => u.NormalizedEmail).IsNotAudited();
         builder.HasOne<Shop>().WithMany().HasForeignKey(u => u.TenantId).OnDelete(DeleteBehavior.Restrict);
     }
 }
@@ -61,6 +69,20 @@ internal sealed class RefreshTokenConfiguration : IEntityTypeConfiguration<Refre
 
         // Two parallel refreshes with the same token: only one may redeem it, or the family forks.
         builder.Property<uint>("Version").IsRowVersion();
+    }
+}
+
+internal sealed class AuditEntryConfiguration : IEntityTypeConfiguration<AuditEntry>
+{
+    public void Configure(EntityTypeBuilder<AuditEntry> builder)
+    {
+        builder.ToTable("audit_entries");
+        builder.Property(a => a.EntityType).HasMaxLength(AuditEntry.EntityTypeMaxLength);
+        builder.Property(a => a.EntityId).HasMaxLength(AuditEntry.EntityIdMaxLength);
+        builder.Property(a => a.Action).HasConversion<string>().HasMaxLength(16);
+        builder.Property(a => a.Changes).HasColumnType("jsonb");
+        builder.Property(a => a.CorrelationId).HasMaxLength(AuditEntry.CorrelationIdMaxLength);
+        builder.HasIndex(a => new { a.TenantId, a.OccurredAt }); // newest-first paging per shop
     }
 }
 
