@@ -218,6 +218,11 @@ Never read, print or commit `.env`, user-secrets, tokens or keys. Put placeholde
   empty or previously auto-filled fields; `useIdempotencyKey` keeps the key while the outcome is
   unknown (network/5xx) and drops it after success or a 4xx. `applyProblem` maps `lines[0].x` to
   `lines.0.x`. Shared phone pattern in `lib/phone.ts`. `GET /api/shop` is readable by all staff.
+- Order list (`features/orders/OrderListPage`): filters live in the URL, parsed only by
+  `orderFilters.ts` (untrusted input: bad values dropped); the cursor is not in the URL
+  (`orderListQuery` = `useInfiniteQuery` on `nextCursor`). After any status change call
+  `invalidateOrders(queryClient, ids)` (list prefix + each detail key). UI permission checks
+  come from `features/auth/permissions.ts` (display only; the API decides).
 - Screenshots for UI PRs live in `docs/screenshots/NN-*.png` (390 px wide, headless Chrome).
 - Field-level rules belong in services via `IRequestContext.Has(permission)`, not only in controllers.
 - Audit: mark entities `IAuditable` (Domain); `AuditInterceptor` writes `AuditEntry` rows in the

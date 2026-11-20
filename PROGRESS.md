@@ -6,6 +6,9 @@
 - Branch: feat/56-customer-history-api
 - Next step: Syed merges #58, then #60 (PROGRESS.md conflicts: keep #60's version, it includes
   #18). Then `/next-task` picks #59 "Web: customer page" (needs both on main).
+- Issue: #18 done, PR #57 open for review (stacked on #55)
+- Branch: feat/18-order-list (base: feat/17-quick-order-form)
+- Next step: Syed merges #55, then I retarget PR #57 to `main`. Then `/next-task` picks the lowest open M2 issue (#56 customer page was split from #18).
 
 ## Done
 - Product discovery: PRD written (docs/PRD.md); name chosen: Hishab
@@ -92,6 +95,10 @@
   deliveredValue } (computed on read from Order.Total), GET /api/orders?customerId= with a
   (tenant, customer, created_at, number) index (EXPLAIN: 6 vs 84 buffers for a 2,000-order buyer
   once tenant leads the index); 400 .NET tests; note 18. Web half split to #59.
+- #18 Order list + detail (PR #57, stacked on #55): URL filters (orderFilters.ts,
+  bad values dropped), keyset "Load more" (useInfiniteQuery), bulk confirm/cancel with per-row
+  results, order detail timeline + confirm/cancel (409 message), invalidateOrders after changes,
+  packer read-only view; customer page split to #56; 45 web tests; note 17
 
 ## Decisions waiting for Syed
 - `GETTING-STARTED.md` says to delete it in the first PR; the permission check blocked

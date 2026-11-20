@@ -5,7 +5,8 @@
     "switchLanguage": "বাংলা"
   },
   "common": {
-    "loading": "Loading…"
+    "loading": "Loading…",
+    "retry": "Try again"
   },
   "errors": {
     "network": "Could not reach Hishab. Check your connection and try again.",
@@ -38,7 +39,8 @@
   "home": {
     "title": "Welcome to Hishab",
     "signedInAs": "Signed in as {{role}}.",
-    "newOrder": "New order"
+    "newOrder": "New order",
+    "orders": "Orders"
   },
   "order": {
     "title": "New order",
@@ -85,5 +87,64 @@
     "saving": "Saving…",
     "saved": "Order #{{number}} saved. Ready for the next one.",
     "possibleDuplicate": "An earlier attempt may already have saved this order. Check the order list before saving again."
+  },
+  "status": {
+    "New": "New",
+    "Confirmed": "Confirmed",
+    "Cancelled": "Cancelled",
+    "Booked": "Booked",
+    "InTransit": "In transit",
+    "Delivered": "Delivered",
+    "Returned": "Returned",
+    "CodSettled": "COD settled",
+    "ReceivedBack": "Received back"
+  },
+  "orders": {
+    "title": "Orders",
+    "newOrder": "New order",
+    "filters": "Filters",
+    "search": "Search orders",
+    "searchHint": "Order number, name or 3+ phone digits",
+    "status": "Status",
+    "from": "From",
+    "to": "To",
+    "area": "Area",
+    "anyArea": "Any area",
+    "source": "Source",
+    "anySource": "Any source",
+    "clear": "Clear filters",
+    "empty": "No orders match these filters.",
+    "loadMore": "Load more",
+    "loadingMore": "Loading…",
+    "select": "Select order #{{number}}",
+    "selectAll": "Select all shown",
+    "selected": "{{count}} selected",
+    "confirm": "Confirm",
+    "cancel": "Cancel order",
+    "working": "Working…",
+    "bulkDone": "{{succeeded}} done, {{failed}} not changed.",
+    "rowDone": "Now {{status}}",
+    "rowFailed": "Not changed: {{message}}",
+    "items_one": "{{count}} item",
+    "items_other": "{{count}} items",
+    "cod": "COD {{amount}}",
+    "inside": "Inside Dhaka",
+    "outside": "Outside Dhaka",
+    "cancelAsk": "Cancel {{count}} selected orders? This cannot be undone."
+  },
+  "orderDetail": {
+    "title": "Order #{{number}}",
+    "back": "All orders",
+    "customer": "Customer",
+    "delivery": "Delivery",
+    "items": "Items",
+    "history": "Status history",
+    "created": "Created",
+    "changed": "{{from}} → {{to}}",
+    "notFound": "This order does not exist or was removed.",
+    "note": "Note",
+    "confirm": "Confirm order",
+    "cancel": "Cancel order",
+    "cancelAsk": "Cancel order #{{number}}? This cannot be undone."
   }
 }
