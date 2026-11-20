@@ -5,6 +5,7 @@ using Hishab.Api.Errors;
 using Hishab.Api.Logging;
 using Hishab.Api.Middleware;
 using Hishab.Api.RateLimiting;
+using Hishab.Api.Routing;
 using Hishab.Api.Validation;
 using Hishab.Application.Common.Auditing;
 using Hishab.Infrastructure;
@@ -16,7 +17,11 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddHishabLogging();
 
-builder.Services.AddControllers(options => options.Filters.Add<FluentValidationFilter>())
+builder.Services.AddControllers(options =>
+    {
+        options.Filters.Add<FluentValidationFilter>();
+        options.Conventions.Add(new ApiRoutePrefixConvention()); // every controller under /api
+    })
     .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter())); // "Owner", not 0
 builder.Services.AddHishabRateLimiting(builder.Configuration);
 builder.Services.AddOpenApi();

@@ -25,7 +25,7 @@ public class ErrorsAndLoggingTests(HishabApiFactory factory) : IClassFixture<His
     [InlineData("conflict", HttpStatusCode.Conflict, "Order 42 is already booked.")]
     public async Task Domain_exceptions_become_problem_details_with_the_mapped_status(string kind, HttpStatusCode status, string detail)
     {
-        var (response, body) = await GetProblemAsync($"/_test/throw/{kind}");
+        var (response, body) = await GetProblemAsync($"/api/_test/throw/{kind}");
 
         response.StatusCode.ShouldBe(status);
         body.GetProperty("status").GetInt32().ShouldBe((int)status);
@@ -37,7 +37,7 @@ public class ErrorsAndLoggingTests(HishabApiFactory factory) : IClassFixture<His
     [Fact]
     public async Task Validation_exception_returns_400_with_errors_per_field()
     {
-        var (response, body) = await GetProblemAsync("/_test/throw/validation");
+        var (response, body) = await GetProblemAsync("/api/_test/throw/validation");
 
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         body.GetProperty("errors").GetProperty("phone")[0].GetString()
@@ -47,7 +47,7 @@ public class ErrorsAndLoggingTests(HishabApiFactory factory) : IClassFixture<His
     [Fact]
     public async Task Unexpected_exception_returns_500_without_internal_details()
     {
-        var (response, body) = await GetProblemAsync("/_test/throw/boom");
+        var (response, body) = await GetProblemAsync("/api/_test/throw/boom");
 
         response.StatusCode.ShouldBe(HttpStatusCode.InternalServerError);
         var raw = body.GetRawText();
@@ -60,7 +60,7 @@ public class ErrorsAndLoggingTests(HishabApiFactory factory) : IClassFixture<His
     public async Task A_well_formed_incoming_correlation_id_is_reused_and_echoed()
     {
         using var client = factory.CreateClient();
-        using var request = new HttpRequestMessage(HttpMethod.Get, "/_test/ok");
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/api/_test/ok");
         request.Headers.Add(CorrelationIdMiddleware.HeaderName, "seller-app.7f3a");
 
         var response = await client.SendAsync(request, Ct);
@@ -72,7 +72,7 @@ public class ErrorsAndLoggingTests(HishabApiFactory factory) : IClassFixture<His
     public async Task A_malformed_incoming_correlation_id_is_replaced()
     {
         using var client = factory.CreateClient();
-        using var request = new HttpRequestMessage(HttpMethod.Get, "/_test/ok");
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/api/_test/ok");
         request.Headers.TryAddWithoutValidation(CorrelationIdMiddleware.HeaderName, "fake\" Level=Error <script>");
 
         var response = await client.SendAsync(request, Ct);
@@ -87,7 +87,7 @@ public class ErrorsAndLoggingTests(HishabApiFactory factory) : IClassFixture<His
         var login = await factory.SignInAsync(client, Ct);
         var tenantId = login.GetProperty("shopId").GetString();
         var userId = login.GetProperty("userId").GetString();
-        using var request = new HttpRequestMessage(HttpMethod.Get, "/_test/ok");
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/api/_test/ok");
         request.Headers.Authorization = AuthSession.Bearer(login);
 
         var response = await client.SendAsync(request, Ct);
@@ -105,7 +105,7 @@ public class ErrorsAndLoggingTests(HishabApiFactory factory) : IClassFixture<His
     {
         using var client = factory.CreateClient();
 
-        var response = await client.GetAsync(new Uri("/_test/log-phone", UriKind.Relative), Ct);
+        var response = await client.GetAsync(new Uri("/api/_test/log-phone", UriKind.Relative), Ct);
         var correlationId = response.Headers.GetValues(CorrelationIdMiddleware.HeaderName).Single();
 
         var phoneLog = await factory.Logs.WaitForAsync(

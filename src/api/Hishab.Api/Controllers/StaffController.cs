@@ -62,7 +62,7 @@ public sealed class StaffController(IStaffService staff) : ControllerBase
     public async Task<ActionResult<StaffMember>> Invite(InviteStaffRequest request, CancellationToken cancellationToken)
     {
         var member = await staff.InviteAsync(request.Phone, request.Role, cancellationToken);
-        return Created($"/staff/{member.Id}", member);
+        return Created($"/api/staff/{member.Id}", member);
     }
 
     /// <summary>Changes a staff member's role. Takes effect at their next token refresh (within 15 minutes).</summary>

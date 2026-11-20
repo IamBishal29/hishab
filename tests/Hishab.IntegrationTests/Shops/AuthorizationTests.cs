@@ -54,12 +54,12 @@ public class AuthorizationTests(HishabApiFactory factory) : IClassFixture<Hishab
     [Fact]
     public async Task Anonymous_requests_are_unauthorized_not_forbidden()
     {
-        (await _client.GetAsync(new Uri("/_test/policy/pack", UriKind.Relative), Ct)).StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+        (await _client.GetAsync(new Uri("/api/_test/policy/pack", UriKind.Relative), Ct)).StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
     }
 
     private async Task<HttpResponseMessage> Probe(string policy, JsonElement user)
     {
-        using var request = new HttpRequestMessage(HttpMethod.Get, $"/_test/policy/{policy}");
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"/api/_test/policy/{policy}");
         request.Headers.Authorization = AuthSession.Bearer(user);
         return await _client.SendAsync(request, Ct);
     }

@@ -36,20 +36,20 @@ public class StaffTests(HishabApiFactory factory) : IClassFixture<HishabApiFacto
         var owner = await NewOwner();
         var phone = AuthSession.NewPhone();
 
-        var invite = await Send(HttpMethod.Post, "/staff", owner, new { phone, role = "Moderator" });
+        var invite = await Send(HttpMethod.Post, "/api/staff", owner, new { phone, role = "Moderator" });
 
         invite.StatusCode.ShouldBe(HttpStatusCode.Created);
         (await Json(invite)).GetProperty("status").GetString().ShouldBe("Invited");
 
-        await _client.PostAsJsonAsync("/auth/otp", new { phone }, Ct);
+        await _client.PostAsJsonAsync("/api/auth/otp", new { phone }, Ct);
         var login = await Json(await _client.PostAsJsonAsync(
-            "/auth/otp/verify", new { phone, code = factory.Otps.LatestCodeFor(phone), tokenDelivery = "Body" }, Ct));
+            "/api/auth/otp/verify", new { phone, code = factory.Otps.LatestCodeFor(phone), tokenDelivery = "Body" }, Ct));
 
         Id(login, "shopId").ShouldBe(Id(owner, "shopId"));
         login.GetProperty("role").GetString().ShouldBe("Moderator");
         login.GetProperty("isNewShop").GetBoolean().ShouldBeFalse();
 
-        var team = await Json(await Send(HttpMethod.Get, "/staff", owner));
+        var team = await Json(await Send(HttpMethod.Get, "/api/staff", owner));
         var member = team.EnumerateArray().Single(m => m.GetProperty("id").GetGuid() == Id(login));
         member.GetProperty("status").GetString().ShouldBe("Active");
         team.GetArrayLength().ShouldBe(2); // owner + moderator
@@ -62,7 +62,7 @@ public class StaffTests(HishabApiFactory factory) : IClassFixture<HishabApiFacto
         var otherShopsPhone = AuthSession.NewPhone();
         await factory.SignInWithPhoneAsync(_client, otherShopsPhone, Ct);
 
-        var response = await Send(HttpMethod.Post, "/staff", owner, new { phone = otherShopsPhone, role = "Packer" });
+        var response = await Send(HttpMethod.Post, "/api/staff", owner, new { phone = otherShopsPhone, role = "Packer" });
 
         response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
     }
@@ -72,9 +72,9 @@ public class StaffTests(HishabApiFactory factory) : IClassFixture<HishabApiFacto
     {
         var owner = await NewOwner();
         var phone = AuthSession.NewPhone();
-        await Send(HttpMethod.Post, "/staff", owner, new { phone, role = "Packer" });
+        await Send(HttpMethod.Post, "/api/staff", owner, new { phone, role = "Packer" });
 
-        (await Send(HttpMethod.Post, "/staff", owner, new { phone, role = "Packer" })).StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        (await Send(HttpMethod.Post, "/api/staff", owner, new { phone, role = "Packer" })).StatusCode.ShouldBe(HttpStatusCode.Conflict);
     }
 
     [Theory]
@@ -84,7 +84,7 @@ public class StaffTests(HishabApiFactory factory) : IClassFixture<HishabApiFacto
     {
         var owner = await NewOwner();
 
-        var response = await Send(HttpMethod.Post, "/staff", owner, new { phone = AuthSession.NewPhone(), role });
+        var response = await Send(HttpMethod.Post, "/api/staff", owner, new { phone = AuthSession.NewPhone(), role });
 
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
     }
@@ -95,10 +95,10 @@ public class StaffTests(HishabApiFactory factory) : IClassFixture<HishabApiFacto
         var owner = await NewOwner();
         var staff = await factory.InviteAndSignInAsync(_client, owner, "Moderator", Ct);
 
-        (await Send(HttpMethod.Put, $"/staff/{Id(staff)}/role", owner, new { role = "Packer" })).StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await Send(HttpMethod.Put, $"/api/staff/{Id(staff)}/role", owner, new { role = "Packer" })).StatusCode.ShouldBe(HttpStatusCode.OK);
 
-        var refreshed = await Json(await _client.PostAsJsonAsync("/auth/refresh", new { refreshToken = staff.GetProperty("refreshToken").GetString() }, Ct));
-        var me = await Json(await Send(HttpMethod.Get, "/auth/me", refreshed));
+        var refreshed = await Json(await _client.PostAsJsonAsync("/api/auth/refresh", new { refreshToken = staff.GetProperty("refreshToken").GetString() }, Ct));
+        var me = await Json(await Send(HttpMethod.Get, "/api/auth/me", refreshed));
         me.GetProperty("role").GetString().ShouldBe("Packer");
     }
 
@@ -108,11 +108,11 @@ public class StaffTests(HishabApiFactory factory) : IClassFixture<HishabApiFacto
         var owner = await NewOwner();
         var staff = await factory.InviteAndSignInAsync(_client, owner, "Packer", Ct);
 
-        (await Send(HttpMethod.Delete, $"/staff/{Id(staff)}", owner)).StatusCode.ShouldBe(HttpStatusCode.NoContent);
+        (await Send(HttpMethod.Delete, $"/api/staff/{Id(staff)}", owner)).StatusCode.ShouldBe(HttpStatusCode.NoContent);
 
-        var refresh = await _client.PostAsJsonAsync("/auth/refresh", new { refreshToken = staff.GetProperty("refreshToken").GetString() }, Ct);
+        var refresh = await _client.PostAsJsonAsync("/api/auth/refresh", new { refreshToken = staff.GetProperty("refreshToken").GetString() }, Ct);
         refresh.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
-        (await Json(await Send(HttpMethod.Get, "/staff", owner))).GetArrayLength().ShouldBe(1);
+        (await Json(await Send(HttpMethod.Get, "/api/staff", owner))).GetArrayLength().ShouldBe(1);
     }
 
     [Fact]
@@ -120,8 +120,8 @@ public class StaffTests(HishabApiFactory factory) : IClassFixture<HishabApiFacto
     {
         var owner = await NewOwner();
 
-        (await Send(HttpMethod.Delete, $"/staff/{Id(owner)}", owner)).StatusCode.ShouldBe(HttpStatusCode.Conflict);
-        (await Send(HttpMethod.Put, $"/staff/{Id(owner)}/role", owner, new { role = "Manager" })).StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        (await Send(HttpMethod.Delete, $"/api/staff/{Id(owner)}", owner)).StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        (await Send(HttpMethod.Put, $"/api/staff/{Id(owner)}/role", owner, new { role = "Manager" })).StatusCode.ShouldBe(HttpStatusCode.Conflict);
     }
 
     [Fact]
@@ -131,9 +131,9 @@ public class StaffTests(HishabApiFactory factory) : IClassFixture<HishabApiFacto
         var staffA = await factory.InviteAndSignInAsync(_client, ownerA, "Packer", Ct);
         var ownerB = await NewOwner();
 
-        (await Send(HttpMethod.Put, $"/staff/{Id(staffA)}/role", ownerB, new { role = "Manager" })).StatusCode.ShouldBe(HttpStatusCode.NotFound);
-        (await Send(HttpMethod.Delete, $"/staff/{Id(staffA)}", ownerB)).StatusCode.ShouldBe(HttpStatusCode.NotFound);
-        (await Json(await Send(HttpMethod.Get, "/staff", ownerB))).GetArrayLength().ShouldBe(1);
+        (await Send(HttpMethod.Put, $"/api/staff/{Id(staffA)}/role", ownerB, new { role = "Manager" })).StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        (await Send(HttpMethod.Delete, $"/api/staff/{Id(staffA)}", ownerB)).StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        (await Json(await Send(HttpMethod.Get, "/api/staff", ownerB))).GetArrayLength().ShouldBe(1);
     }
 
     [Fact]
@@ -142,8 +142,8 @@ public class StaffTests(HishabApiFactory factory) : IClassFixture<HishabApiFacto
         var owner = await NewOwner();
         var manager = await factory.InviteAndSignInAsync(_client, owner, "Manager", Ct);
 
-        (await Send(HttpMethod.Get, "/staff", manager)).StatusCode.ShouldBe(HttpStatusCode.Forbidden);
-        (await Send(HttpMethod.Post, "/staff", manager, new { phone = AuthSession.NewPhone(), role = "Packer" })).StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        (await Send(HttpMethod.Get, "/api/staff", manager)).StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        (await Send(HttpMethod.Post, "/api/staff", manager, new { phone = AuthSession.NewPhone(), role = "Packer" })).StatusCode.ShouldBe(HttpStatusCode.Forbidden);
     }
 
     [Fact]
@@ -152,10 +152,10 @@ public class StaffTests(HishabApiFactory factory) : IClassFixture<HishabApiFacto
         var owner = await NewOwner();
         for (var i = 1; i < 15; i++) // owner + 14 = placeholder limit of 15
         {
-            (await Send(HttpMethod.Post, "/staff", owner, new { phone = AuthSession.NewPhone(), role = "Packer" })).EnsureSuccessStatusCode();
+            (await Send(HttpMethod.Post, "/api/staff", owner, new { phone = AuthSession.NewPhone(), role = "Packer" })).EnsureSuccessStatusCode();
         }
 
-        var response = await Send(HttpMethod.Post, "/staff", owner, new { phone = AuthSession.NewPhone(), role = "Packer" });
+        var response = await Send(HttpMethod.Post, "/api/staff", owner, new { phone = AuthSession.NewPhone(), role = "Packer" });
 
         response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
         (await Json(response)).GetProperty("detail").GetString()!.ShouldContain("up to 15 users");

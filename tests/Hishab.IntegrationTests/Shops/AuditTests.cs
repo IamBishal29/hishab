@@ -30,7 +30,7 @@ public class AuditTests(HishabApiFactory factory) : IClassFixture<HishabApiFacto
 
     private async Task<JsonElement> Audit(JsonElement owner, string query = "")
     {
-        var response = await Send(HttpMethod.Get, "/audit" + query, owner);
+        var response = await Send(HttpMethod.Get, "/api/audit" + query, owner);
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         return JsonDocument.Parse(await response.Content.ReadAsStringAsync(Ct)).RootElement.Clone();
     }
@@ -44,7 +44,7 @@ public class AuditTests(HishabApiFactory factory) : IClassFixture<HishabApiFacto
     {
         var owner = await factory.SignInAsync(_client, Ct);
 
-        var update = await Send(HttpMethod.Put, "/shop", owner, new
+        var update = await Send(HttpMethod.Put, "/api/shop", owner, new
         {
             name = "Rahim Fashion",
             pickupAddress = "House 12, Road 5, Mirpur",
@@ -71,7 +71,7 @@ public class AuditTests(HishabApiFactory factory) : IClassFixture<HishabApiFacto
         var owner = await factory.SignInAsync(_client, Ct);
         var staff = await factory.InviteAndSignInAsync(_client, owner, "Moderator", Ct);
 
-        await Send(HttpMethod.Put, $"/staff/{staff.GetProperty("userId").GetGuid()}/role", owner, new { role = "Packer" });
+        await Send(HttpMethod.Put, $"/api/staff/{staff.GetProperty("userId").GetGuid()}/role", owner, new { role = "Packer" });
 
         var page = await Audit(owner);
         var roleChange = Items(page, "HishabUser", "Updated").Single(i => i.GetProperty("changes").TryGetProperty("role", out _));
@@ -90,7 +90,7 @@ public class AuditTests(HishabApiFactory factory) : IClassFixture<HishabApiFacto
         var owner = await factory.SignInAsync(_client, Ct);
         for (var i = 1; i <= 3; i++)
         {
-            await Send(HttpMethod.Put, "/shop", owner, new { name = $"Shop v{i}", deliveryChargeInsideDhaka = 60m, deliveryChargeOutsideDhaka = 120m });
+            await Send(HttpMethod.Put, "/api/shop", owner, new { name = $"Shop v{i}", deliveryChargeInsideDhaka = 60m, deliveryChargeOutsideDhaka = 120m });
         }
 
         var first = await Audit(owner, "?page=1&pageSize=2");
@@ -109,7 +109,7 @@ public class AuditTests(HishabApiFactory factory) : IClassFixture<HishabApiFacto
     {
         var owner = await factory.SignInAsync(_client, Ct);
 
-        (await Send(HttpMethod.Get, "/audit" + query, owner)).StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await Send(HttpMethod.Get, "/api/audit" + query, owner)).StatusCode.ShouldBe(HttpStatusCode.BadRequest);
     }
 
     [Fact]

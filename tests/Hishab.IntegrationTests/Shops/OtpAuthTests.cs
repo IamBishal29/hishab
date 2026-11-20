@@ -20,10 +20,10 @@ public class OtpAuthTests(HishabApiFactory factory) : IClassFixture<HishabApiFac
         "017" + Random.Shared.Next(10_000_000, 99_999_999).ToString(CultureInfo.InvariantCulture);
 
     private Task<HttpResponseMessage> RequestOtp(string phone) =>
-        _client.PostAsJsonAsync("/auth/otp", new { phone }, Ct);
+        _client.PostAsJsonAsync("/api/auth/otp", new { phone }, Ct);
 
     private Task<HttpResponseMessage> Verify(string phone, string code) =>
-        _client.PostAsJsonAsync("/auth/otp/verify", new { phone, code }, Ct);
+        _client.PostAsJsonAsync("/api/auth/otp/verify", new { phone, code }, Ct);
 
     private static async Task<JsonElement> Json(HttpResponseMessage response) =>
         JsonDocument.Parse(await response.Content.ReadAsStringAsync(Ct)).RootElement;
@@ -171,10 +171,10 @@ public class OtpRateLimitTests(LowRateLimitApiFactory factory) : IClassFixture<L
 
         for (var i = 0; i < 2; i++)
         {
-            await client.PostAsJsonAsync("/auth/otp", new { phone = "02900000000" }, ct); // any request counts, even invalid ones
+            await client.PostAsJsonAsync("/api/auth/otp", new { phone = "02900000000" }, ct); // any request counts, even invalid ones
         }
 
-        var limited = await client.PostAsJsonAsync("/auth/otp", new { phone = "01712345678" }, ct);
+        var limited = await client.PostAsJsonAsync("/api/auth/otp", new { phone = "01712345678" }, ct);
 
         limited.StatusCode.ShouldBe(HttpStatusCode.TooManyRequests);
         limited.Content.Headers.ContentType!.MediaType.ShouldBe("application/problem+json");

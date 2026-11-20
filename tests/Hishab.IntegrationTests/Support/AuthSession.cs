@@ -21,10 +21,10 @@ public static class AuthSession
     public static async Task<JsonElement> SignInWithPhoneAsync(
         this HishabApiFactory factory, HttpClient client, string phone, CancellationToken cancellationToken, string tokenDelivery = "Body")
     {
-        (await client.PostAsJsonAsync("/auth/otp", new { phone }, cancellationToken)).EnsureSuccessStatusCode();
+        (await client.PostAsJsonAsync("/api/auth/otp", new { phone }, cancellationToken)).EnsureSuccessStatusCode();
 
         var code = factory.Otps.LatestCodeFor(phone);
-        var response = await client.PostAsJsonAsync("/auth/otp/verify", new { phone, code, tokenDelivery }, cancellationToken);
+        var response = await client.PostAsJsonAsync("/api/auth/otp/verify", new { phone, code, tokenDelivery }, cancellationToken);
         response.EnsureSuccessStatusCode();
         return JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken)).RootElement.Clone();
     }
@@ -34,7 +34,7 @@ public static class AuthSession
         this HishabApiFactory factory, HttpClient client, JsonElement owner, string role, CancellationToken cancellationToken)
     {
         var phone = NewPhone();
-        using var invite = new HttpRequestMessage(HttpMethod.Post, "/staff") { Content = JsonContent.Create(new { phone, role }) };
+        using var invite = new HttpRequestMessage(HttpMethod.Post, "/api/staff") { Content = JsonContent.Create(new { phone, role }) };
         invite.Headers.Authorization = Bearer(owner);
         (await client.SendAsync(invite, cancellationToken)).EnsureSuccessStatusCode();
 
