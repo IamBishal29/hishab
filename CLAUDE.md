@@ -55,8 +55,8 @@ my GitHub showcase for senior / lead roles.
 - Open a PR: "Closes #<n>", summary, screenshots for UI changes, how to test, what to
   look at in review. I merge it.
 - Record significant decisions as ADRs in `docs/decisions/NNNN-title.md`.
-- Keep each PR moderate (~100-300 changed lines, excluding lockfiles, migrations and
-  generated API clients); split bigger work into more issues.
+- Keep each PR moderate (~600 changed lines including tests and docs, excluding lockfiles,
+  migrations and generated API clients); split bigger work into more issues.
 
 ## Engineering standards
 ### Backend (.NET)

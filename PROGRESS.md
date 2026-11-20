@@ -2,11 +2,10 @@
 
 ## Current
 - Milestone: M1 Foundation
-- Issue: #5 done (PR A #42 merged, PR B #43 open for review)
-- Branch: feat/5-otp-endpoints
-- Next step: Syed merges PR #43, then `/next-task` picks #6 "JWT access and refresh
-  tokens with rotation" (verify endpoint returns tokens; tenant_id claim sets
-  ITenantContext; replaces TestAuthHandler in most tests).
+- Issue: #6 done, PR #44 open for review
+- Branch: feat/6-jwt-refresh-tokens
+- Next step: Syed merges PR #44, then `/next-task` picks #7 "Shop profile and delivery
+  charge settings" (first [Authorize] feature endpoint using the tenant from the JWT).
 
 ## Done
 - Product discovery: PRD written (docs/PRD.md); name chosen: Hishab
@@ -32,13 +31,19 @@
 - #5 PR B (#43): Shop, Identity HishabUser (tenant-owned), migration, HMAC hasher,
   OtpAuthService (per-phone limits, uniform failures, one-transaction sign-up),
   /auth/otp + /auth/otp/verify, IP rate limiter; 91 tests passing; learning note 04
+  (merged)
+- #6 JWT + refresh rotation (PR #44): RefreshToken entity (families, hashed, one-time,
+  xmin), HS256 access tokens (15 min), TenantResolutionMiddleware, /auth/refresh,
+  /auth/logout, /auth/me, HttpOnly cookie by default or body on request; TestAuthHandler
+  replaced by real sign-in; 111 tests passing; learning note 05
 
 ## Decisions waiting for Syed
 - `GETTING-STARTED.md` says to delete it in the first PR; the permission check blocked
   the deletion. Delete it, or say so and I'll do it in the next PR.
-- PR size keeps exceeding ~300 lines (#40 ~610, #41 ~800, #42 ~480, #43 ~915), mostly
-  tests + docs. Options: (a) raise the guideline to ~600 incl. tests, (b) split issues
-  further up front (e.g. #6 into token issuing / refresh rotation), (c) keep as is.
+- New: `Jwt:SigningKey` user-secret is required to run the API locally (README step 2).
+- Web login (#10): the SPA must serialise refresh calls (strict reuse detection: two tabs
+  refreshing at once means one gets 401) and use a Vite proxy so the `/auth` cookie is
+  same-origin.
 - `.env.example` is blocked by permission settings (`.env*` rule), so I cannot keep its
   placeholders up to date; allow `.env.example` explicitly if you want me to.
 - Before #25 (labels/PDF): QuestPDF (free community licence, not open source) or an
@@ -52,4 +57,6 @@
 - 2026-11-19: #3 implemented, PR #40 open (merged)
 - 2026-11-19: #4 implemented, PR #41 open (merged)
 - 2026-11-19: #5 PR A opened (#42, merged); user<->shop decided (ADR 0006)
-- 2026-11-19: #5 PR B opened (#43)
+- 2026-11-19: #5 PR B opened (#43, merged)
+- 2026-11-20: PR size guideline raised to ~600 lines incl. tests/docs (Syed)
+- 2026-11-20: #6 implemented, PR #44 open (refresh token: cookie + body, Syed's choice)
