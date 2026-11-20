@@ -43,7 +43,8 @@ public sealed record OrderListFilter(
     DateOnly? To = null,
     bool? IsInsideDhaka = null,
     OrderSource? Source = null,
-    string? Search = null);
+    string? Search = null,
+    Guid? CustomerId = null);
 
 public sealed record OrderListPage(IReadOnlyList<OrderListItem> Items, string? NextCursor);
 
