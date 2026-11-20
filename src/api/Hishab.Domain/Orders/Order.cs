@@ -48,7 +48,7 @@ public sealed class Order : ITenantOwned, IAuditable
     public IReadOnlyList<OrderLine> Lines => _lines;
 
     /// <summary>Every status the order has been in, oldest first, starting with its creation.</summary>
-    public IReadOnlyList<OrderStatusChange> History => _history;
+    public IReadOnlyList<OrderStatusChange> History => [.. _history.OrderBy(h => h.Sequence)];
 
     public Money Subtotal => _lines.Aggregate(Money.Zero, (sum, line) => sum + line.LineTotal);
 
@@ -124,7 +124,7 @@ public sealed class Order : ITenantOwned, IAuditable
         }
 
         order.RecordAdvance(advancePaid);
-        order._history.Add(new OrderStatusChange(null, OrderStatus.New, createdBy, now, note: null));
+        order._history.Add(new OrderStatusChange(1, null, OrderStatus.New, createdBy, now, note: null));
         return order;
     }
 
@@ -156,7 +156,7 @@ public sealed class Order : ITenantOwned, IAuditable
             throw new DomainValidationException("note", $"Note is at most {NoteMaxLength} characters.");
         }
 
-        _history.Add(new OrderStatusChange(Status, to, by, now, note));
+        _history.Add(new OrderStatusChange(_history.Count + 1, Status, to, by, now, note));
         Status = to;
     }
 
@@ -257,9 +257,10 @@ public sealed class OrderStatusChange
     {
     }
 
-    internal OrderStatusChange(OrderStatus? from, OrderStatus to, Guid? changedBy, DateTimeOffset changedAt, string? note)
+    internal OrderStatusChange(int sequence, OrderStatus? from, OrderStatus to, Guid? changedBy, DateTimeOffset changedAt, string? note)
     {
         Id = Guid.NewGuid();
+        Sequence = sequence;
         From = from;
         To = to;
         ChangedBy = changedBy;
@@ -268,6 +269,9 @@ public sealed class OrderStatusChange
     }
 
     public Guid Id { get; private set; }
+
+    /// <summary>1 for creation, then 2, 3...: the history's order (timestamps can tie, Guids have no order).</summary>
+    public int Sequence { get; private set; }
 
     /// <summary>Null for the creation step.</summary>
     public OrderStatus? From { get; private set; }

@@ -2,6 +2,7 @@ using System.Linq.Expressions;
 using Hishab.Application.Common.Tenancy;
 using Hishab.Domain.Common;
 using Hishab.Domain.Customers;
+using Hishab.Domain.Orders;
 using Hishab.Domain.Products;
 using Hishab.Domain.Shops;
 using Hishab.Infrastructure.Identity;
@@ -57,6 +58,8 @@ public class HishabDbContext : IdentityUserContext<HishabUser, Guid>
 
     public DbSet<Customer> Customers => Set<Customer>();
 
+    public DbSet<Order> Orders => Set<Order>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder); // Identity's own mapping first, ours on top
@@ -77,17 +80,46 @@ public class HishabDbContext : IdentityUserContext<HishabUser, Guid>
             .HavePrecision(12, 2);
     }
 
+    /// <summary>Unique index that also catches two concurrent status changes of one order.</summary>
+    internal const string OrderHistorySequenceIndex = "ix_order_status_changes_order_id_sequence";
+
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
         ApplyTenantRules();
-        return base.SaveChanges(acceptAllChangesOnSuccess);
+        try
+        {
+            return base.SaveChanges(acceptAllChangesOnSuccess);
+        }
+        catch (DbUpdateException e) when (IsConcurrentHistoryAppend(e))
+        {
+            throw AsConcurrencyConflict(e);
+        }
     }
 
-    public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+    public override async Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
     {
         ApplyTenantRules();
-        return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+        try
+        {
+            return await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+        }
+        catch (DbUpdateException e) when (IsConcurrentHistoryAppend(e))
+        {
+            throw AsConcurrencyConflict(e);
+        }
     }
+
+    /// <summary>
+    /// Two concurrent transitions of one order collide on the history sequence index or on the
+    /// order's row version, whichever statement runs first. Both mean "someone else changed this
+    /// order", so callers always get one signal: <see cref="DbUpdateConcurrencyException"/>.
+    /// </summary>
+    private static bool IsConcurrentHistoryAppend(DbUpdateException e) =>
+        e is not DbUpdateConcurrencyException
+        && e.InnerException is Npgsql.PostgresException { SqlState: Npgsql.PostgresErrorCodes.UniqueViolation, ConstraintName: OrderHistorySequenceIndex };
+
+    private static DbUpdateConcurrencyException AsConcurrencyConflict(DbUpdateException e) =>
+        new("The order was changed by someone else. Reload it and try again.", e);
 
     /// <summary>
     /// Every root entity implementing <see cref="ITenantOwned"/> gets the named tenant
