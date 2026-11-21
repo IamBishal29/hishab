@@ -2,13 +2,10 @@
 
 ## Current
 - Milestone: M3 Couriers (M1 and M2 complete)
-- Issue: #21 "Bulk booking with partial failures" (code, unit tests, integration tests, note 22
-  committed locally; not pushed)
+- Issue: #21 done, PR #64 open for review
 - Branch: feat/21-bulk-booking
-- Next step: Docker was off and starting Docker Desktop was blocked. With Docker running:
-  `cd src/api && dotnet test` (integration tests not run yet), then `HISHAB_UPDATE_OPENAPI=1 dotnet test`
-  and `cd src/web && npm run api:generate` (new endpoint `POST /api/orders/bulk/book`), commit
-  `chore(web): ...`, run web lint/typecheck/test/build, push, open the PR (Closes #21).
+- Next step: Syed merges #64, then `/next-task` picks the next open M3 issue (#22 status sync /
+  reconciliation of Requested shipments).
 
 ## Done
 - Product discovery: PRD written (docs/PRD.md); name chosen: Hishab
@@ -108,6 +105,9 @@
   before the courier call, reference = order ID (adapters must be idempotent on it), partial unique
   index = one live booking per order, POST /api/orders/{id}/book (CanPack), 503 on no answer,
   OrderDetails.shipment, default courier cleared on disconnect; 440 .NET tests; note 21
+- #21 Bulk booking (PR #64): POST /api/orders/bulk/book (200 + per-order results), intents one at a
+  time, courier calls via CourierBatchSender (bulk chunks or single calls, max 4 in flight, config),
+  answers saved even if the caller leaves, failures retry-safe; 254 unit + 449 integration tests; note 22
 
 ## Decisions waiting for Syed
 - Bulk booking (#21): synchronous request (max 100 orders, 4 courier calls in flight, both in
@@ -192,5 +192,4 @@
   (Syed's choices); PR #62 open
 - 2026-11-21: #62 merged; #20 with a Shipment entity and intent record + same key (Syed's
   choices); PR #63 open
-- 2026-11-21: #63 merged; #21 implemented on feat/21-bulk-booking, waiting on Docker for
-  integration tests and the OpenAPI snapshot
+- 2026-11-21: #63 merged; #21 implemented, PR #64 open
