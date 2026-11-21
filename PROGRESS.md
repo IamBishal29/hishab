@@ -2,10 +2,10 @@
 
 ## Current
 - Milestone: M3 Couriers (M1 and M2 complete)
-- Issue: #21 done, PR #64 open for review
-- Branch: feat/21-bulk-booking
-- Next step: Syed merges #64, then `/next-task` picks the next open M3 issue (#22 status sync /
-  reconciliation of Requested shipments).
+- Issue: #22 done, PR #65 open for review
+- Branch: feat/22-courier-status-sync
+- Next step: Syed merges #65, then `/next-task` picks #23 "Pathao sandbox adapter with contract
+  tests" (blocked on the Pathao token decision below: decide first).
 
 ## Done
 - Product discovery: PRD written (docs/PRD.md); name chosen: Hishab
@@ -107,9 +107,17 @@
   OrderDetails.shipment, default courier cleared on disconnect; 440 .NET tests; note 21
 - #21 Bulk booking (PR #64): POST /api/orders/bulk/book (200 + per-order results), intents one at a
   time, courier calls via CourierBatchSender (bulk chunks or single calls, max 4 in flight, config),
-  answers saved even if the caller leaves, failures retry-safe; 254 unit + 449 integration tests; note 22
+  answers saved even if the caller leaves, failures retry-safe; 449 .NET tests in total; note 22
+- #22 Status sync (PR #65): Hangfire on Postgres (schema `hangfire`), recurring dispatcher -> one job per
+  (shop, courier) with the tenant set explicitly, ParcelStatusRules (lifecycle-driven, idempotent, never
+  skips; Cancelled/Unknown flagged), Shipment status columns + partial tracking index, hangfire health
+  check, dashboard Development + local only; 476 .NET tests; note 23
 
 ## Decisions waiting for Syed
+- Status sync (#22): a courier-side "Cancelled" only logs a warning (no Booked -> Cancelled move in the
+  PRD). Staff need a place to see "needs review" parcels: a list filter or a web badge in #26?
+- Status sync (#22): the partial tracking index is not yet checked with EXPLAIN at volume; Hangfire
+  creates its own schema at startup (outside EF migrations). Fine for now; revisit before production.
 - Bulk booking (#21): synchronous request (max 100 orders, 4 courier calls in flight, both in
   config). A Hangfire job with progress polling is the path for thousands of orders; say if needed.
 - `GETTING-STARTED.md` says to delete it in the first PR; the permission check blocked
@@ -192,4 +200,6 @@
   (Syed's choices); PR #62 open
 - 2026-11-21: #62 merged; #20 with a Shipment entity and intent record + same key (Syed's
   choices); PR #63 open
-- 2026-11-21: #63 merged; #21 implemented, PR #64 open
+- 2026-11-21: #63 merged; #21 implemented, PR #64 open (merged)
+- 2026-11-21: #22 with a dispatcher, dashboard Development + local only, one PR (Syed's choices);
+  PR #65 open
