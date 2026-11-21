@@ -24,7 +24,7 @@ public partial class BookingTests
         var good2 = await Order(owner);
         var refused = await Order(owner, phone: "01912340000"); // the Fake courier refuses it
         var notConfirmed = await Order(owner, confirm: false);
-        var noAddress = await Order(owner, address: null);
+        var noAddress = await Order(owner, phone: "01812345678", address: null); // new buyer: no saved address to fall back on
         var unknown = Guid.NewGuid();
 
         var response = await BulkBook(owner, [good1, refused, notConfirmed, good1, noAddress, unknown, good2], "Fake");
