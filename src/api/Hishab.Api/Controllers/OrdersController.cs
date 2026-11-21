@@ -7,6 +7,7 @@ using Hishab.Domain.Couriers;
 using Hishab.Domain.Orders;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 
 namespace Hishab.Api.Controllers;
 
@@ -169,6 +170,28 @@ public sealed class BulkOrderActionRequestValidator : AbstractValidator<BulkOrde
     }
 }
 
+public sealed class BulkBookRequest
+{
+    /// <summary>Confirmed orders to book (at most Booking:MaxBatchSize, 100 by default); each succeeds or fails on its own.</summary>
+    public required IReadOnlyList<Guid> OrderIds { get; init; }
+
+    /// <summary>The courier to book with; omit to use the shop's default courier.</summary>
+    /// <example>Fake</example>
+    public CourierProvider? Courier { get; init; }
+}
+
+public sealed class BulkBookRequestValidator : AbstractValidator<BulkBookRequest>
+{
+    public BulkBookRequestValidator(IOptions<BookingOptions> options)
+    {
+        var max = options.Value.MaxBatchSize;
+        RuleFor(r => r.OrderIds).NotEmpty()
+            .Must(ids => ids.Count <= max).WithMessage($"At most {max} orders at a time.");
+        RuleForEach(r => r.OrderIds).NotEmpty();
+        RuleFor(r => r.Courier).IsInEnum();
+    }
+}
+
 /// <summary>
 /// Orders of this shop. Every staff member can read them (packers work from the list);
 /// creating, confirming and cancelling need <see cref="Policies.CanEnterOrders"/> (Owner, Manager, Moderator).
@@ -278,6 +301,19 @@ public sealed class OrdersController(IOrderService orders, IShipmentService ship
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<BulkActionResult>> BulkConfirm(BulkOrderActionRequest request, CancellationToken cancellationToken) =>
         Ok(await orders.TransitionManyAsync(request.OrderIds, OrderStatus.Confirmed, request.Note, cancellationToken));
+
+    /// <summary>
+    /// Books many Confirmed orders with one courier (the shop's default when none is given). Always
+    /// 200 with one result per order: booked orders stay booked when others fail. Failed orders can
+    /// be sent again safely (<c>courierUnavailable</c> never creates a second parcel). 400 only when
+    /// no courier can be used at all.
+    /// </summary>
+    [HttpPost("bulk/book")]
+    [Authorize(Policy = Policies.CanPack)]
+    [ProducesResponseType<BulkActionResult>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<BulkActionResult>> BulkBook(BulkBookRequest request, CancellationToken cancellationToken) =>
+        Ok(await shipments.BookManyAsync(request.OrderIds, request.Courier, cancellationToken));
 
     /// <summary>Cancels many orders, each on its own (see bulk confirm).</summary>
     [HttpPost("bulk/cancel")]

@@ -28,7 +28,17 @@ public interface ICourierProvider
     /// </summary>
     Task<BookingResult> BookAsync(CourierCredentials credentials, ParcelRequest parcel, CancellationToken cancellationToken);
 
-    /// <summary>Books several parcels; each result says whether its parcel was booked (partial success).</summary>
+    /// <summary>
+    /// Most parcels the courier's bulk endpoint takes in one call, or null when it has none (then
+    /// bulk booking calls <see cref="BookAsync"/> per parcel, a few at a time).
+    /// </summary>
+    int? MaxBulkBookingSize { get; }
+
+    /// <summary>
+    /// Books several parcels in one call (at most <see cref="MaxBulkBookingSize"/>); each result says
+    /// whether its parcel was booked (partial success), matched by merchant reference. Same
+    /// idempotency rule as <see cref="BookAsync"/>; no answer at all throws <see cref="CourierUnavailableException"/>.
+    /// </summary>
     Task<IReadOnlyList<BookingResult>> BookManyAsync(
         CourierCredentials credentials, IReadOnlyList<ParcelRequest> parcels, CancellationToken cancellationToken);
 

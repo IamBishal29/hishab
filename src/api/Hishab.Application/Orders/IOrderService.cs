@@ -77,6 +77,15 @@ public static class BulkErrors
     public const string NotFound = "notFound";
     public const string InvalidTransition = "invalidTransition";
     public const string ConcurrentChange = "concurrentChange";
+
+    /// <summary>The order cannot be sent yet (e.g. no delivery address).</summary>
+    public const string Invalid = "invalid";
+
+    /// <summary>The courier refused the parcel; fix the order and book again.</summary>
+    public const string CourierRejected = "courierRejected";
+
+    /// <summary>The courier did not answer; booking again is safe.</summary>
+    public const string CourierUnavailable = "courierUnavailable";
 }
 
 public sealed record CreateOrderCommand(

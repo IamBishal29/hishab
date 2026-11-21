@@ -97,6 +97,12 @@ public static class DependencyInjection
         services.AddSingleton<IConfigureOptions<KeyManagementOptions>, CertificateKeyEncryption>();
         services.AddSingleton<ICertificateResolver, ConfiguredCertificateResolver>();
 
+        services.AddOptions<BookingOptions>()
+            .Bind(configuration.GetSection(BookingOptions.SectionName))
+            .Validate(o => o.IsValid(), "Booking:MaxBatchSize must be 1-500 and Booking:MaxParallelBookings 1-16.")
+            .ValidateOnStart();
+        services.AddSingleton<CourierBatchSender>();
+
         services.AddSingleton<FakeCourierControl>();
         services.AddSingleton<ICourierProvider, FakeCourierProvider>();
         services.AddSingleton<ICourierProviderRegistry, CourierProviderRegistry>();

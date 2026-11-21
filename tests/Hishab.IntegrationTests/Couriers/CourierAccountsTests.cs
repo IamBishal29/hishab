@@ -28,6 +28,8 @@ public sealed class TwoCourierApiFactory : HishabApiFactory
     {
         public CourierProvider Code => CourierProvider.Steadfast;
 
+        public int? MaxBulkBookingSize => null;
+
         public IReadOnlyList<CourierCredentialField> CredentialFields { get; } = [new("apiKey", "API key"), new("secretKey", "Secret key")];
 
         public Task<CredentialCheck> ValidateCredentialsAsync(CourierCredentials credentials, CancellationToken cancellationToken) =>

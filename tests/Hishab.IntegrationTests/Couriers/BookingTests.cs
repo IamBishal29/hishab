@@ -19,6 +19,7 @@ namespace Hishab.IntegrationTests.Couriers;
 /// <summary>
 /// A scripted courier standing in for Steadfast: idempotent on the merchant reference (as every
 /// adapter must be), and able to lose its next answer after booking, or refuse the next parcel.
+/// It has no bulk endpoint, so bulk booking calls it once per parcel; it counts calls in flight.
 /// </summary>
 public sealed class ScriptedCourier : ICourierProvider
 {
@@ -35,8 +36,37 @@ public sealed class ScriptedCourier : ICourierProvider
     public int CallsFor(string reference) => _calls.GetValueOrDefault(reference);
 
     private readonly ConcurrentDictionary<string, int> _calls = new();
+    private readonly ConcurrentDictionary<string, bool> _loseFor = new();
+    private readonly Lock _gate = new();
+    private int _inFlight;
+    private int _maxInFlight;
+
+    /// <summary>Book this reference at the courier, but lose the answer (once).</summary>
+    public void LoseResponseFor(string reference) => _loseFor[reference] = true;
+
+    /// <summary>Most booking calls that were running at the same time since <see cref="ResetMaxInFlight"/>.</summary>
+    public int MaxInFlight
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _maxInFlight;
+            }
+        }
+    }
+
+    public void ResetMaxInFlight()
+    {
+        lock (_gate)
+        {
+            _maxInFlight = 0;
+        }
+    }
 
     public CourierProvider Code => CourierProvider.Steadfast;
+
+    public int? MaxBulkBookingSize => null;
 
     public IReadOnlyList<CourierCredentialField> CredentialFields { get; } = [new("apiKey", "API key")];
 
@@ -46,7 +76,22 @@ public sealed class ScriptedCourier : ICourierProvider
     public async Task<BookingResult> BookAsync(CourierCredentials credentials, ParcelRequest parcel, CancellationToken cancellationToken)
     {
         _calls.AddOrUpdate(parcel.MerchantReference, 1, (_, n) => n + 1);
-        await Task.Delay(50, cancellationToken); // a real network call takes time: lets parallel requests overlap
+        lock (_gate)
+        {
+            _maxInFlight = Math.Max(_maxInFlight, ++_inFlight);
+        }
+
+        try
+        {
+            await Task.Delay(50, cancellationToken); // a real network call takes time: lets parallel requests overlap
+        }
+        finally
+        {
+            lock (_gate)
+            {
+                _inFlight--;
+            }
+        }
 
         if (RejectNextWith is { } reason)
         {
@@ -55,7 +100,7 @@ public sealed class ScriptedCourier : ICourierProvider
         }
 
         var consignment = _parcels.GetOrAdd(parcel.MerchantReference, _ => "SF" + Random.Shared.Next(10_000_000, 99_999_999));
-        if (LoseNextResponse)
+        if (LoseNextResponse || _loseFor.TryRemove(parcel.MerchantReference, out _))
         {
             LoseNextResponse = false;
             throw new CourierUnavailableException(Code); // booked over there, but we never heard back
@@ -82,11 +127,13 @@ public sealed class BookingApiFactory : HishabApiFactory
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         base.ConfigureWebHost(builder);
+        builder.UseSetting("Booking:MaxParallelBookings", "2");
+        builder.UseSetting("Booking:MaxBatchSize", "10");
         builder.ConfigureTestServices(services => services.AddSingleton<ICourierProvider>(Courier));
     }
 }
 
-public class BookingTests(BookingApiFactory factory) : IClassFixture<BookingApiFactory>
+public partial class BookingTests(BookingApiFactory factory) : IClassFixture<BookingApiFactory>
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 

@@ -2,10 +2,10 @@
 
 ## Current
 - Milestone: M3 Couriers (M1 and M2 complete)
-- Issue: #20 done, PR #63 open for review
-- Branch: feat/20-book-courier
-- Next step: Syed merges #63, then `/next-task` picks #21 "Bulk booking with partial failures"
-  (reuse ShipmentService per order; Fake BookManyAsync already returns per-parcel results).
+- Issue: #21 done, PR #64 open for review
+- Branch: feat/21-bulk-booking
+- Next step: Syed merges #64, then `/next-task` picks the next open M3 issue (#22 status sync /
+  reconciliation of Requested shipments).
 
 ## Done
 - Product discovery: PRD written (docs/PRD.md); name chosen: Hishab
@@ -105,8 +105,13 @@
   before the courier call, reference = order ID (adapters must be idempotent on it), partial unique
   index = one live booking per order, POST /api/orders/{id}/book (CanPack), 503 on no answer,
   OrderDetails.shipment, default courier cleared on disconnect; 440 .NET tests; note 21
+- #21 Bulk booking (PR #64): POST /api/orders/bulk/book (200 + per-order results), intents one at a
+  time, courier calls via CourierBatchSender (bulk chunks or single calls, max 4 in flight, config),
+  answers saved even if the caller leaves, failures retry-safe; 254 unit + 449 integration tests; note 22
 
 ## Decisions waiting for Syed
+- Bulk booking (#21): synchronous request (max 100 orders, 4 courier calls in flight, both in
+  config). A Hangfire job with progress polling is the path for thousands of orders; say if needed.
 - `GETTING-STARTED.md` says to delete it in the first PR; the permission check blocked
   the deletion. Delete it, or say so and I'll do it in the next PR.
 - New: `Jwt:SigningKey` user-secret is required to run the API locally (README step 2).
@@ -187,3 +192,4 @@
   (Syed's choices); PR #62 open
 - 2026-11-21: #62 merged; #20 with a Shipment entity and intent record + same key (Syed's
   choices); PR #63 open
+- 2026-11-21: #63 merged; #21 implemented, PR #64 open

@@ -20,6 +20,7 @@ namespace Hishab.Infrastructure.Couriers;
 /// 3. save the outcome: Shipment = Booked and Order = Booked in one SaveChanges.
 /// If step 3 never happens (crash, lost response), the Requested row remains; a retry repeats
 /// step 2 with the same reference and the courier returns the same parcel, never a second one.
+/// Bulk booking runs the same steps as three phases; only step 2 runs in parallel.
 /// </summary>
 internal sealed partial class ShipmentService(
     HishabDbContext db,
@@ -27,6 +28,7 @@ internal sealed partial class ShipmentService(
     ICourierAccountService accounts,
     IOrderService orders,
     ICustomerService customers,
+    CourierBatchSender sender,
     IRequestContext request,
     TimeProvider clock,
     ILogger<ShipmentService> logger) : IShipmentService
@@ -42,41 +44,120 @@ internal sealed partial class ShipmentService(
             return await orders.GetAsync(orderId, cancellationToken); // already done: a retry gets the same answer
         }
 
-        if (order.Status != OrderStatus.Confirmed)
+        if (Unbookable(order) is var (code, message))
         {
-            throw new ConflictException($"Only confirmed orders can be booked. This order is {order.Status}.");
+            throw code == BulkErrors.InvalidTransition ? new ConflictException(message) : Invalid("deliveryAddress", message);
         }
 
-        if (string.IsNullOrWhiteSpace(order.DeliveryAddress))
+        var target = await ResolveCourierAsync(courier, cancellationToken);
+        var booking = await PrepareAsync(order, target.Provider, cancellationToken);
+
+        // CourierUnavailableException passes through: the intent stays Requested and a retry is safe.
+        var result = await target.Adapter.BookAsync(target.Keys, booking.Parcel, cancellationToken);
+
+        var refusal = await SaveOutcomeAsync(booking, target.Provider, result, cancellationToken);
+        return refusal is null
+            ? await orders.GetAsync(orderId, cancellationToken)
+            : throw Invalid("courier", refusal);
+    }
+
+    public async Task<BulkActionResult> BookManyAsync(IReadOnlyList<Guid> orderIds, CourierProvider? courier, CancellationToken cancellationToken)
+    {
+        // No usable courier fails the whole request: nothing could be booked anyway.
+        var target = await ResolveCourierAsync(courier, cancellationToken);
+        var ids = orderIds.Distinct().ToList();
+        var results = new Dictionary<Guid, BulkItemResult>();
+        var pending = new List<PendingBooking>();
+
+        // Phase 1, one order at a time (a DbContext is not thread-safe): check each order, commit its intent.
+        var found = await db.Orders.AsNoTracking().Where(o => ids.Contains(o.Id)).ToDictionaryAsync(o => o.Id, cancellationToken);
+        foreach (var id in ids)
         {
-            throw Invalid("deliveryAddress", "Add a delivery address before booking.");
+            if (!found.TryGetValue(id, out var order))
+            {
+                results[id] = Failed(id, null, BulkErrors.NotFound, "Order not found.");
+            }
+            else if (order.Status == OrderStatus.Booked)
+            {
+                results[id] = Succeeded(id); // same answer as a retry of a single booking
+            }
+            else if (Unbookable(order) is var (code, message))
+            {
+                results[id] = Failed(id, order.Status, code, message);
+            }
+            else
+            {
+                try
+                {
+                    pending.Add(await PrepareAsync(order, target.Provider, cancellationToken));
+                }
+                catch (ConflictException e)
+                {
+                    results[id] = Failed(id, order.Status, BulkErrors.ConcurrentChange, e.Message);
+                }
+                finally
+                {
+                    db.ChangeTracker.Clear(); // a failed intent must not be saved again with the next order
+                }
+            }
         }
 
+        // Phase 2, bounded parallel: only the courier calls, no database work.
+        var answers = await sender.SendAsync(target.Adapter, target.Keys, [.. pending.Select(p => p.Parcel)], cancellationToken);
+
+        // Phase 3, one order at a time. CancellationToken.None on purpose: these parcels may exist at
+        // the courier now, so their outcome is saved even if the caller has gone away.
+        foreach (var booking in pending)
+        {
+            results[booking.OrderId] = await SaveBulkOutcomeAsync(booking, target.Provider, answers[booking.Parcel.MerchantReference]);
+        }
+
+        var ordered = ids.Select(id => results[id]).ToList();
+        var succeeded = ordered.Count(r => r.Succeeded);
+        LogBulkBooked(logger, target.Provider, succeeded, ordered.Count - succeeded);
+        return new BulkActionResult(succeeded, ordered.Count - succeeded, ordered);
+    }
+
+    private async Task<BulkItemResult> SaveBulkOutcomeAsync(PendingBooking booking, CourierProvider provider, BookingResult? answer)
+    {
+        if (answer is null)
+        {
+            // Stays Requested: booking it again resends the same reference, never a second parcel.
+            return Failed(booking.OrderId, OrderStatus.Confirmed, BulkErrors.CourierUnavailable, new CourierUnavailableException(provider).Message);
+        }
+
+        try
+        {
+            var refusal = await SaveOutcomeAsync(booking, provider, answer, CancellationToken.None);
+            return refusal is null
+                ? Succeeded(booking.OrderId)
+                : Failed(booking.OrderId, OrderStatus.Confirmed, BulkErrors.CourierRejected, refusal);
+        }
+        catch (ConflictException e)
+        {
+            return Failed(booking.OrderId, null, BulkErrors.ConcurrentChange, e.Message);
+        }
+        finally
+        {
+            db.ChangeTracker.Clear();
+        }
+    }
+
+    /// <summary>Why this order cannot be booked (bulk error code and message), or null when it can.</summary>
+    private static (string Code, string Message)? Unbookable(Order order) =>
+        order.Status != OrderStatus.Confirmed
+            ? (BulkErrors.InvalidTransition, $"Only confirmed orders can be booked. This order is {order.Status}.")
+            : string.IsNullOrWhiteSpace(order.DeliveryAddress)
+                ? (BulkErrors.Invalid, "Add a delivery address before booking.")
+                : null;
+
+    private async Task<CourierTarget> ResolveCourierAsync(CourierProvider? courier, CancellationToken cancellationToken)
+    {
         var provider = courier
             ?? (await db.Shops.AsNoTracking().SingleAsync(cancellationToken)).DefaultCourier
             ?? throw Invalid("courier", "Choose a courier, or set a default courier in shop settings.");
         var adapter = registry.Find(provider) ?? throw Invalid("courier", $"{provider} is not available yet.");
-        var keys = await KeysFor(provider, cancellationToken);
-
-        var shipment = await RecordIntentAsync(order.Id, provider, cancellationToken);
-
-        var customer = await customers.GetAsync(order.CustomerId, cancellationToken);
-        var parcel = new ParcelRequest(
-            shipment.MerchantReference,
-            customer.Name ?? "Customer",
-            customer.Phone,
-            order.DeliveryAddress,
-            order.IsInsideDhaka,
-            order.CodAmount,
-            order.Lines.Sum(l => l.Quantity),
-            order.Note);
-
-        // CourierUnavailableException passes through: the intent stays Requested and a retry is safe.
-        var result = await adapter.BookAsync(keys, parcel, cancellationToken);
-
-        return result.Succeeded
-            ? await CompleteAsync(order.Id, shipment.Id, result, cancellationToken)
-            : await RejectAsync(shipment.Id, provider, result, cancellationToken);
+        return new CourierTarget(provider, adapter, await KeysFor(provider, cancellationToken));
     }
 
     private async Task<CourierCredentials> KeysFor(CourierProvider provider, CancellationToken cancellationToken)
@@ -91,7 +172,24 @@ internal sealed partial class ShipmentService(
         }
     }
 
-    /// <summary>Step 1: committed before the courier is called, so a parcel never exists without a trace here.</summary>
+    /// <summary>Step 1 (the intent) plus the parcel the courier will receive.</summary>
+    private async Task<PendingBooking> PrepareAsync(Order order, CourierProvider provider, CancellationToken cancellationToken)
+    {
+        var shipment = await RecordIntentAsync(order.Id, provider, cancellationToken);
+        var customer = await customers.GetAsync(order.CustomerId, cancellationToken);
+        var parcel = new ParcelRequest(
+            shipment.MerchantReference,
+            customer.Name ?? "Customer",
+            customer.Phone,
+            order.DeliveryAddress!,
+            order.IsInsideDhaka,
+            order.CodAmount,
+            order.Lines.Sum(l => l.Quantity),
+            order.Note);
+        return new PendingBooking(order.Id, shipment.Id, parcel);
+    }
+
+    /// <summary>Committed before the courier is called, so a parcel never exists without a trace here.</summary>
     private async Task<Shipment> RecordIntentAsync(Guid orderId, CourierProvider provider, CancellationToken cancellationToken)
     {
         var live = await db.Shipments
@@ -130,14 +228,20 @@ internal sealed partial class ShipmentService(
         return shipment;
     }
 
-    /// <summary>Step 3: the shipment and the order change together, or not at all.</summary>
-    private async Task<OrderDetails> CompleteAsync(Guid orderId, Guid shipmentId, BookingResult result, CancellationToken cancellationToken)
+    /// <summary>Step 3: saves the courier's answer. Returns the refusal shown to the user, or null when booked.</summary>
+    private Task<string?> SaveOutcomeAsync(PendingBooking booking, CourierProvider provider, BookingResult result, CancellationToken cancellationToken) =>
+        result.Succeeded
+            ? CompleteAsync(booking.OrderId, booking.ShipmentId, result, cancellationToken)
+            : RejectAsync(booking.ShipmentId, provider, result, cancellationToken);
+
+    /// <summary>The shipment and the order change together, or not at all.</summary>
+    private async Task<string?> CompleteAsync(Guid orderId, Guid shipmentId, BookingResult result, CancellationToken cancellationToken)
     {
         db.ChangeTracker.Clear();
         var shipment = await db.Shipments.SingleAsync(s => s.Id == shipmentId, cancellationToken);
         if (shipment.State == ShipmentState.Booked)
         {
-            return await orders.GetAsync(orderId, cancellationToken); // a parallel request with the same reference finished first
+            return null; // a parallel request with the same reference finished first
         }
 
         var order = await db.Orders.SingleAsync(o => o.Id == orderId, cancellationToken);
@@ -154,7 +258,7 @@ internal sealed partial class ShipmentService(
             var current = await db.Orders.AsNoTracking().SingleAsync(o => o.Id == orderId, cancellationToken);
             if (current.Status == OrderStatus.Booked)
             {
-                return await orders.GetAsync(orderId, cancellationToken); // the parallel request saved the same parcel
+                return null; // the parallel request saved the same parcel
             }
 
             LogOrphanedParcel(logger, orderId, shipment.Provider, result.ConsignmentId!);
@@ -169,10 +273,10 @@ internal sealed partial class ShipmentService(
         }
 
         LogBooked(logger, orderId, shipment.Provider, shipment.Id);
-        return await orders.GetAsync(orderId, cancellationToken);
+        return null;
     }
 
-    private async Task<OrderDetails> RejectAsync(Guid shipmentId, CourierProvider provider, BookingResult result, CancellationToken cancellationToken)
+    private async Task<string?> RejectAsync(Guid shipmentId, CourierProvider provider, BookingResult result, CancellationToken cancellationToken)
     {
         db.ChangeTracker.Clear();
         var shipment = await db.Shipments.SingleAsync(s => s.Id == shipmentId, cancellationToken);
@@ -180,17 +284,28 @@ internal sealed partial class ShipmentService(
         shipment.MarkRejected(reason);
         await db.SaveChangesAsync(cancellationToken);
         LogRejected(logger, shipment.OrderId, provider); // the courier's text may echo personal data: not logged
-        throw Invalid("courier", $"{provider} refused this parcel: {reason}");
+        return $"{provider} refused this parcel: {reason}";
     }
+
+    private static BulkItemResult Succeeded(Guid id) => new(id, true, OrderStatus.Booked, null, null);
+
+    private static BulkItemResult Failed(Guid id, OrderStatus? status, string code, string message) => new(id, false, status, code, message);
 
     private static DomainValidationException Invalid(string field, string message) =>
         new(new Dictionary<string, string[]> { [field] = [message] });
+
+    private sealed record CourierTarget(CourierProvider Provider, ICourierProvider Adapter, CourierCredentials Keys);
+
+    private sealed record PendingBooking(Guid OrderId, Guid ShipmentId, ParcelRequest Parcel);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Order {OrderId} booked with {Provider} (shipment {ShipmentId})")]
     private static partial void LogBooked(ILogger logger, Guid orderId, CourierProvider provider, Guid shipmentId);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Order {OrderId}: {Provider} refused the parcel")]
     private static partial void LogRejected(ILogger logger, Guid orderId, CourierProvider provider);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Bulk booking with {Provider}: {Succeeded} succeeded, {Failed} failed")]
+    private static partial void LogBulkBooked(ILogger logger, CourierProvider provider, int succeeded, int failed);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Order {OrderId} changed while booking: parcel {ConsignmentId} at {Provider} needs review")]
     private static partial void LogOrphanedParcel(ILogger logger, Guid orderId, CourierProvider provider, string consignmentId);

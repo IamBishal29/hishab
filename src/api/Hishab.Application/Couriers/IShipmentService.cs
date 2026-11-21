@@ -16,4 +16,11 @@ public interface IShipmentService
     /// <exception cref="Domain.Common.DomainValidationException">No courier chosen or connected, no address, or the courier refused the parcel.</exception>
     /// <exception cref="CourierUnavailableException">The courier did not answer; retrying is safe.</exception>
     Task<OrderDetails> BookAsync(Guid orderId, CourierProvider? courier, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Books many orders with one courier. Each order succeeds or fails on its own: booked orders
+    /// stay booked when others fail, and every failure is safe to retry (same references).
+    /// </summary>
+    /// <exception cref="Domain.Common.DomainValidationException">No courier chosen or connected (nothing is booked).</exception>
+    Task<BulkActionResult> BookManyAsync(IReadOnlyList<Guid> orderIds, CourierProvider? courier, CancellationToken cancellationToken);
 }
