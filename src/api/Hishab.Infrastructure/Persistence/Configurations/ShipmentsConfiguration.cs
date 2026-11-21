@@ -1,5 +1,6 @@
 using Hishab.Domain.Couriers;
 using Hishab.Domain.Orders;
+using Hishab.Infrastructure.Persistence.Auditing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -16,6 +17,10 @@ internal sealed class ShipmentConfiguration : IEntityTypeConfiguration<Shipment>
         builder.Property(s => s.ConsignmentId).HasMaxLength(Shipment.ConsignmentMaxLength);
         builder.Property(s => s.TrackingCode).HasMaxLength(Shipment.ConsignmentMaxLength);
         builder.Property(s => s.Error).HasMaxLength(Shipment.ErrorMaxLength);
+        builder.Property(s => s.ParcelStatus).HasConversion<string>().HasMaxLength(16);
+        builder.Property(s => s.CourierStatus).HasMaxLength(Shipment.ConsignmentMaxLength);
+        builder.Property(s => s.StatusCheckedAt).IsNotAudited(); // changes on every sync: not history
+        builder.Ignore(s => s.IsTracking);
         builder.Property<uint>("Version").IsRowVersion();
 
         builder.HasOne<Order>().WithMany().HasForeignKey(s => s.OrderId).OnDelete(DeleteBehavior.Restrict);
@@ -29,5 +34,11 @@ internal sealed class ShipmentConfiguration : IEntityTypeConfiguration<Shipment>
             .IsUnique()
             .HasFilter("state IN ('Requested', 'Booked')")
             .HasDatabaseName("ux_shipments_one_live_per_order");
+
+        // The status sync's work list: small (only parcels on the road), so the scan stays cheap
+        // as delivered parcels pile up over the years.
+        builder.HasIndex(s => new { s.TenantId, s.Provider, s.StatusCheckedAt })
+            .HasFilter("state = 'Booked' AND (parcel_status IS NULL OR (parcel_status <> 'Delivered' AND parcel_status <> 'Returned' AND parcel_status <> 'Cancelled'))")
+            .HasDatabaseName("ix_shipments_tracking");
     }
 }
