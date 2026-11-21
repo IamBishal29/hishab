@@ -197,6 +197,11 @@ namespace Hishab.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(64)")
                         .HasColumnName("consignment_id");
 
+                    b.Property<string>("CourierStatus")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("courier_status");
+
                     b.Property<decimal?>("DeliveryFee")
                         .HasPrecision(12, 2)
                         .HasColumnType("numeric(12,2)")
@@ -217,6 +222,15 @@ namespace Hishab.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("order_id");
 
+                    b.Property<string>("ParcelStatus")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("parcel_status");
+
+                    b.Property<DateTimeOffset?>("ParcelStatusAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("parcel_status_at");
+
                     b.Property<string>("Provider")
                         .IsRequired()
                         .HasMaxLength(16)
@@ -232,6 +246,11 @@ namespace Hishab.Infrastructure.Persistence.Migrations
                         .HasMaxLength(16)
                         .HasColumnType("character varying(16)")
                         .HasColumnName("state");
+
+                    b.Property<DateTimeOffset?>("StatusCheckedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("status_checked_at")
+                        .HasAnnotation("Hishab:Audit:Ignore", true);
 
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uuid")
@@ -265,6 +284,10 @@ namespace Hishab.Infrastructure.Persistence.Migrations
                     b.HasIndex("TenantId", "OrderId", "Provider")
                         .IsUnique()
                         .HasDatabaseName("ix_shipments_tenant_id_order_id_provider");
+
+                    b.HasIndex("TenantId", "Provider", "StatusCheckedAt")
+                        .HasDatabaseName("ix_shipments_tracking")
+                        .HasFilter("state = 'Booked' AND (parcel_status IS NULL OR (parcel_status <> 'Delivered' AND parcel_status <> 'Returned' AND parcel_status <> 'Cancelled'))");
 
                     b.ToTable("shipments", (string)null);
                 });
