@@ -104,6 +104,12 @@ export interface BulkActionResult {
   results: BulkItemResult[];
 }
 
+export interface BulkBookRequest {
+  /** Confirmed orders to book (at most Booking:MaxBatchSize, 100 by default); each succeeds or fails on its own. */
+  orderIds: string[];
+  courier?: null | CourierProvider;
+}
+
 export interface BulkOrderActionRequest {
   /** Up to 100 order IDs; each succeeds or fails on its own. */
   orderIds: string[];
@@ -2635,6 +2641,86 @@ export const usePostApiOrdersBulkConfirm = <TError = ValidationProblemDetails | 
         TContext
       > => {
       return useMutation(getPostApiOrdersBulkConfirmMutationOptions(options), queryClient);
+    }
+
+export const getPostApiOrdersBulkBookUrl = () => {
+
+
+
+
+  return `/api/orders/bulk/book`
+}
+
+/**
+ * @summary Books many Confirmed orders with one courier (the shop's default when none is given). Always
+200 with one result per order: booked orders stay booked when others fail. Failed orders can
+be sent again safely (`courierUnavailable` never creates a second parcel). 400 only when
+no courier can be used at all.
+ */
+export const postApiOrdersBulkBook = async (bulkBookRequest: BulkBookRequest, options?: Parameters<typeof apiFetch>[1]): Promise<BulkActionResult> => {
+
+  return apiFetch<BulkActionResult>(getPostApiOrdersBulkBookUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: getHeaders({ 'Content-Type': 'application/json' }, options?.headers),
+    body: JSON.stringify(bulkBookRequest)
+  }
+);}
+
+
+
+
+
+export const getPostApiOrdersBulkBookMutationKey = () => ['postApiOrdersBulkBook'] as const;
+
+export const getPostApiOrdersBulkBookMutationOptions = <TError = ValidationProblemDetails | ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiOrdersBulkBook>>, TError,PostApiOrdersBulkBookMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiOrdersBulkBook>>, TError,PostApiOrdersBulkBookMutationVariables, TContext> => {
+
+const mutationKey = getPostApiOrdersBulkBookMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiOrdersBulkBook>>, PostApiOrdersBulkBookMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  postApiOrdersBulkBook(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiOrdersBulkBookMutationResult = NonNullable<Awaited<ReturnType<typeof postApiOrdersBulkBook>>>
+    export type PostApiOrdersBulkBookMutationBody = BulkBookRequest
+    export type PostApiOrdersBulkBookMutationError = ValidationProblemDetails | ProblemDetails
+    export type PostApiOrdersBulkBookMutationVariables = {data: BulkBookRequest}
+
+    /**
+ * @summary Books many Confirmed orders with one courier (the shop's default when none is given). Always
+200 with one result per order: booked orders stay booked when others fail. Failed orders can
+be sent again safely (`courierUnavailable` never creates a second parcel). 400 only when
+no courier can be used at all.
+ */
+export const usePostApiOrdersBulkBook = <TError = ValidationProblemDetails | ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiOrdersBulkBook>>, TError,PostApiOrdersBulkBookMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof postApiOrdersBulkBook>>,
+        TError,
+        PostApiOrdersBulkBookMutationVariables,
+        TContext
+      > => {
+      return useMutation(getPostApiOrdersBulkBookMutationOptions(options), queryClient);
     }
 
 export const getPostApiOrdersBulkCancelUrl = () => {
