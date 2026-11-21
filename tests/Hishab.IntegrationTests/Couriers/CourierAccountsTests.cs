@@ -151,14 +151,16 @@ public class CourierAccountsTests(TwoCourierApiFactory factory) : IClassFixture<
 
         var rejected = await Connect(owner, "Fake", new { apiKey = "invalid" });
         var missing = await Connect(owner, "Steadfast", new { apiKey = "sf_key_1234567890" });
-        var unknown = await Connect(owner, "Pathao", new { apiKey = "x" });
+        var wrongFields = await Connect(owner, "Pathao", new { apiKey = "x" }); // refused before any call to Pathao
 
         rejected.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         (await Json(rejected)).GetProperty("errors").GetProperty("credentials")[0].GetString()!.ShouldContain("rejected this API key");
         missing.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         (await Json(missing)).GetProperty("errors").TryGetProperty("credentials.secretKey", out _).ShouldBeTrue();
-        unknown.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
-        (await Json(unknown)).GetProperty("errors").GetProperty("provider")[0].GetString().ShouldBe("Pathao is not available yet.");
+        wrongFields.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        var wrongErrors = (await Json(wrongFields)).GetProperty("errors");
+        wrongErrors.GetProperty("credentials")[0].GetString().ShouldBe("Pathao does not use: apiKey.");
+        wrongErrors.TryGetProperty("credentials.password", out _).ShouldBeTrue();
         (await Courier(owner, "Fake")).GetProperty("isConnected").GetBoolean().ShouldBeFalse();
     }
 
