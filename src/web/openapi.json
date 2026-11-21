@@ -2439,6 +2439,119 @@
         }
       }
     },
+    "/api/orders/labels": {
+      "get": {
+        "tags": [
+          "Orders"
+        ],
+        "summary": "Shipping labels for booked orders as one PDF (Bangla supported), in the order given.\n400 if an order is not booked yet; 404 if an order is not in this shop; 503 if printing is\nunavailable right now.",
+        "parameters": [
+          {
+            "name": "Ids",
+            "in": "query",
+            "description": "Booked orders to print, at most 100; repeat the parameter: `?ids=..&amp;ids=..`.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "Format",
+            "in": "query",
+            "description": "A4 sheet (8 per page) or thermal 100 × 150 mm (one per page).",
+            "schema": {
+              "$ref": "#/components/schemas/LabelFormat"
+            },
+            "example": "Thermal"
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "$ref": "#/components/schemas/Stream"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/orders/{id}/cancel": {
       "post": {
         "tags": [
@@ -5379,6 +5492,12 @@
         }
       },
       "JsonElement": { },
+      "LabelFormat": {
+        "enum": [
+          "A4",
+          "Thermal"
+        ]
+      },
       "LoginResponse": {
         "required": [
           "userId",
@@ -6163,6 +6282,10 @@
           "Invited",
           "Active"
         ]
+      },
+      "Stream": {
+        "type": "string",
+        "format": "binary"
       },
       "TokenDelivery": {
         "enum": [
