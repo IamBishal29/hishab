@@ -11,6 +11,7 @@ using Hishab.Infrastructure.Couriers;
 using Hishab.Infrastructure.Couriers.Fake;
 using Hishab.Infrastructure.Customers;
 using Hishab.Infrastructure.Identity;
+using Hishab.Infrastructure.Jobs;
 using Hishab.Infrastructure.Orders;
 using Hishab.Infrastructure.Persistence;
 using Hishab.Infrastructure.Persistence.Auditing;
@@ -63,6 +64,7 @@ public static class DependencyInjection
         services.AddScoped<IOrderService, OrderService>();
         services.AddScoped<ICustomerOrderHistory, CustomerOrderHistoryQuery>();
         AddCouriers(services, configuration);
+        JobsSetup.AddJobs(services, configuration);
 
         // Same DbContext and connection string as the app, so "healthy" means the app can really reach its data.
         services.AddHealthChecks()

@@ -1,5 +1,7 @@
 using System.Text.Json.Serialization;
 using FluentValidation;
+using Hangfire;
+using Hangfire.Dashboard;
 using Hishab.Api.Auth;
 using Hishab.Api.Errors;
 using Hishab.Api.Logging;
@@ -55,6 +57,14 @@ if (app.Environment.IsDevelopment())
     await app.Services.MigrateDatabaseAsync();
     app.MapOpenApi();
     app.MapScalarApiReference();
+
+    // Jobs of every shop are visible here: an operator tool, never a shop owner's. Development
+    // and local requests only; production watches jobs through logs and /health.
+    app.UseHangfireDashboard("/hangfire", new DashboardOptions
+    {
+        Authorization = [new LocalRequestsOnlyAuthorizationFilter()],
+        DisplayStorageConnectionString = false,
+    });
 }
 
 app.UseAuthentication();
