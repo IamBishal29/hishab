@@ -59,6 +59,7 @@ public class HishabApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         builder.UseSetting("Observability:JsonConsole", "false");
         builder.UseSetting("Otp:HashKey", Convert.ToBase64String(RandomNumberGenerator.GetBytes(32))); // fresh per run, never committed
         builder.UseSetting("Otp:Delivery", "Log");
+        builder.UseSetting("Jobs:RunServer", "false"); // tests run jobs directly: no worker threads racing the assertions
         builder.UseSetting("Jwt:SigningKey", Convert.ToBase64String(RandomNumberGenerator.GetBytes(32)));
         builder.UseSetting("DataProtection:CertificateBase64", Support.TestCertificate.PfxBase64); // fresh per run, in memory only
         builder.UseSetting("RateLimiting:OtpPermitsPerMinute", OtpPermitsPerMinute.ToString(System.Globalization.CultureInfo.InvariantCulture));
