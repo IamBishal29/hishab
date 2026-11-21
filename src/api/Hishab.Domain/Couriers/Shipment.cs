@@ -58,6 +58,21 @@ public sealed class Shipment : ITenantOwned, IAuditable
 
     public DateTimeOffset? BookedAt { get; private set; }
 
+    /// <summary>The courier's last reported status (null until the first sync).</summary>
+    public ParcelStatus? ParcelStatus { get; private set; }
+
+    /// <summary>The courier's own text when it reported a status we do not know; for support.</summary>
+    public string? CourierStatus { get; private set; }
+
+    /// <summary>When the courier says the parcel last changed (their clock, if they send one).</summary>
+    public DateTimeOffset? ParcelStatusAt { get; private set; }
+
+    /// <summary>When we last asked; syncs ask the least recently checked parcels first.</summary>
+    public DateTimeOffset? StatusCheckedAt { get; private set; }
+
+    /// <summary>Booked and not yet Delivered, Returned or Cancelled at the courier: still worth asking about.</summary>
+    public bool IsTracking => State == ShipmentState.Booked && (ParcelStatus is null || !ParcelStatusRules.IsFinal(ParcelStatus.Value));
+
     /// <summary>The order ID is the reference: unique everywhere, and it never changes between retries.</summary>
     public static string ReferenceFor(Guid orderId) => orderId.ToString("N");
 
@@ -106,6 +121,22 @@ public sealed class Shipment : ITenantOwned, IAuditable
         DeliveryFee = deliveryFee;
         BookedAt = now;
     }
+
+    /// <summary>Saves what the courier reported now. Only booked parcels have a status to sync.</summary>
+    public void RecordStatus(ParcelStatus status, string? courierStatus, DateTimeOffset? changedAt, DateTimeOffset now)
+    {
+        if (State != ShipmentState.Booked)
+        {
+            throw new ConflictException($"A {State} shipment has no courier status.");
+        }
+
+        ParcelStatus = status;
+        CourierStatus = status == Couriers.ParcelStatus.Unknown ? Truncate(courierStatus, ConsignmentMaxLength) : null;
+        ParcelStatusAt = changedAt ?? ParcelStatusAt;
+        StatusCheckedAt = now;
+    }
+
+    private static string? Truncate(string? value, int max) => value?.Length > max ? value[..max] : value;
 
     public void MarkRejected(string error)
     {

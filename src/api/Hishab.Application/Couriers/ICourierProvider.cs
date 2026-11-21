@@ -89,7 +89,8 @@ public sealed record BookingResult(
     public static BookingResult Rejected(string reference, string error) => new(reference, false, null, null, null, error);
 }
 
-public sealed record ParcelStatusResult(string ConsignmentId, ParcelStatus Status, DateTimeOffset? UpdatedAt);
+/// <param name="CourierStatus">The courier's own status text; required when <paramref name="Status"/> is Unknown.</param>
+public sealed record ParcelStatusResult(string ConsignmentId, ParcelStatus Status, DateTimeOffset? UpdatedAt, string? CourierStatus = null);
 
 /// <summary>Finds the adapter for a courier code (strategy selected at runtime).</summary>
 public interface ICourierProviderRegistry
