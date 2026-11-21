@@ -2,10 +2,13 @@
 
 ## Current
 - Milestone: M3 Couriers (M1 and M2 complete)
-- Issue: #23 done, PR #67 open for review (manual Pathao sandbox check pending: Syed)
-- Branch: feat/23-pathao-adapter
-- Next step: Syed runs the sandbox checklist in PR #67 and merges, then `/next-task` picks #24
-  "Steadfast adapter with contract tests" (reuse the Pathao HTTP pipeline pattern).
+- Issue: #25 "Shipping labels and invoices as PDF" (labels; invoices split to #68): implemented,
+  committed locally, not pushed
+- Branch: feat/25-pdf-labels
+- Next step: Chromium is not installed on this machine and my install command was blocked. Syed runs
+  `dotnet build src/api && pwsh src/api/Hishab.Api/bin/Debug/net10.0/playwright.ps1 install chromium`
+  (or `powershell -ExecutionPolicy Bypass -File ...`), then: run `cd src/api && dotnet test` (2 label
+  rendering tests need Chromium), take a label screenshot for docs/screenshots, push, open the PR.
 
 ## Done
 - Product discovery: PRD written (docs/PRD.md); name chosen: Hishab
@@ -115,9 +118,13 @@
 - #23 Pathao (PR #67): adapter with login exchanged once (tokens stored, never the password), cached
   tokens with single-flight refresh + rotated tokens saved, resilience pipeline (no auto-retry of POST,
   circuit breaker), 422/duplicate/401/5xx handling, status mapping; 14 WireMock contract tests; 490 .NET
-  tests; note 24. City/zone lookup split to #66.
+  tests; note 24. City/zone lookup split to #66. (merged)
+- #24 Steadfast: paused and moved out of M3 (docs behind the merchant login, no sandbox; Syed's choice)
 
 ## Decisions waiting for Syed
+- **Action needed (#25):** install Playwright's Chromium once (README "PDF labels" line); the API
+  answers 503 on /api/orders/labels without it.
+- Steadfast (#24): resume when you have a Steadfast merchant account and can paste its API docs.
 - **Pathao sandbox check (#23, PR #67):** Pathao's docs page was unreadable; field names, the order-info
   path and status codes come from a community SDK. Run the checklist in the PR with your sandbox keys
   (never commit them). Key unknowns: refresh_token in the token response, duplicate merchant_order_id
@@ -176,8 +183,6 @@
   same-origin.
 - `.env.example` is blocked by permission settings (`.env*` rule), so I cannot keep its
   placeholders up to date; allow `.env.example` explicitly if you want me to.
-- Before #25 (labels/PDF): QuestPDF (free community licence, not open source) or an
-  open-source alternative.
 - Before #34 (AI chat-to-order): a Gemini free-tier API key (stays in user-secrets).
 - Optional: talk to 5-10 sellers (PRD "Open questions for discovery").
 
@@ -214,4 +219,6 @@
 - 2026-11-21: #63 merged; #21 implemented, PR #64 open (merged)
 - 2026-11-21: #22 with a dispatcher, dashboard Development + local only, one PR (Syed's choices);
   PR #65 open (merged)
-- 2026-11-21: #23 with the login exchanged once (Syed's choice); city/zone split to #66; PR #67 open
+- 2026-11-21: #23 with the login exchanged once (Syed's choice); city/zone split to #66; PR #67 open (merged)
+- 2026-11-21: #24 paused (Syed's choice); #25 with headless Chromium (Syed's choice, ADR 0008),
+  invoices split to #68; waiting on the Chromium install
