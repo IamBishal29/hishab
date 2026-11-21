@@ -251,6 +251,13 @@ Never read, print or commit `.env`, user-secrets, tokens or keys. Put placeholde
   `CourierBatchSender` (chunks of `ICourierProvider.MaxBulkBookingSize`, null = single calls; at
   most `Booking:MaxParallelBookings` in flight), then save each answer with `CancellationToken.None`.
   Adapters must match bulk answers by `MerchantReference`. Test factory: 2 parallel, batch 10.
+- Jobs: Hangfire (schema `hangfire`, same DB; options `Jobs:*`, `RunServer=false` in tests: call jobs
+  directly). Jobs take `tenantId` as an argument and call `ITenantContext.SetTenant` on a new scope
+  first; they must be idempotent (at-least-once). Dashboard `/hangfire`: Development + local only.
+  Status sync: recurring `CourierStatusJobs.DispatchAsync` (cross-tenant, IDs only: the 4th allowed
+  cross-tenant query) enqueues `SyncShopAsync(tenant, provider)`; `ParcelStatusRules.Decide` maps
+  courier status -> order moves (never skips, never guesses; Unknown/Cancelled = logged for review).
+  Adapters map courier codes to `ParcelStatus` (Unknown + `CourierStatus` text when unmapped).
 - Screenshots for UI PRs live in `docs/screenshots/NN-*.png` (390 px wide, headless Chrome).
 - Field-level rules belong in services via `IRequestContext.Has(permission)`, not only in controllers.
 - Audit: mark entities `IAuditable` (Domain); `AuditInterceptor` writes `AuditEntry` rows in the
