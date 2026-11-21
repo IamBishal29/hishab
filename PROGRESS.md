@@ -2,10 +2,13 @@
 
 ## Current
 - Milestone: M3 Couriers (M1 and M2 complete)
-- Issue: #20 done, PR #63 open for review
-- Branch: feat/20-book-courier
-- Next step: Syed merges #63, then `/next-task` picks #21 "Bulk booking with partial failures"
-  (reuse ShipmentService per order; Fake BookManyAsync already returns per-parcel results).
+- Issue: #21 "Bulk booking with partial failures" (code, unit tests, integration tests, note 22
+  committed locally; not pushed)
+- Branch: feat/21-bulk-booking
+- Next step: Docker was off and starting Docker Desktop was blocked. With Docker running:
+  `cd src/api && dotnet test` (integration tests not run yet), then `HISHAB_UPDATE_OPENAPI=1 dotnet test`
+  and `cd src/web && npm run api:generate` (new endpoint `POST /api/orders/bulk/book`), commit
+  `chore(web): ...`, run web lint/typecheck/test/build, push, open the PR (Closes #21).
 
 ## Done
 - Product discovery: PRD written (docs/PRD.md); name chosen: Hishab
@@ -107,6 +110,8 @@
   OrderDetails.shipment, default courier cleared on disconnect; 440 .NET tests; note 21
 
 ## Decisions waiting for Syed
+- Bulk booking (#21): synchronous request (max 100 orders, 4 courier calls in flight, both in
+  config). A Hangfire job with progress polling is the path for thousands of orders; say if needed.
 - `GETTING-STARTED.md` says to delete it in the first PR; the permission check blocked
   the deletion. Delete it, or say so and I'll do it in the next PR.
 - New: `Jwt:SigningKey` user-secret is required to run the API locally (README step 2).
@@ -187,3 +192,5 @@
   (Syed's choices); PR #62 open
 - 2026-11-21: #62 merged; #20 with a Shipment entity and intent record + same key (Syed's
   choices); PR #63 open
+- 2026-11-21: #63 merged; #21 implemented on feat/21-bulk-booking, waiting on Docker for
+  integration tests and the OpenAPI snapshot
