@@ -2,10 +2,10 @@
 
 ## Current
 - Milestone: M3 Couriers (M1 and M2 complete)
-- Issue: #22 done, PR #65 open for review
-- Branch: feat/22-courier-status-sync
-- Next step: Syed merges #65, then `/next-task` picks #23 "Pathao sandbox adapter with contract
-  tests" (blocked on the Pathao token decision below: decide first).
+- Issue: #23 done, PR #67 open for review (manual Pathao sandbox check pending: Syed)
+- Branch: feat/23-pathao-adapter
+- Next step: Syed runs the sandbox checklist in PR #67 and merges, then `/next-task` picks #24
+  "Steadfast adapter with contract tests" (reuse the Pathao HTTP pipeline pattern).
 
 ## Done
 - Product discovery: PRD written (docs/PRD.md); name chosen: Hishab
@@ -112,8 +112,20 @@
   (shop, courier) with the tenant set explicitly, ParcelStatusRules (lifecycle-driven, idempotent, never
   skips; Cancelled/Unknown flagged), Shipment status columns + partial tracking index, hangfire health
   check, dashboard Development + local only; 476 .NET tests; note 23
+- #23 Pathao (PR #67): adapter with login exchanged once (tokens stored, never the password), cached
+  tokens with single-flight refresh + rotated tokens saved, resilience pipeline (no auto-retry of POST,
+  circuit breaker), 422/duplicate/401/5xx handling, status mapping; 14 WireMock contract tests; 490 .NET
+  tests; note 24. City/zone lookup split to #66.
 
 ## Decisions waiting for Syed
+- **Pathao sandbox check (#23, PR #67):** Pathao's docs page was unreadable; field names, the order-info
+  path and status codes come from a community SDK. Run the checklist in the PR with your sandbox keys
+  (never commit them). Key unknowns: refresh_token in the token response, duplicate merchant_order_id
+  behaviour, address-only bookings without city/zone.
+- Pathao (#23): two API instances refreshing one connection at the same time could invalidate each
+  other's refresh token (seller reconnects). Rare; a row lock on the refresh would fix it if needed.
+- Bulk booking with an expired courier connection reports `courierUnavailable` per order (retry-safe,
+  but the message says "did not answer"); a dedicated `courierAuthExpired` code would be clearer.
 - Status sync (#22): a courier-side "Cancelled" only logs a warning (no Booked -> Cancelled move in the
   PRD). Staff need a place to see "needs review" parcels: a list filter or a web badge in #26?
 - Status sync (#22): the partial tracking index is not yet checked with EXPLAIN at volume; Hangfire
@@ -147,8 +159,7 @@
   courier (logged warning; #22 reconciles `Requested` shipments). Alternative: block cancel while a
   booking is in flight. PR is ~960 lines (half tests).
 - Couriers (#19): Managers can connect couriers (the #8 matrix gives them ManageShop). Owner-only
-  would need a new permission; say if you want it. Pathao's API wants a merchant login for its
-  token, while our guardrail says never store courier passwords: decide before the Pathao issue.
+  would need a new permission; say if you want it. (Pathao login: decided in #23, exchanged once.)
 - Customer page (#59): blocking only warns, as since #13/#17 (orders are still allowed); say if blocked buyers
   should need an Owner override to order. PR is ~750 lines.
 - Stacked PRs: a stacked PR merged into its base branch after that base has landed does not
@@ -202,4 +213,5 @@
   choices); PR #63 open
 - 2026-11-21: #63 merged; #21 implemented, PR #64 open (merged)
 - 2026-11-21: #22 with a dispatcher, dashboard Development + local only, one PR (Syed's choices);
-  PR #65 open
+  PR #65 open (merged)
+- 2026-11-21: #23 with the login exchanged once (Syed's choice); city/zone split to #66; PR #67 open
