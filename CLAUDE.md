@@ -246,6 +246,11 @@ Never read, print or commit `.env`, user-secrets, tokens or keys. Put placeholde
   unique index `ux_shipments_one_live_per_order`; rejected shipments are retried on the same row;
   `CourierUnavailableException` -> 503 (retry is safe). `OrderDetails.shipment` = latest shipment.
   Tests: `BookingApiFactory` adds a `ScriptedCourier` (lose next answer / reject next parcel).
+- Bulk booking: `IShipmentService.BookManyAsync` (`POST /api/orders/bulk/book`, 200 + per-order
+  `BulkErrors`). Phases: intents one at a time (DbContext is not thread-safe), courier calls via
+  `CourierBatchSender` (chunks of `ICourierProvider.MaxBulkBookingSize`, null = single calls; at
+  most `Booking:MaxParallelBookings` in flight), then save each answer with `CancellationToken.None`.
+  Adapters must match bulk answers by `MerchantReference`. Test factory: 2 parallel, batch 10.
 - Screenshots for UI PRs live in `docs/screenshots/NN-*.png` (390 px wide, headless Chrome).
 - Field-level rules belong in services via `IRequestContext.Has(permission)`, not only in controllers.
 - Audit: mark entities `IAuditable` (Domain); `AuditInterceptor` writes `AuditEntry` rows in the
