@@ -310,8 +310,7 @@ public sealed class OrdersController(IOrderService orders, IShipmentService ship
     /// </summary>
     [HttpGet("labels")]
     [Authorize(Policy = Policies.CanPack)]
-    [Produces("application/pdf")]
-    [ProducesResponseType<FileContentResult>(StatusCodes.Status200OK, "application/pdf")]
+    [ProducesResponseType<Stream>(StatusCodes.Status200OK, "application/pdf")] // binary in the OpenAPI document
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound, "application/problem+json")]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status503ServiceUnavailable, "application/problem+json")]
