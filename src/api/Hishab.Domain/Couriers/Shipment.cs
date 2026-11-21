@@ -159,3 +159,13 @@ public sealed class CourierUnavailableException(CourierProvider provider)
 {
     public CourierProvider Provider { get; } = provider;
 }
+
+/// <summary>
+/// The courier no longer accepts the saved connection (expired or revoked login). The seller must
+/// connect the courier again; retrying will not help (HTTP 422).
+/// </summary>
+public sealed class CourierAuthExpiredException(CourierProvider provider)
+    : DomainException($"{provider} no longer accepts the saved connection. Connect {provider} again in courier settings.")
+{
+    public CourierProvider Provider { get; } = provider;
+}

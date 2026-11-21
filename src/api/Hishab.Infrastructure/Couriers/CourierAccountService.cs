@@ -5,6 +5,7 @@ using Hishab.Domain.Common;
 using Hishab.Domain.Couriers;
 using Hishab.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Hishab.Infrastructure.Couriers;
@@ -15,6 +16,7 @@ internal sealed partial class CourierAccountService(
     ICourierCredentialProtector protector,
     IPlanLimitService limits,
     ITenantContext tenant,
+    IServiceScopeFactory scopes,
     TimeProvider clock,
     ILogger<CourierAccountService> logger) : ICourierAccountService
 {
@@ -48,7 +50,8 @@ internal sealed partial class CourierAccountService(
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
         await limits.EnsureCanConnectCourierAsync(provider, cancellationToken); // locks the shop row: connects run one at a time
 
-        var ciphertext = protector.Protect(TenantId, keys);
+        // Some couriers trade the typed login for tokens: store those, never the password.
+        var ciphertext = protector.Protect(TenantId, check.Keep is null ? keys : new CourierCredentials(check.Keep));
         var hint = CourierAccount.HintFor(keys[adapter.CredentialFields[0].Name]);
         var now = clock.GetUtcNow();
         var account = await db.CourierAccounts.SingleOrDefaultAsync(a => a.Provider == provider, cancellationToken);
@@ -81,7 +84,29 @@ internal sealed partial class CourierAccountService(
     public async Task<CourierCredentials> GetCredentialsAsync(CourierProvider provider, CancellationToken cancellationToken)
     {
         var account = await FindAsync(provider, cancellationToken);
-        return protector.Unprotect(TenantId, account.ProtectedCredentials);
+        var tenantId = TenantId;
+        var keys = protector.Unprotect(tenantId, account.ProtectedCredentials);
+        return new CourierCredentials(keys.Values, (refreshed, ct) => SaveRefreshedAsync(tenantId, provider, refreshed, ct));
+    }
+
+    /// <summary>
+    /// Own scope and DbContext: adapters may refresh tokens from parallel calls (bulk booking),
+    /// while this request's DbContext is not thread-safe. The tenant is the one captured above.
+    /// </summary>
+    private async Task SaveRefreshedAsync(Guid tenantId, CourierProvider provider, IReadOnlyDictionary<string, string> refreshed, CancellationToken cancellationToken)
+    {
+        await using var scope = scopes.CreateAsyncScope();
+        scope.ServiceProvider.GetRequiredService<ITenantContext>().SetTenant(tenantId);
+        var scopedDb = scope.ServiceProvider.GetRequiredService<HishabDbContext>();
+        var account = await scopedDb.CourierAccounts.SingleOrDefaultAsync(a => a.Provider == provider, cancellationToken);
+        if (account is null)
+        {
+            return; // disconnected meanwhile: nothing to keep
+        }
+
+        account.RotateCredentials(protector.Protect(tenantId, new CourierCredentials(refreshed)), clock.GetUtcNow());
+        await scopedDb.SaveChangesAsync(cancellationToken);
+        LogRotated(logger, provider, account.Id);
     }
 
     private async Task<CourierAccount> FindAsync(CourierProvider provider, CancellationToken cancellationToken) =>
@@ -124,6 +149,9 @@ internal sealed partial class CourierAccountService(
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Courier {Provider} connected ({CourierAccountId})")]
     private static partial void LogConnected(ILogger logger, CourierProvider provider, Guid courierAccountId);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Courier {Provider} tokens refreshed ({CourierAccountId})")]
+    private static partial void LogRotated(ILogger logger, CourierProvider provider, Guid courierAccountId);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Courier {Provider} disconnected ({CourierAccountId})")]
     private static partial void LogDisconnected(ILogger logger, CourierProvider provider, Guid courierAccountId);
