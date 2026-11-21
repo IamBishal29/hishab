@@ -9,6 +9,7 @@ using Hishab.Application.Shops.Auth;
 using Hishab.Application.Shops.Staff;
 using Hishab.Infrastructure.Couriers;
 using Hishab.Infrastructure.Couriers.Fake;
+using Hishab.Infrastructure.Couriers.Pathao;
 using Hishab.Infrastructure.Customers;
 using Hishab.Infrastructure.Identity;
 using Hishab.Infrastructure.Jobs;
@@ -107,6 +108,7 @@ public static class DependencyInjection
 
         services.AddSingleton<FakeCourierControl>();
         services.AddSingleton<ICourierProvider, FakeCourierProvider>();
+        PathaoSetup.AddPathao(services, configuration);
         services.AddSingleton<ICourierProviderRegistry, CourierProviderRegistry>();
         services.AddSingleton<ICourierCredentialProtector, CourierCredentialProtector>();
         services.AddScoped<ICourierAccountService, CourierAccountService>();

@@ -50,6 +50,13 @@ public sealed class CourierAccount : ITenantOwned, IAuditable
         UpdatedAt = now;
     }
 
+    /// <summary>The courier rotated our tokens (OAuth refresh): same connection, new ciphertext, same hint.</summary>
+    public void RotateCredentials(string protectedCredentials, DateTimeOffset now)
+    {
+        ProtectedCredentials = protectedCredentials;
+        UpdatedAt = now;
+    }
+
     /// <summary>Shows only the end of a key, and nothing at all of a short one.</summary>
     public static string HintFor(string secret)
     {

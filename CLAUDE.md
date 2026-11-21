@@ -258,6 +258,13 @@ Never read, print or commit `.env`, user-secrets, tokens or keys. Put placeholde
   cross-tenant query) enqueues `SyncShopAsync(tenant, provider)`; `ParcelStatusRules.Decide` maps
   courier status -> order moves (never skips, never guesses; Unknown/Cancelled = logged for review).
   Adapters map courier codes to `ParcelStatus` (Unknown + `CourierStatus` text when unmapped).
+- Real couriers: named HttpClient via `IHttpClientFactory` + `AddStandardResilienceHandler` with
+  `Retry.DisableForUnsafeHttpMethods()` (never auto-resend a booking). Base URL from options, sandbox
+  by default. Logins are exchanged at connect (`CredentialCheck.ValidKeeping`), never stored; rotated
+  tokens saved via `CourierCredentials.SaveRefreshedAsync` (own scope). Expired connection ->
+  `CourierAuthExpiredException` (422, reconnect). Pathao (`Couriers:Pathao`): no bulk, no city/zone
+  yet (#66). Contract tests: WireMock + real DI (`PathaoContractTests`); keep `TimeProvider.System`
+  there (Polly waits on the DI clock).
 - Screenshots for UI PRs live in `docs/screenshots/NN-*.png` (390 px wide, headless Chrome).
 - Field-level rules belong in services via `IRequestContext.Has(permission)`, not only in controllers.
 - Audit: mark entities `IAuditable` (Domain); `AuditInterceptor` writes `AuditEntry` rows in the

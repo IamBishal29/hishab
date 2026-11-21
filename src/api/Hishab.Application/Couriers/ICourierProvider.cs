@@ -50,9 +50,19 @@ public interface ICourierProvider
 public sealed record CourierCredentialField(string Name, string Label);
 
 /// <summary>The seller's keys for one courier. ToString never shows them (safe if logged by mistake).</summary>
-public sealed class CourierCredentials(IReadOnlyDictionary<string, string> values)
+public sealed class CourierCredentials(
+    IReadOnlyDictionary<string, string> values,
+    Func<IReadOnlyDictionary<string, string>, CancellationToken, Task>? saveRefreshed = null)
 {
     public IReadOnlyDictionary<string, string> Values { get; } = values;
+
+    /// <summary>
+    /// For adapters whose tokens rotate (OAuth refresh): saves the new values, encrypted, for this
+    /// shop's connection, so the next call (or another instance) uses them. No-op when there is
+    /// nothing to save to (keys being checked before they are stored).
+    /// </summary>
+    public Task SaveRefreshedAsync(IReadOnlyDictionary<string, string> refreshed, CancellationToken cancellationToken) =>
+        saveRefreshed?.Invoke(refreshed, cancellationToken) ?? Task.CompletedTask;
 
     public string this[string name] =>
         Values.TryGetValue(name, out var value) ? value : throw new KeyNotFoundException($"No credential named '{name}'.");
@@ -60,11 +70,17 @@ public sealed class CourierCredentials(IReadOnlyDictionary<string, string> value
     public override string ToString() => "CourierCredentials { *** }";
 }
 
-public sealed record CredentialCheck(bool IsValid, string? Message)
+/// <param name="Keep">
+/// What to store instead of what the seller typed, e.g. tokens obtained with a password that must
+/// never be stored. Null: store the typed values.
+/// </param>
+public sealed record CredentialCheck(bool IsValid, string? Message, IReadOnlyDictionary<string, string>? Keep = null)
 {
     public static readonly CredentialCheck Valid = new(true, null);
 
     public static CredentialCheck Invalid(string message) => new(false, message);
+
+    public static CredentialCheck ValidKeeping(IReadOnlyDictionary<string, string> keep) => new(true, null, keep);
 }
 
 /// <summary>A parcel to book. <see cref="MerchantReference"/> is our order ID: couriers echo it back, and it makes retries safe.</summary>

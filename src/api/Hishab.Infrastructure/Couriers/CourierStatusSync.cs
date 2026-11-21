@@ -73,6 +73,12 @@ internal sealed partial class CourierStatusSync(
                 LogCourierUnavailable(logger, provider, done, batch.Count);
                 return new StatusSyncSummary(done, moved, failed, true);
             }
+            catch (CourierAuthExpiredException)
+            {
+                // Every call would fail the same way until the seller reconnects: stop here.
+                LogAuthExpired(logger, provider);
+                return new StatusSyncSummary(done, moved, failed, true);
+            }
             catch (Exception e) when (e is not OperationCanceledException)
             {
                 LogStatusFailed(logger, provider, parcel.Id, e.GetType().Name); // one bad answer must not stop the shop's sync
@@ -158,6 +164,9 @@ internal sealed partial class CourierStatusSync(
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "{Provider} did not answer: status sync stopped after {Done} of {Total} parcels")]
     private static partial void LogCourierUnavailable(ILogger logger, CourierProvider provider, int done, int total);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "{Provider} refused the saved connection: status sync stopped until the shop reconnects")]
+    private static partial void LogAuthExpired(ILogger logger, CourierProvider provider);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "{Provider} status for shipment {ShipmentId} failed with {ExceptionType}")]
     private static partial void LogStatusFailed(ILogger logger, CourierProvider provider, Guid shipmentId, string exceptionType);
