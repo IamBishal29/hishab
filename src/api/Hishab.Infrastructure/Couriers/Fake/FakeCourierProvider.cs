@@ -15,6 +15,7 @@ namespace Hishab.Infrastructure.Couriers.Fake;
 /// <item>a recipient phone ending in "0000" is rejected at booking ("recipient unreachable");</item>
 /// <item>the consignment ID is derived from the merchant reference, so booking the same order
 /// twice returns the same parcel (like a courier that honours idempotency);</item>
+/// <item>it has a bulk endpoint taking up to <see cref="BulkSize"/> parcels per call;</item>
 /// <item>fees follow the common Dhaka rates: 60 inside, 120 outside, +10 per extra item, 1% COD charge;</item>
 /// <item>statuses start as Pending and move only when <see cref="FakeCourierControl"/> says so.</item>
 /// </list>
@@ -23,6 +24,7 @@ internal sealed class FakeCourierProvider(FakeCourierControl control, TimeProvid
 {
     public const string InvalidApiKey = "invalid";
     public const string UnreachablePhoneSuffix = "0000";
+    public const int BulkSize = 50;
 
     public CourierProvider Code => CourierProvider.Fake;
 
@@ -38,6 +40,8 @@ internal sealed class FakeCourierProvider(FakeCourierControl control, TimeProvid
 
     public Task<BookingResult> BookAsync(CourierCredentials credentials, ParcelRequest parcel, CancellationToken cancellationToken) =>
         Task.FromResult(Book(parcel));
+
+    public int? MaxBulkBookingSize => BulkSize;
 
     public Task<IReadOnlyList<BookingResult>> BookManyAsync(
         CourierCredentials credentials, IReadOnlyList<ParcelRequest> parcels, CancellationToken cancellationToken) =>
