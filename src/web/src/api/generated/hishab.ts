@@ -69,8 +69,19 @@ export const CourierProvider = {
   Steadfast: 'Steadfast',
 } as const;
 
+/**
+ * A courier's own location IDs: city and zone required, area optional.
+ */
+export interface DestinationRequest {
+  cityId: string;
+  zoneId: string;
+  /** @nullable */
+  areaId?: string | null;
+}
+
 export interface BookOrderRequest {
   courier?: null | CourierProvider;
+  destination?: null | DestinationRequest;
 }
 
 export type OrderStatus = typeof OrderStatus[keyof typeof OrderStatus];
@@ -155,6 +166,27 @@ export interface CourierConnection {
   /** @nullable */
   connectedAt: string | null;
   fields: CourierCredentialField[];
+  supportsLocations: boolean;
+}
+
+export interface CourierDestination {
+  cityId: string;
+  zoneId: string;
+  /** @nullable */
+  areaId?: string | null;
+}
+
+export interface CourierLocation {
+  id: string;
+  name: string;
+}
+
+/**
+ * A courier's price for one order.
+ */
+export interface CourierQuoteResponse {
+  deliveryFee: number;
+  codCharge: number;
 }
 
 export interface CreateOrderLineRequest {
@@ -318,6 +350,15 @@ export const LabelFormat = {
   Thermal: 'Thermal',
 } as const;
 
+export type LocationLevel = typeof LocationLevel[keyof typeof LocationLevel];
+
+
+export const LocationLevel = {
+  City: 'City',
+  Zone: 'Zone',
+  Area: 'Area',
+} as const;
+
 export interface LoginResponse {
   userId: string;
   shopId: string;
@@ -413,6 +454,7 @@ export interface ShipmentDto {
   requestedAt: string;
   /** @nullable */
   bookedAt: string | null;
+  destination: null | CourierDestination;
 }
 
 export interface OrderDetails {
@@ -646,6 +688,11 @@ export type GetApiAuditParams = {
   Page?: number;
   /** 1 to 100. */
   PageSize?: number;
+};
+
+export type GetApiCouriersProviderLocationsParams = {
+  level?: LocationLevel;
+  parentId?: string;
 };
 
 export type GetApiCustomersParams = {
@@ -1216,6 +1263,145 @@ export function useGetApiAuthMe<TData = Awaited<ReturnType<typeof getApiAuthMe>>
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getGetApiAuthMeQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetApiCouriersProviderLocationsUrl = (provider: CourierProvider,
+    params?: GetApiCouriersProviderLocationsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/couriers/${provider}/locations?${stringifiedParams}` : `/api/couriers/${provider}/locations`
+}
+
+/**
+ * @summary One level of a courier's location list, for the booking form: cities (no parentId), the
+zones of a city, or the areas of a zone (areas without home delivery are left out). Sorted
+by name; cached for a day. All staff. 400 if the courier has no lists, is not connected, or
+the parent is unknown; 503 if the courier did not answer.
+ */
+export const getApiCouriersProviderLocations = async (provider: CourierProvider,
+    params?: GetApiCouriersProviderLocationsParams, options?: Parameters<typeof apiFetch>[1]): Promise<CourierLocation[]> => {
+
+  return apiFetch<CourierLocation[]>(getGetApiCouriersProviderLocationsUrl(provider,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetApiCouriersProviderLocationsQueryKey = (provider: CourierProvider,
+    params?: GetApiCouriersProviderLocationsParams,) => {
+    return [
+    `/api/couriers/${provider}/locations`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetApiCouriersProviderLocationsQueryOptions = <TData = Awaited<ReturnType<typeof getApiCouriersProviderLocations>>, TError = ValidationProblemDetails | ProblemDetails>(provider: CourierProvider,
+    params?: GetApiCouriersProviderLocationsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCouriersProviderLocations>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiCouriersProviderLocationsQueryKey(provider,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiCouriersProviderLocations>>> = ({ signal }) => getApiCouriersProviderLocations(provider,params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: provider !== null && provider !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiCouriersProviderLocations>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetApiCouriersProviderLocationsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiCouriersProviderLocations>>>
+export type GetApiCouriersProviderLocationsQueryError = ValidationProblemDetails | ProblemDetails
+
+
+/**
+ * @summary One level of a courier's location list, for the booking form: cities (no parentId), the
+zones of a city, or the areas of a zone (areas without home delivery are left out). Sorted
+by name; cached for a day. All staff. 400 if the courier has no lists, is not connected, or
+the parent is unknown; 503 if the courier did not answer.
+ */
+export function useGetApiCouriersProviderLocations<TData = Awaited<ReturnType<typeof getApiCouriersProviderLocations>>, TError = ValidationProblemDetails | ProblemDetails>(
+ provider: CourierProvider,
+    params: undefined |  GetApiCouriersProviderLocationsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCouriersProviderLocations>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getApiCouriersProviderLocations>>,
+          TError,
+          Awaited<ReturnType<typeof getApiCouriersProviderLocations>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary One level of a courier's location list, for the booking form: cities (no parentId), the
+zones of a city, or the areas of a zone (areas without home delivery are left out). Sorted
+by name; cached for a day. All staff. 400 if the courier has no lists, is not connected, or
+the parent is unknown; 503 if the courier did not answer.
+ */
+export function useGetApiCouriersProviderLocations<TData = Awaited<ReturnType<typeof getApiCouriersProviderLocations>>, TError = ValidationProblemDetails | ProblemDetails>(
+ provider: CourierProvider,
+    params?: GetApiCouriersProviderLocationsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCouriersProviderLocations>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getApiCouriersProviderLocations>>,
+          TError,
+          Awaited<ReturnType<typeof getApiCouriersProviderLocations>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary One level of a courier's location list, for the booking form: cities (no parentId), the
+zones of a city, or the areas of a zone (areas without home delivery are left out). Sorted
+by name; cached for a day. All staff. 400 if the courier has no lists, is not connected, or
+the parent is unknown; 503 if the courier did not answer.
+ */
+export function useGetApiCouriersProviderLocations<TData = Awaited<ReturnType<typeof getApiCouriersProviderLocations>>, TError = ValidationProblemDetails | ProblemDetails>(
+ provider: CourierProvider,
+    params?: GetApiCouriersProviderLocationsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCouriersProviderLocations>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary One level of a courier's location list, for the booking form: cities (no parentId), the
+zones of a city, or the areas of a zone (areas without home delivery are left out). Sorted
+by name; cached for a day. All staff. 400 if the courier has no lists, is not connected, or
+the parent is unknown; 503 if the courier did not answer.
+ */
+export function useGetApiCouriersProviderLocations<TData = Awaited<ReturnType<typeof getApiCouriersProviderLocations>>, TError = ValidationProblemDetails | ProblemDetails>(
+ provider: CourierProvider,
+    params?: GetApiCouriersProviderLocationsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCouriersProviderLocations>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetApiCouriersProviderLocationsQueryOptions(provider,params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -2509,6 +2695,85 @@ export const usePostApiOrdersIdBook = <TError = ValidationProblemDetails | Probl
         TContext
       > => {
       return useMutation(getPostApiOrdersIdBookMutationOptions(options), queryClient);
+    }
+
+export const getPostApiOrdersIdQuoteUrl = (id: string,) => {
+
+
+
+
+  return `/api/orders/${id}/quote`
+}
+
+/**
+ * @summary The courier's price for this order (delivery fee and COD charge), to a destination for
+couriers that price by location (Pathao needs city and zone). Saves nothing. 400 if a
+destination is needed or not in the courier's lists; 503 if the courier did not answer.
+ */
+export const postApiOrdersIdQuote = async (id: string,
+    nullBookOrderRequest?: null | BookOrderRequest, options?: Parameters<typeof apiFetch>[1]): Promise<CourierQuoteResponse> => {
+
+  return apiFetch<CourierQuoteResponse>(getPostApiOrdersIdQuoteUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: getHeaders({ 'Content-Type': 'application/json' }, options?.headers),
+    body: JSON.stringify(nullBookOrderRequest)
+  }
+);}
+
+
+
+
+
+export const getPostApiOrdersIdQuoteMutationKey = () => ['postApiOrdersIdQuote'] as const;
+
+export const getPostApiOrdersIdQuoteMutationOptions = <TError = ValidationProblemDetails | ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiOrdersIdQuote>>, TError,PostApiOrdersIdQuoteMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiOrdersIdQuote>>, TError,PostApiOrdersIdQuoteMutationVariables, TContext> => {
+
+const mutationKey = getPostApiOrdersIdQuoteMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiOrdersIdQuote>>, PostApiOrdersIdQuoteMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  postApiOrdersIdQuote(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiOrdersIdQuoteMutationResult = NonNullable<Awaited<ReturnType<typeof postApiOrdersIdQuote>>>
+    export type PostApiOrdersIdQuoteMutationBody = null | BookOrderRequest | undefined
+    export type PostApiOrdersIdQuoteMutationError = ValidationProblemDetails | ProblemDetails
+    export type PostApiOrdersIdQuoteMutationVariables = {id: string;data?: null | BookOrderRequest}
+
+    /**
+ * @summary The courier's price for this order (delivery fee and COD charge), to a destination for
+couriers that price by location (Pathao needs city and zone). Saves nothing. 400 if a
+destination is needed or not in the courier's lists; 503 if the courier did not answer.
+ */
+export const usePostApiOrdersIdQuote = <TError = ValidationProblemDetails | ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiOrdersIdQuote>>, TError,PostApiOrdersIdQuoteMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof postApiOrdersIdQuote>>,
+        TError,
+        PostApiOrdersIdQuoteMutationVariables,
+        TContext
+      > => {
+      return useMutation(getPostApiOrdersIdQuoteMutationOptions(options), queryClient);
     }
 
 export const getGetApiOrdersLabelsUrl = (params?: GetApiOrdersLabelsParams,) => {

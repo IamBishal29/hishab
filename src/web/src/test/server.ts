@@ -63,6 +63,7 @@ export function courierList(): CourierConnection[] {
       credentialHint: null,
       connectedAt: null,
       fields: [{ name: 'apiKey', label: 'API key' }],
+      supportsLocations: true,
     },
     {
       provider: 'Pathao',
@@ -73,6 +74,7 @@ export function courierList(): CourierConnection[] {
         { name: 'clientId', label: 'Client ID' },
         { name: 'clientSecret', label: 'Client secret' },
       ],
+      supportsLocations: true,
     },
   ]
 }
@@ -88,6 +90,7 @@ export const bookedShipment: ShipmentDto = {
   error: null,
   requestedAt: '2026-11-20T07:00:00Z',
   bookedAt: '2026-11-20T07:00:01Z',
+  destination: null,
 }
 
 /** A connected courier (for booking tests). */
@@ -250,6 +253,7 @@ function bookOrder(id: string, courier: string | null): BulkItemResult {
     error: null,
     requestedAt: '2026-11-20T07:00:00Z',
     bookedAt: null,
+    destination: null,
   }
   const refusal = api.refusals[id]
   if (refusal) {
