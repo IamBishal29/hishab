@@ -230,6 +230,27 @@ public sealed class LabelsQueryValidator : AbstractValidator<LabelsQuery>
     }
 }
 
+public sealed class InvoicesQuery
+{
+    /// <summary>Orders to print (any status but Cancelled), at most 100; repeat the parameter: <c>?ids=..&amp;ids=..</c>.</summary>
+    public required IReadOnlyList<Guid> Ids { get; init; }
+
+    /// <summary>A5 (folds into the parcel, default) or A4; one invoice per page.</summary>
+    /// <example>A5</example>
+    public InvoiceFormat Format { get; init; } = InvoiceFormat.A5;
+}
+
+public sealed class InvoicesQueryValidator : AbstractValidator<InvoicesQuery>
+{
+    public InvoicesQueryValidator()
+    {
+        RuleFor(q => q.Ids).NotEmpty()
+            .Must(ids => ids.Count <= IInvoiceService.MaxOrders).WithMessage($"At most {IInvoiceService.MaxOrders} invoices at a time.");
+        RuleForEach(q => q.Ids).NotEmpty();
+        RuleFor(q => q.Format).IsInEnum();
+    }
+}
+
 public sealed class BulkBookRequest
 {
     /// <summary>Confirmed orders to book (at most Booking:MaxBatchSize, 100 by default); each succeeds or fails on its own.</summary>
@@ -261,7 +282,8 @@ public sealed class BulkBookRequestValidator : AbstractValidator<BulkBookRequest
 [Authorize]
 [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
 [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
-public sealed class OrdersController(IOrderService orders, IShipmentService shipments, ILabelService labels) : ControllerBase
+public sealed class OrdersController(
+    IOrderService orders, IShipmentService shipments, ILabelService labels, IInvoiceService invoices) : ControllerBase
 {
     public const string IdempotencyHeader = "Idempotency-Key";
     public const string ReplayedHeader = "Idempotent-Replayed";
@@ -374,6 +396,23 @@ public sealed class OrdersController(IOrderService orders, IShipmentService ship
     {
         var document = await labels.RenderAsync(query.Ids, query.Format, cancellationToken);
         return File(document.Pdf, "application/pdf", $"labels-{query.Format.ToString().ToLowerInvariant()}.pdf");
+    }
+
+    /// <summary>
+    /// Invoices for the buyer as one PDF, one per page (Bangla supported), in the order given.
+    /// Selling prices only, never costs. 400 if an order is cancelled; 404 if an order is not in
+    /// this shop; 503 if printing is unavailable right now.
+    /// </summary>
+    [HttpGet("invoices")]
+    [Authorize(Policy = Policies.CanPack)]
+    [ProducesResponseType<Stream>(StatusCodes.Status200OK, "application/pdf")]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound, "application/problem+json")]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status503ServiceUnavailable, "application/problem+json")]
+    public async Task<IActionResult> Invoices([FromQuery] InvoicesQuery query, CancellationToken cancellationToken)
+    {
+        var document = await invoices.RenderAsync(query.Ids, query.Format, cancellationToken);
+        return File(document.Pdf, "application/pdf", $"invoices-{query.Format.ToString().ToLowerInvariant()}.pdf");
     }
 
     /// <summary>Cancels a New or Confirmed order. 409 once it is booked with a courier or changed meanwhile.</summary>

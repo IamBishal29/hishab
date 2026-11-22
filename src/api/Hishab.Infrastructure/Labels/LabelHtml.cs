@@ -1,6 +1,5 @@
 using System.Globalization;
 using System.Text;
-using System.Text.Encodings.Web;
 using Hishab.Application.Orders;
 
 namespace Hishab.Infrastructure.Labels;
@@ -24,29 +23,20 @@ internal sealed record ShippingLabel(
 /// <summary>
 /// The label sheet as HTML for Chromium to print. Every value is HTML-encoded: names, addresses
 /// and notes are typed by sellers (or copied from buyers) and must stay text, never markup.
-/// The font is inlined as a data: URI, so rendering needs no file or network access.
+/// The font and the encoder come from <see cref="PrintHtml"/>.
 /// </summary>
 internal static class LabelHtml
 {
     public const int LabelsPerA4Page = 8;
-
-    private static readonly Lazy<string> _font = new(() =>
-    {
-        using var stream = typeof(LabelHtml).Assembly.GetManifestResourceStream("Hishab.Labels.NotoSansBengali.ttf")
-            ?? throw new InvalidOperationException("The label font is not embedded.");
-        using var copy = new MemoryStream();
-        stream.CopyTo(copy);
-        return Convert.ToBase64String(copy.ToArray());
-    });
 
     public static int PagesFor(int labels, LabelFormat format) =>
         format == LabelFormat.Thermal ? labels : (labels + LabelsPerA4Page - 1) / LabelsPerA4Page;
 
     public static string Build(IReadOnlyList<ShippingLabel> labels, LabelFormat format)
     {
-        var html = new StringBuilder(_font.Value.Length + (labels.Count * 1_200));
+        var html = new StringBuilder(PrintHtml.FontLength + (labels.Count * 1_200));
         html.Append("<!DOCTYPE html><html lang=\"bn\"><head><meta charset=\"utf-8\"><style>")
-            .Append("@font-face{font-family:'Noto Sans Bengali';src:url(data:font/ttf;base64,").Append(_font.Value).Append(") format('truetype');}")
+            .Append(PrintHtml.FontFace)
             .Append(format == LabelFormat.Thermal ? ThermalCss : A4Css)
             .Append(SharedCss)
             .Append("</style></head><body>");
@@ -81,7 +71,7 @@ internal static class LabelHtml
             .Append("<p class=\"address\">").Append(E(label.Address)).Append("</p>")
             .Append("<p class=\"zone\">").Append(label.IsInsideDhaka ? "Inside Dhaka / ঢাকার ভিতরে" : "Outside Dhaka / ঢাকার বাইরে").Append("</p></div>")
             .Append("<div class=\"cod\"><span>COD / ক্যাশ অন ডেলিভারি</span><strong>৳ ")
-            .Append(label.CodAmount.ToString("#,##0.##", CultureInfo.InvariantCulture)).Append("</strong>")
+            .Append(PrintHtml.Taka(label.CodAmount)).Append("</strong>")
             .Append("<span>Items: ").Append(label.ItemCount.ToString(CultureInfo.InvariantCulture)).Append("</span></div>")
             .Append("<footer><span>").Append(E(label.Courier)).Append("</span>")
             .Append("<strong class=\"consignment\">").Append(E(label.ConsignmentId)).Append("</strong>");
@@ -99,7 +89,7 @@ internal static class LabelHtml
         html.Append("</article>");
     }
 
-    private static string E(string value) => HtmlEncoder.Default.Encode(value);
+    private static string E(string value) => PrintHtml.E(value);
 
     private const string SharedCss =
         "*{box-sizing:border-box;margin:0;padding:0}"

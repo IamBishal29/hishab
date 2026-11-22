@@ -2,10 +2,10 @@
 
 ## Current
 - Milestone: M3 Couriers (M1 and M2 complete)
-- Issue: none in progress (#66 in review, PR #72)
+- Issue: none in progress (#68 in review, PR #73)
 - Branch: none (start the next one from main)
-- Next step: #68 "Order invoices as PDF" (lowest open in M3), then #71 web location picker (needs #72
-  merged first).
+- Next step: #71 "Web: courier delivery location picker" (last open in M3; #72 is merged). An
+  "Invoice" button next to "Labels" could ride along (see open questions).
 
 ## Done
 - Product discovery: PRD written (docs/PRD.md); name chosen: Hishab
@@ -129,9 +129,14 @@
   listed cities, EnsureValidAsync), CourierDestination on Shipment (nullable columns + check constraint,
   frozen while Requested), destination on /book, POST /orders/{id}/quote (Pathao price-plan), GET
   /couriers/{p}/locations, Pathao JSON omits nulls; 536 .NET tests; note 27. Web picker split to #71.
+- #68 Invoices (PR #73): GET /api/orders/invoices (A5 default / A4, one per page, CanPack, not for
+  Cancelled), Invoice/InvoiceLine allow-list without costs (reflection guard), PrintHtml shared with
+  labels, Dhaka date; 548 .NET tests; note 28; sample screenshot
 - #24 Steadfast: paused and moved out of M3 (docs behind the merchant login, no sandbox; Syed's choice)
 
 ## Decisions waiting for Syed
+- Invoices (#68): same permission as labels (Owner/Manager/Packer; Moderators cannot print); New and
+  Confirmed orders can be invoiced. No web button yet: add it with #71 or separately? (small)
 - **Pathao sandbox check (#66, PR #72):** add city-list, cities/{id}/zone-list, zones/{id}/area-list and
   merchant/price-plan to the #23 checklist (paths, `data.data` envelope, `home_delivery_available`,
   `final_price` / `cod_percentage` are from the community SDK, not a live sandbox).
@@ -245,4 +250,5 @@
   invoices split to #68; waiting on the Chromium install
 - 2026-11-22: Chromium installed; #25 tested end to end with Docker, label screenshot added; PR #69 open (merged)
 - 2026-11-22: #26 as one PR, labels downloaded (Syed's choices); PR #70 open (merged)
-- 2026-11-22: #66 destination on the Shipment, backend now + web split to #71 (Syed's choices); PR #72 open
+- 2026-11-22: #66 destination on the Shipment, backend now + web split to #71 (Syed's choices); PR #72 open (merged)
+- 2026-11-22: #68 implemented (A5 default, CanPack, routine choices); PR #73 open

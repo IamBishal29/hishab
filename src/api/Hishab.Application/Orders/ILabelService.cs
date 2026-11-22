@@ -24,4 +24,4 @@ public interface ILabelService
 public sealed record LabelDocument(byte[] Pdf, int Labels);
 
 /// <summary>The PDF could not be produced (renderer missing or crashed). Retrying later may work (HTTP 503).</summary>
-public sealed class PdfRenderingException() : Domain.Common.DomainException("Labels could not be printed right now. Try again in a moment.");
+public sealed class PdfRenderingException() : Domain.Common.DomainException("The PDF could not be made right now. Try again in a moment.");
