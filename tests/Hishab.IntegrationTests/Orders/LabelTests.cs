@@ -84,7 +84,13 @@ public partial class LabelTests(HishabApiFactory factory) : IClassFixture<Hishab
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         response.Content.Headers.ContentType!.MediaType.ShouldBe("application/pdf");
         response.Content.Headers.ContentDisposition!.FileName.ShouldBe("labels-thermal.pdf");
-        var pdf = Encoding.Latin1.GetString(await response.Content.ReadAsByteArrayAsync(Ct));
+        var bytes = await response.Content.ReadAsByteArrayAsync(Ct);
+        if (Environment.GetEnvironmentVariable("HISHAB_LABEL_SAMPLE") is { Length: > 0 } samplePath)
+        {
+            await File.WriteAllBytesAsync(samplePath, bytes, Ct); // opt-in: look at a real label
+        }
+
+        var pdf = Encoding.Latin1.GetString(bytes);
         pdf.ShouldStartWith("%PDF-");
         PdfPage().Count(pdf).ShouldBe(3);
         pdf.ShouldContain("NotoSansBengali"); // the embedded font, not a fallback that would break conjuncts
