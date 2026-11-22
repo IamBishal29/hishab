@@ -40,7 +40,7 @@ export const api = {
   /** The next customer change fails with these field errors. */
   nextCustomerFailure: null as null | Record<string, string[]>,
   /** GET /api/couriers; PUT/DELETE change it. */
-  couriers: [] as CourierConnection[],
+  couriers: courierList(),
   /** Every PUT /api/couriers/{provider} with the keys as sent. */
   courierPuts: [] as { provider: string; credentials: Record<string, string> }[],
   defaultCourier: null as CourierProvider | null,
