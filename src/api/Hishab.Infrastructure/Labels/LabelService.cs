@@ -47,7 +47,7 @@ internal sealed partial class LabelService(HishabDbContext db, ChromiumPdfRender
                 shop.PickupAddress,
                 order.Number,
                 customer.Name ?? "Customer",
-                LocalPhone(customer.Phone),
+                PrintHtml.LocalPhone(customer.Phone),
                 order.DeliveryAddress ?? customer.Address ?? string.Empty,
                 order.IsInsideDhaka,
                 order.CodAmount.Amount,
@@ -62,9 +62,6 @@ internal sealed partial class LabelService(HishabDbContext db, ChromiumPdfRender
         LogRendered(logger, labels.Count, format);
         return new LabelDocument(pdf, labels.Count);
     }
-
-    /// <summary>Riders dial the local form (01XXXXXXXXX); we store E.164.</summary>
-    private static string LocalPhone(string e164) => e164.StartsWith("+880", StringComparison.Ordinal) ? "0" + e164[4..] : e164;
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Printed {Count} shipping labels ({Format})")]
     private static partial void LogRendered(ILogger logger, int count, LabelFormat format);

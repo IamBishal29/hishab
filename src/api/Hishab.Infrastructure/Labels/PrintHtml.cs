@@ -28,6 +28,9 @@ internal static class PrintHtml
     /// <summary>HTML-encodes a value for element content or a quoted attribute.</summary>
     public static string E(string value) => HtmlEncoder.Default.Encode(value);
 
+    /// <summary>People dial the local form (01XXXXXXXXX); we store E.164.</summary>
+    public static string LocalPhone(string e164) => e164.StartsWith("+880", StringComparison.Ordinal) ? "0" + e164[4..] : e164;
+
     /// <summary>Taka without a currency code: 1,360 or 1,360.5 (the ৳ sign is printed by the template).</summary>
     public static string Taka(decimal amount) => amount.ToString("#,##0.##", CultureInfo.InvariantCulture);
 }

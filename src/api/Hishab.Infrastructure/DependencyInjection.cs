@@ -69,6 +69,7 @@ public static class DependencyInjection
         JobsSetup.AddJobs(services, configuration);
         services.AddSingleton<ChromiumPdfRenderer>(); // one browser per process (ADR 0008)
         services.AddScoped<ILabelService, LabelService>();
+        services.AddScoped<IInvoiceService, InvoiceService>();
 
         // Same DbContext and connection string as the app, so "healthy" means the app can really reach its data.
         services.AddHealthChecks()
