@@ -116,7 +116,8 @@ public sealed record ShipmentDto(
     decimal? DeliveryFee,
     string? Error,
     DateTimeOffset RequestedAt,
-    DateTimeOffset? BookedAt);
+    DateTimeOffset? BookedAt,
+    CourierDestination? Destination);
 
 public sealed record OrderDto(
     Guid Id,

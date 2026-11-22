@@ -18,6 +18,20 @@ public interface ICourierProvider
     /// <summary>Asks the courier whether the keys work, before they are saved.</summary>
     Task<CredentialCheck> ValidateCredentialsAsync(CourierCredentials credentials, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Whether the courier routes and prices by its own location IDs (<see cref="CourierDestination"/>).
+    /// When false, <see cref="GetLocationsAsync"/> is never called and parcels go by address only.
+    /// </summary>
+    bool SupportsLocations { get; }
+
+    /// <summary>
+    /// One level of the courier's location list: cities (no parent), the zones of a city, or the
+    /// areas of a zone. Reference data that rarely changes: callers go through the cache
+    /// (<see cref="ICourierLocationService"/>), not this method.
+    /// </summary>
+    Task<IReadOnlyList<CourierLocation>> GetLocationsAsync(
+        CourierCredentials credentials, LocationLevel level, string? parentId, CancellationToken cancellationToken);
+
     Task<CourierQuote> QuoteAsync(CourierCredentials credentials, ParcelRequest parcel, CancellationToken cancellationToken);
 
     /// <summary>
@@ -83,7 +97,11 @@ public sealed record CredentialCheck(bool IsValid, string? Message, IReadOnlyDic
     public static CredentialCheck ValidKeeping(IReadOnlyDictionary<string, string> keep) => new(true, null, keep);
 }
 
-/// <summary>A parcel to book. <see cref="MerchantReference"/> is our order ID: couriers echo it back, and it makes retries safe.</summary>
+/// <summary>
+/// A parcel to book. <see cref="MerchantReference"/> is our order ID: couriers echo it back, and it
+/// makes retries safe. <see cref="Destination"/> is set only for couriers that use location IDs and
+/// only when staff chose one; otherwise the courier works from the address.
+/// </summary>
 public sealed record ParcelRequest(
     string MerchantReference,
     string RecipientName,
@@ -92,7 +110,11 @@ public sealed record ParcelRequest(
     bool IsInsideDhaka,
     Money CodAmount,
     int ItemCount,
-    string? Note);
+    string? Note,
+    CourierDestination? Destination = null);
+
+/// <summary>One entry of a courier's location list.</summary>
+public sealed record CourierLocation(string Id, string Name);
 
 public sealed record CourierQuote(Money DeliveryFee, Money CodCharge);
 

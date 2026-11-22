@@ -26,6 +26,7 @@ internal sealed partial class ShipmentService(
     HishabDbContext db,
     ICourierProviderRegistry registry,
     ICourierAccountService accounts,
+    ICourierLocationService locations,
     IOrderService orders,
     ICustomerService customers,
     CourierBatchSender sender,
@@ -35,7 +36,7 @@ internal sealed partial class ShipmentService(
 {
     public const string BookingInProgressMessage = "This order is being booked right now. Refresh in a moment.";
 
-    public async Task<OrderDetails> BookAsync(Guid orderId, CourierProvider? courier, CancellationToken cancellationToken)
+    public async Task<OrderDetails> BookAsync(Guid orderId, CourierProvider? courier, CourierDestination? destination, CancellationToken cancellationToken)
     {
         var order = await db.Orders.AsNoTracking().SingleOrDefaultAsync(o => o.Id == orderId, cancellationToken)
             ?? throw new NotFoundException("Order", orderId);
@@ -50,7 +51,8 @@ internal sealed partial class ShipmentService(
         }
 
         var target = await ResolveCourierAsync(courier, cancellationToken);
-        var booking = await PrepareAsync(order, target.Provider, cancellationToken);
+        await CheckDestinationAsync(target, destination, cancellationToken);
+        var booking = await PrepareAsync(order, target, destination, cancellationToken);
 
         // CourierUnavailableException passes through: the intent stays Requested and a retry is safe.
         var result = await target.Adapter.BookAsync(target.Keys, booking.Parcel, cancellationToken);
@@ -89,7 +91,7 @@ internal sealed partial class ShipmentService(
             {
                 try
                 {
-                    pending.Add(await PrepareAsync(order, target.Provider, cancellationToken));
+                    pending.Add(await PrepareAsync(order, target, destination: null, cancellationToken));
                 }
                 catch (ConflictException e)
                 {
@@ -151,6 +153,43 @@ internal sealed partial class ShipmentService(
                 ? (BulkErrors.Invalid, "Add a delivery address before booking.")
                 : null;
 
+    public async Task<CourierQuote> QuoteAsync(Guid orderId, CourierProvider? courier, CourierDestination? destination, CancellationToken cancellationToken)
+    {
+        var order = await db.Orders.AsNoTracking().SingleOrDefaultAsync(o => o.Id == orderId, cancellationToken)
+            ?? throw new NotFoundException("Order", orderId);
+        var target = await ResolveCourierAsync(courier, cancellationToken);
+        await CheckDestinationAsync(target, destination, cancellationToken);
+        var customer = await customers.GetAsync(order.CustomerId, cancellationToken);
+
+        // Nothing is saved: a quote is a question, not an intent.
+        return await target.Adapter.QuoteAsync(target.Keys, new ParcelRequest(
+            Shipment.ReferenceFor(order.Id),
+            customer.Name ?? "Customer",
+            customer.Phone,
+            order.DeliveryAddress ?? string.Empty,
+            order.IsInsideDhaka,
+            order.CodAmount,
+            order.Lines.Sum(l => l.Quantity),
+            order.Note,
+            destination), cancellationToken);
+    }
+
+    /// <summary>A destination only for couriers that use one, and only IDs from the courier's own lists.</summary>
+    private async Task CheckDestinationAsync(CourierTarget target, CourierDestination? destination, CancellationToken cancellationToken)
+    {
+        if (destination is null)
+        {
+            return;
+        }
+
+        if (!target.Adapter.SupportsLocations)
+        {
+            throw Invalid("destination", $"{target.Provider} delivers by address; it does not use delivery locations.");
+        }
+
+        await locations.EnsureValidAsync(target.Provider, destination, cancellationToken);
+    }
+
     private async Task<CourierTarget> ResolveCourierAsync(CourierProvider? courier, CancellationToken cancellationToken)
     {
         var provider = courier
@@ -173,9 +212,9 @@ internal sealed partial class ShipmentService(
     }
 
     /// <summary>Step 1 (the intent) plus the parcel the courier will receive.</summary>
-    private async Task<PendingBooking> PrepareAsync(Order order, CourierProvider provider, CancellationToken cancellationToken)
+    private async Task<PendingBooking> PrepareAsync(Order order, CourierTarget target, CourierDestination? destination, CancellationToken cancellationToken)
     {
-        var shipment = await RecordIntentAsync(order.Id, provider, cancellationToken);
+        var shipment = await RecordIntentAsync(order.Id, target.Provider, destination, cancellationToken);
         var customer = await customers.GetAsync(order.CustomerId, cancellationToken);
         var parcel = new ParcelRequest(
             shipment.MerchantReference,
@@ -185,12 +224,14 @@ internal sealed partial class ShipmentService(
             order.IsInsideDhaka,
             order.CodAmount,
             order.Lines.Sum(l => l.Quantity),
-            order.Note);
+            order.Note,
+            // From the saved intent, not the request: a retry sends exactly what the first attempt sent.
+            target.Adapter.SupportsLocations ? shipment.Destination : null);
         return new PendingBooking(order.Id, shipment.Id, parcel);
     }
 
     /// <summary>Committed before the courier is called, so a parcel never exists without a trace here.</summary>
-    private async Task<Shipment> RecordIntentAsync(Guid orderId, CourierProvider provider, CancellationToken cancellationToken)
+    private async Task<Shipment> RecordIntentAsync(Guid orderId, CourierProvider provider, CourierDestination? destination, CancellationToken cancellationToken)
     {
         var live = await db.Shipments
             .Where(s => s.OrderId == orderId && (s.State == ShipmentState.Requested || s.State == ShipmentState.Booked))
@@ -207,12 +248,12 @@ internal sealed partial class ShipmentService(
         var shipment = await db.Shipments.SingleOrDefaultAsync(s => s.OrderId == orderId && s.Provider == provider, cancellationToken);
         if (shipment is null)
         {
-            shipment = Shipment.Request(orderId, provider, now);
+            shipment = Shipment.Request(orderId, provider, now, destination);
             db.Shipments.Add(shipment);
         }
         else
         {
-            shipment.RequestAgain(now); // Rejected -> Requested; an unfinished Requested stays as it is
+            shipment.RequestAgain(now, destination); // Rejected -> Requested; an unfinished Requested stays as it is
         }
 
         try

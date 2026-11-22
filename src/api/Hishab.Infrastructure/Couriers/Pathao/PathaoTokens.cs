@@ -123,6 +123,10 @@ internal static class PathaoJson
     public static readonly System.Text.Json.JsonSerializerOptions Options = new(System.Text.Json.JsonSerializerDefaults.Web)
     {
         PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.SnakeCaseLower,
+
+        // Optional fields are left out, not sent as null: "recipient_city": null is not the same as
+        // "no city" to every API, and an address-only booking must look exactly as before #66.
+        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
     };
 
     public static JsonContent Content(object body) => JsonContent.Create(body, body.GetType(), options: Options);

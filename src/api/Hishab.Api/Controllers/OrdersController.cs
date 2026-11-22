@@ -134,7 +134,46 @@ public sealed class BookOrderRequest
     /// <summary>The courier to book with; omit to use the shop's default courier.</summary>
     /// <example>Fake</example>
     public CourierProvider? Courier { get; init; }
+
+    /// <summary>
+    /// Where the courier delivers, in its own location IDs (couriers with <c>supportsLocations</c>,
+    /// from GET /api/couriers/{provider}/locations). Omit to book by address.
+    /// </summary>
+    public DestinationRequest? Destination { get; init; }
 }
+
+/// <summary>A courier's own location IDs: city and zone required, area optional.</summary>
+public sealed class DestinationRequest
+{
+    /// <example>1</example>
+    public required string CityId { get; init; }
+
+    /// <example>11</example>
+    public required string ZoneId { get; init; }
+
+    /// <example>111</example>
+    public string? AreaId { get; init; }
+
+    /// <summary>The domain value object re-checks the IDs (400 keyed <c>destination.*</c>).</summary>
+    public CourierDestination ToDomain() => new(CityId, ZoneId, AreaId);
+}
+
+public sealed class BookOrderRequestValidator : AbstractValidator<BookOrderRequest>
+{
+    public BookOrderRequestValidator()
+    {
+        RuleFor(r => r.Courier).IsInEnum();
+        When(r => r.Destination is not null, () =>
+        {
+            RuleFor(r => r.Destination!.CityId).NotEmpty().MaximumLength(CourierDestination.IdMaxLength);
+            RuleFor(r => r.Destination!.ZoneId).NotEmpty().MaximumLength(CourierDestination.IdMaxLength);
+            RuleFor(r => r.Destination!.AreaId).MaximumLength(CourierDestination.IdMaxLength);
+        });
+    }
+}
+
+/// <summary>A courier's price for one order.</summary>
+public sealed record CourierQuoteResponse(decimal DeliveryFee, decimal CodCharge);
 
 public sealed class OrderActionRequest
 {
@@ -301,7 +340,24 @@ public sealed class OrdersController(IOrderService orders, IShipmentService ship
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status503ServiceUnavailable)]
     public async Task<ActionResult<OrderDetails>> Book(Guid id, BookOrderRequest? request, CancellationToken cancellationToken) =>
-        Ok(await shipments.BookAsync(id, request?.Courier, cancellationToken));
+        Ok(await shipments.BookAsync(id, request?.Courier, request?.Destination?.ToDomain(), cancellationToken));
+
+    /// <summary>
+    /// The courier's price for this order (delivery fee and COD charge), to a destination for
+    /// couriers that price by location (Pathao needs city and zone). Saves nothing. 400 if a
+    /// destination is needed or not in the courier's lists; 503 if the courier did not answer.
+    /// </summary>
+    [HttpPost("{id:guid}/quote")]
+    [Authorize(Policy = Policies.CanPack)]
+    [ProducesResponseType<CourierQuoteResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status503ServiceUnavailable)]
+    public async Task<ActionResult<CourierQuoteResponse>> Quote(Guid id, BookOrderRequest? request, CancellationToken cancellationToken)
+    {
+        var quote = await shipments.QuoteAsync(id, request?.Courier, request?.Destination?.ToDomain(), cancellationToken);
+        return Ok(new CourierQuoteResponse(quote.DeliveryFee.Amount, quote.CodCharge.Amount));
+    }
 
     /// <summary>
     /// Shipping labels for booked orders as one PDF (Bangla supported), in the order given.

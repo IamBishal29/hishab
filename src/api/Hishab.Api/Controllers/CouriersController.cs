@@ -30,8 +30,25 @@ public sealed class ConnectCourierRequestValidator : AbstractValidator<ConnectCo
 [Authorize]
 [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
 [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
-public sealed class CouriersController(ICourierAccountService couriers) : ControllerBase
+public sealed class CouriersController(ICourierAccountService couriers, ICourierLocationService locations) : ControllerBase
 {
+    /// <summary>
+    /// One level of a courier's location list, for the booking form: cities (no parentId), the
+    /// zones of a city, or the areas of a zone (areas without home delivery are left out). Sorted
+    /// by name; cached for a day. All staff. 400 if the courier has no lists, is not connected, or
+    /// the parent is unknown; 503 if the courier did not answer.
+    /// </summary>
+    [HttpGet("{provider}/locations")]
+    [ProducesResponseType<IReadOnlyList<CourierLocation>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status503ServiceUnavailable)]
+    public async Task<ActionResult<IReadOnlyList<CourierLocation>>> Locations(
+        CourierProvider provider,
+        [FromQuery] LocationLevel level = LocationLevel.City,
+        [FromQuery] string? parentId = null,
+        CancellationToken cancellationToken = default) =>
+        Ok(await locations.ListAsync(provider, level, parentId, cancellationToken));
+
     /// <summary>Couriers Hishab supports, the fields each needs, and which ones this shop has connected. All staff.</summary>
     [HttpGet]
     [ProducesResponseType<IReadOnlyList<CourierConnection>>(StatusCodes.Status200OK)]

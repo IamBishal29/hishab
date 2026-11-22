@@ -207,6 +207,21 @@ namespace Hishab.Infrastructure.Persistence.Migrations
                         .HasColumnType("numeric(12,2)")
                         .HasColumnName("delivery_fee");
 
+                    b.Property<string>("DestinationAreaId")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("destination_area_id");
+
+                    b.Property<string>("DestinationCityId")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("destination_city_id");
+
+                    b.Property<string>("DestinationZoneId")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("destination_zone_id");
+
                     b.Property<string>("Error")
                         .HasMaxLength(300)
                         .HasColumnType("character varying(300)")
@@ -289,7 +304,10 @@ namespace Hishab.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_shipments_tracking")
                         .HasFilter("state = 'Booked' AND (parcel_status IS NULL OR (parcel_status <> 'Delivered' AND parcel_status <> 'Returned' AND parcel_status <> 'Cancelled'))");
 
-                    b.ToTable("shipments", (string)null);
+                    b.ToTable("shipments", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_shipments_destination_complete", "(destination_city_id IS NULL) = (destination_zone_id IS NULL) AND (destination_area_id IS NULL OR destination_zone_id IS NOT NULL)");
+                        });
                 });
 
             modelBuilder.Entity("Hishab.Domain.Customers.Customer", b =>

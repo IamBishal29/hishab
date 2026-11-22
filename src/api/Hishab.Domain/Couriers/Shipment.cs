@@ -56,6 +56,18 @@ public sealed class Shipment : ITenantOwned, IAuditable
 
     public DateTimeOffset RequestedAt { get; private set; }
 
+    // The courier's location IDs as columns: null for couriers or bookings without them, and for
+    // every shipment booked before #66. Read them through Destination.
+    public string? DestinationCityId { get; private set; }
+
+    public string? DestinationZoneId { get; private set; }
+
+    public string? DestinationAreaId { get; private set; }
+
+    /// <summary>Where the courier was told to deliver, in its own location IDs; null = address only.</summary>
+    public CourierDestination? Destination =>
+        DestinationCityId is null || DestinationZoneId is null ? null : new(DestinationCityId, DestinationZoneId, DestinationAreaId);
+
     public DateTimeOffset? BookedAt { get; private set; }
 
     /// <summary>The courier's last reported status (null until the first sync).</summary>
@@ -76,8 +88,9 @@ public sealed class Shipment : ITenantOwned, IAuditable
     /// <summary>The order ID is the reference: unique everywhere, and it never changes between retries.</summary>
     public static string ReferenceFor(Guid orderId) => orderId.ToString("N");
 
-    public static Shipment Request(Guid orderId, CourierProvider provider, DateTimeOffset now) =>
-        new()
+    public static Shipment Request(Guid orderId, CourierProvider provider, DateTimeOffset now, CourierDestination? destination = null)
+    {
+        var shipment = new Shipment
         {
             Id = Guid.NewGuid(),
             OrderId = orderId,
@@ -86,11 +99,24 @@ public sealed class Shipment : ITenantOwned, IAuditable
             State = ShipmentState.Requested,
             RequestedAt = now,
         };
+        shipment.SetDestination(destination);
+        return shipment;
+    }
 
-    /// <summary>Try again after a rejection; a Requested shipment stays as it is (its outcome is still unknown).</summary>
-    /// <exception cref="ConflictException">It is already booked.</exception>
-    public void RequestAgain(DateTimeOffset now)
+    /// <summary>
+    /// Try again. No destination keeps the stored one; after a rejection a new one replaces it (a
+    /// wrong zone is a common reason). A Requested shipment stays as it is: the courier may already
+    /// hold a parcel sent there, so its destination cannot change until that attempt is finished.
+    /// </summary>
+    /// <exception cref="ConflictException">Already booked, or another destination for an unfinished attempt.</exception>
+    public void RequestAgain(DateTimeOffset now, CourierDestination? destination = null)
     {
+        // No destination given (bulk booking, a plain retry) keeps the stored one.
+        if (State == ShipmentState.Requested && destination is not null && destination != Destination)
+        {
+            throw new ConflictException("The last booking of this order is not finished. Book again with the same delivery location first.");
+        }
+
         switch (State)
         {
             case ShipmentState.Booked:
@@ -99,6 +125,7 @@ public sealed class Shipment : ITenantOwned, IAuditable
                 State = ShipmentState.Requested;
                 Error = null;
                 RequestedAt = now;
+                SetDestination(destination ?? Destination);
                 break;
         }
     }
@@ -134,6 +161,13 @@ public sealed class Shipment : ITenantOwned, IAuditable
         CourierStatus = status == Couriers.ParcelStatus.Unknown ? Truncate(courierStatus, ConsignmentMaxLength) : null;
         ParcelStatusAt = changedAt ?? ParcelStatusAt;
         StatusCheckedAt = now;
+    }
+
+    private void SetDestination(CourierDestination? destination)
+    {
+        DestinationCityId = destination?.CityId;
+        DestinationZoneId = destination?.ZoneId;
+        DestinationAreaId = destination?.AreaId;
     }
 
     private static string? Truncate(string? value, int max) => value?.Length > max ? value[..max] : value;

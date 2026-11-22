@@ -35,6 +35,27 @@ internal sealed class FakeCourierProvider(FakeCourierControl control, TimeProvid
             ? CredentialCheck.Invalid("The courier rejected this API key. Check it in your courier account and try again.")
             : CredentialCheck.Valid);
 
+    public bool SupportsLocations => true;
+
+    /// <summary>A small fixed tree, enough to exercise pickers and validation: 2 cities, 3 zones, 4 areas.</summary>
+    internal static readonly IReadOnlyDictionary<string, IReadOnlyList<CourierLocation>> Locations =
+        new Dictionary<string, IReadOnlyList<CourierLocation>>
+        {
+            [""] = [new("1", "Dhaka"), new("2", "Chattogram")],
+            ["City:1"] = [new("11", "Mirpur"), new("12", "Dhanmondi")],
+            ["City:2"] = [new("21", "Agrabad")],
+            ["Zone:11"] = [new("111", "Mirpur 10"), new("112", "Pallabi")],
+            ["Zone:12"] = [new("121", "Dhanmondi 27")],
+            ["Zone:21"] = [new("211", "Agrabad C/A")],
+        };
+
+    public Task<IReadOnlyList<CourierLocation>> GetLocationsAsync(
+        CourierCredentials credentials, LocationLevel level, string? parentId, CancellationToken cancellationToken)
+    {
+        var key = level == LocationLevel.City ? "" : $"{(level == LocationLevel.Zone ? "City" : "Zone")}:{parentId}";
+        return Task.FromResult(Locations.GetValueOrDefault(key) ?? []);
+    }
+
     public Task<CourierQuote> QuoteAsync(CourierCredentials credentials, ParcelRequest parcel, CancellationToken cancellationToken) =>
         Task.FromResult(Quote(parcel));
 
