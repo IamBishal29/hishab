@@ -5,10 +5,10 @@
 - Issue: #25 "Shipping labels and invoices as PDF" (labels; invoices split to #68): implemented,
   committed locally, not pushed
 - Branch: feat/25-pdf-labels
-- Next step: Chromium is not installed on this machine and my install command was blocked. Syed runs
-  `dotnet build src/api && pwsh src/api/Hishab.Api/bin/Debug/net10.0/playwright.ps1 install chromium`
-  (or `powershell -ExecutionPolicy Bypass -File ...`), then: run `cd src/api && dotnet test` (2 label
-  rendering tests need Chromium), take a label screenshot for docs/screenshots, push, open the PR.
+- Next step: Chromium is now installed (2026-11-22). Format, build, unit (282), architecture (5) and all
+  web checks (53 tests) pass. Docker Desktop is not running and I may not start it: Syed starts it, then
+  run integration tests with `HISHAB_LABEL_SAMPLE=<scratch>/label.pdf` (the thermal test saves its PDF),
+  screenshot the PDF (Playwright Chromium, 390 px) into docs/screenshots/25-thermal-label.png, push, PR.
 
 ## Done
 - Product discovery: PRD written (docs/PRD.md); name chosen: Hishab
