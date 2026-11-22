@@ -271,6 +271,14 @@ Never read, print or commit `.env`, user-secrets, tokens or keys. Put placeholde
   (`CanPack`, booked orders only). Chromium: `pwsh src/api/Hishab.Api/bin/Debug/net10.0/playwright.ps1
   install chromium` (CI adds `--with-deps`). File endpoints: `ProducesResponseType<Stream>(200,
   "application/pdf")`, no `[Produces]`; the web `apiFetch` returns non-JSON bodies as a Blob.
+- Courier UI (`features/couriers`): `/settings/couriers` (Owner/Manager via `canManageShop`); key
+  forms are built from `fields` in GET /api/couriers, always start empty, reset after save, and never
+  put keys in the query cache (`afterCourierChange` writes only the returned connection). Booking:
+  `ShipmentPanel` on order detail, bulk "Book courier" + labels on the list (`canPack`; book sends only
+  Confirmed orders, labels only Booked/InTransit). Courier choice: `useBookingChoice` (shop default if
+  connected, else the only one). Files: `saveFile` (lib/download.ts, download link, never
+  `window.open` after an await); tests use `captureDownloads()`. Action errors: `problemMessage`.
+  `applyProblem` sends server keys with no form field to `root`.
 - Screenshots for UI PRs live in `docs/screenshots/NN-*.png` (390 px wide, headless Chrome).
 - Field-level rules belong in services via `IRequestContext.Has(permission)`, not only in controllers.
 - Audit: mark entities `IAuditable` (Domain); `AuditInterceptor` writes `AuditEntry` rows in the
