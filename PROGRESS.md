@@ -2,10 +2,10 @@
 
 ## Current
 - Milestone: M3 Couriers (M1 and M2 complete)
-- Issue: #23 done, PR #67 open for review (manual Pathao sandbox check pending: Syed)
-- Branch: feat/23-pathao-adapter
-- Next step: Syed runs the sandbox checklist in PR #67 and merges, then `/next-task` picks #24
-  "Steadfast adapter with contract tests" (reuse the Pathao HTTP pipeline pattern).
+- Issue: none in progress (#25 in review, PR #69)
+- Branch: none (start the next one from main)
+- Next step: after #69 merges, #26 "Web: courier settings, booking and label printing" (lowest open in
+  M3; it uses the label endpoint from #69). Then #68 invoices, #66 city/zone.
 
 ## Done
 - Product discovery: PRD written (docs/PRD.md); name chosen: Hishab
@@ -115,9 +115,20 @@
 - #23 Pathao (PR #67): adapter with login exchanged once (tokens stored, never the password), cached
   tokens with single-flight refresh + rotated tokens saved, resilience pipeline (no auto-retry of POST,
   circuit breaker), 422/duplicate/401/5xx handling, status mapping; 14 WireMock contract tests; 490 .NET
-  tests; note 24. City/zone lookup split to #66.
+  tests; note 24. City/zone lookup split to #66. (merged)
+- #25 Labels (PR #69): GET /api/orders/labels (A4 8 per page, thermal 100x150 mm), HTML printed by
+  headless Chromium (ADR 0008: Bangla shaping, Noto Sans Bengali embedded, JS off, all requests aborted,
+  max 2 renders), 3 queries per batch, 400 names unbooked orders, 503 when Chromium is missing; web
+  apiFetch returns Blobs; CI installs Chromium; 501 .NET + 53 web tests; note 25. Invoices split to #68.
+- #24 Steadfast: paused and moved out of M3 (docs behind the merchant login, no sandbox; Syed's choice)
 
 ## Decisions waiting for Syed
+- Labels (#25): long consignment IDs wrap on the thermal label (see screenshot); no barcode/QR yet (say
+  if couriers or riders need one). One unexplained integration failure on the first local run (three
+  re-runs green); watch CI on #69.
+- Push: Git Credential Manager still has no GitHub login here (plain push hangs); I pushed with
+  `gh auth git-credential` for that one command. `gh auth setup-git` fixes it for good.
+- Steadfast (#24): resume when you have a Steadfast merchant account and can paste its API docs.
 - **Pathao sandbox check (#23, PR #67):** Pathao's docs page was unreadable; field names, the order-info
   path and status codes come from a community SDK. Run the checklist in the PR with your sandbox keys
   (never commit them). Key unknowns: refresh_token in the token response, duplicate merchant_order_id
@@ -176,8 +187,6 @@
   same-origin.
 - `.env.example` is blocked by permission settings (`.env*` rule), so I cannot keep its
   placeholders up to date; allow `.env.example` explicitly if you want me to.
-- Before #25 (labels/PDF): QuestPDF (free community licence, not open source) or an
-  open-source alternative.
 - Before #34 (AI chat-to-order): a Gemini free-tier API key (stays in user-secrets).
 - Optional: talk to 5-10 sellers (PRD "Open questions for discovery").
 
@@ -214,4 +223,7 @@
 - 2026-11-21: #63 merged; #21 implemented, PR #64 open (merged)
 - 2026-11-21: #22 with a dispatcher, dashboard Development + local only, one PR (Syed's choices);
   PR #65 open (merged)
-- 2026-11-21: #23 with the login exchanged once (Syed's choice); city/zone split to #66; PR #67 open
+- 2026-11-21: #23 with the login exchanged once (Syed's choice); city/zone split to #66; PR #67 open (merged)
+- 2026-11-21: #24 paused (Syed's choice); #25 with headless Chromium (Syed's choice, ADR 0008),
+  invoices split to #68; waiting on the Chromium install
+- 2026-11-22: Chromium installed; #25 tested end to end with Docker, label screenshot added; PR #69 open

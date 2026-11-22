@@ -60,6 +60,12 @@ export async function apiFetch<T>(url: string, options: RequestInit = {}): Promi
     throw new ApiProblem(response.status, body)
   }
 
+  // Files (PDF labels) come back as a Blob; everything else is JSON or empty.
+  const type = response.headers.get('content-type') ?? ''
+  if (type && !type.includes('json')) {
+    return (await response.blob()) as T
+  }
+
   const text = await response.text()
   return (text ? JSON.parse(text) : undefined) as T
 }

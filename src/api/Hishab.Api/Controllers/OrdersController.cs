@@ -170,6 +170,27 @@ public sealed class BulkOrderActionRequestValidator : AbstractValidator<BulkOrde
     }
 }
 
+public sealed class LabelsQuery
+{
+    /// <summary>Booked orders to print, at most 100; repeat the parameter: <c>?ids=..&amp;ids=..</c>.</summary>
+    public required IReadOnlyList<Guid> Ids { get; init; }
+
+    /// <summary>A4 sheet (8 per page) or thermal 100 × 150 mm (one per page).</summary>
+    /// <example>Thermal</example>
+    public LabelFormat Format { get; init; } = LabelFormat.A4;
+}
+
+public sealed class LabelsQueryValidator : AbstractValidator<LabelsQuery>
+{
+    public LabelsQueryValidator()
+    {
+        RuleFor(q => q.Ids).NotEmpty()
+            .Must(ids => ids.Count <= ILabelService.MaxOrders).WithMessage($"At most {ILabelService.MaxOrders} labels at a time.");
+        RuleForEach(q => q.Ids).NotEmpty();
+        RuleFor(q => q.Format).IsInEnum();
+    }
+}
+
 public sealed class BulkBookRequest
 {
     /// <summary>Confirmed orders to book (at most Booking:MaxBatchSize, 100 by default); each succeeds or fails on its own.</summary>
@@ -201,7 +222,7 @@ public sealed class BulkBookRequestValidator : AbstractValidator<BulkBookRequest
 [Authorize]
 [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
 [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
-public sealed class OrdersController(IOrderService orders, IShipmentService shipments) : ControllerBase
+public sealed class OrdersController(IOrderService orders, IShipmentService shipments, ILabelService labels) : ControllerBase
 {
     public const string IdempotencyHeader = "Idempotency-Key";
     public const string ReplayedHeader = "Idempotent-Replayed";
@@ -281,6 +302,23 @@ public sealed class OrdersController(IOrderService orders, IShipmentService ship
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status503ServiceUnavailable)]
     public async Task<ActionResult<OrderDetails>> Book(Guid id, BookOrderRequest? request, CancellationToken cancellationToken) =>
         Ok(await shipments.BookAsync(id, request?.Courier, cancellationToken));
+
+    /// <summary>
+    /// Shipping labels for booked orders as one PDF (Bangla supported), in the order given.
+    /// 400 if an order is not booked yet; 404 if an order is not in this shop; 503 if printing is
+    /// unavailable right now.
+    /// </summary>
+    [HttpGet("labels")]
+    [Authorize(Policy = Policies.CanPack)]
+    [ProducesResponseType<Stream>(StatusCodes.Status200OK, "application/pdf")] // binary in the OpenAPI document
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound, "application/problem+json")]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status503ServiceUnavailable, "application/problem+json")]
+    public async Task<IActionResult> Labels([FromQuery] LabelsQuery query, CancellationToken cancellationToken)
+    {
+        var document = await labels.RenderAsync(query.Ids, query.Format, cancellationToken);
+        return File(document.Pdf, "application/pdf", $"labels-{query.Format.ToString().ToLowerInvariant()}.pdf");
+    }
 
     /// <summary>Cancels a New or Confirmed order. 409 once it is booked with a courier or changed meanwhile.</summary>
     [HttpPost("{id:guid}/cancel")]

@@ -51,6 +51,8 @@ MSYS_NO_PATHCONV=1 openssl req -x509 -newkey rsa:2048 -nodes -days 730 \
 openssl pkcs12 -export -inkey dp.key -in dp.crt -out dp.pfx -passout pass:
 dotnet user-secrets set "DataProtection:CertificateBase64" "$(base64 -w0 dp.pfx)" --project src/api/Hishab.Api
 rm dp.key dp.crt dp.pfx   # keep a backup elsewhere in production: losing it means sellers reconnect couriers
+# PDF labels: headless Chromium (ADR 0008), once per machine after the first build (about 150 MB)
+dotnet build src/api && pwsh src/api/Hishab.Api/bin/Debug/net10.0/playwright.ps1 install chromium
 dotnet run --project src/api/Hishab.Api           # dev OTP codes appear in the console log
 
 # 3. Web  ->  http://localhost:5173 (proxies /api to the API, so run both)
@@ -64,7 +66,7 @@ cd src/web && npm run api:generate
 ## Tests and checks
 
 ```bash
-# API (needs Docker running for the integration tests)
+# API (needs Docker running for the integration tests, and Chromium installed for the PDF label tests)
 cd src/api && dotnet format --verify-no-changes && dotnet build && dotnet test
 
 # Web

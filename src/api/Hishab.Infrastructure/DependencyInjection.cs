@@ -13,6 +13,7 @@ using Hishab.Infrastructure.Couriers.Pathao;
 using Hishab.Infrastructure.Customers;
 using Hishab.Infrastructure.Identity;
 using Hishab.Infrastructure.Jobs;
+using Hishab.Infrastructure.Labels;
 using Hishab.Infrastructure.Orders;
 using Hishab.Infrastructure.Persistence;
 using Hishab.Infrastructure.Persistence.Auditing;
@@ -66,6 +67,8 @@ public static class DependencyInjection
         services.AddScoped<ICustomerOrderHistory, CustomerOrderHistoryQuery>();
         AddCouriers(services, configuration);
         JobsSetup.AddJobs(services, configuration);
+        services.AddSingleton<ChromiumPdfRenderer>(); // one browser per process (ADR 0008)
+        services.AddScoped<ILabelService, LabelService>();
 
         // Same DbContext and connection string as the app, so "healthy" means the app can really reach its data.
         services.AddHealthChecks()

@@ -40,6 +40,13 @@ jobs:
       - run: dotnet restore
       - run: dotnet format --verify-no-changes --no-restore
       - run: dotnet build --no-restore --configuration Release
+      # PDF labels render with Playwright's Chromium (ADR 0008); --with-deps adds the Linux libraries.
+      - name: Cache Playwright browsers
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('Directory.Packages.props') }}
+      - run: pwsh Hishab.Api/bin/Release/net10.0/playwright.ps1 install --with-deps chromium
       # Integration tests start PostgreSQL with Testcontainers (Docker is available on ubuntu runners).
       - run: dotnet test --no-build --configuration Release
 

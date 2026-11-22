@@ -35,6 +35,21 @@ describe('apiFetch', () => {
     expect(getAccessToken()).toBe('access-refreshed-1')
   })
 
+  it('returns files such as PDF labels as a Blob instead of parsing them as JSON', async () => {
+    server.use(
+      http.get(
+        '*/api/orders/labels',
+        () => new HttpResponse('%PDF-1.4', { headers: { 'content-type': 'application/pdf' } }),
+      ),
+    )
+
+    const pdf = await apiFetch<Blob>('/api/orders/labels?ids=1')
+
+    expect(pdf).toBeInstanceOf(Blob)
+    expect(pdf.type).toBe('application/pdf')
+    expect(await pdf.text()).toBe('%PDF-1.4')
+  })
+
   it('turns ProblemDetails into an ApiProblem with field errors', async () => {
     const error = await apiFetch('/api/auth/otp/verify', {
       method: 'POST',

@@ -265,6 +265,12 @@ Never read, print or commit `.env`, user-secrets, tokens or keys. Put placeholde
   `CourierAuthExpiredException` (422, reconnect). Pathao (`Couriers:Pathao`): no bulk, no city/zone
   yet (#66). Contract tests: WireMock + real DI (`PathaoContractTests`); keep `TimeProvider.System`
   there (Polly waits on the DI clock).
+- PDFs (ADR 0008): HTML templates printed by headless Chromium (`ChromiumPdfRenderer`, singleton, JS
+  off, all requests aborted, max 2 at once); HTML-encode every value; font Noto Sans Bengali embedded
+  (`Labels/Fonts`, inlined as data: URI). Labels: `GET /api/orders/labels?ids=&format=A4|Thermal`
+  (`CanPack`, booked orders only). Chromium: `pwsh src/api/Hishab.Api/bin/Debug/net10.0/playwright.ps1
+  install chromium` (CI adds `--with-deps`). File endpoints: `ProducesResponseType<Stream>(200,
+  "application/pdf")`, no `[Produces]`; the web `apiFetch` returns non-JSON bodies as a Blob.
 - Screenshots for UI PRs live in `docs/screenshots/NN-*.png` (390 px wide, headless Chrome).
 - Field-level rules belong in services via `IRequestContext.Has(permission)`, not only in controllers.
 - Audit: mark entities `IAuditable` (Domain); `AuditInterceptor` writes `AuditEntry` rows in the
