@@ -5,18 +5,32 @@ import { Link, useSearchParams } from 'react-router'
 import {
   OrderSource,
   OrderStatus,
+  LabelFormat,
+  postApiOrdersBulkBook,
   postApiOrdersBulkCancel,
   postApiOrdersBulkConfirm,
+  type CourierProvider,
   type BulkActionResult,
   type BulkItemResult,
 } from '@/api/generated/hishab'
 import { ApiProblem } from '@/api/http'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { canEnterOrders } from '@/features/auth/permissions'
+import { canEnterOrders, canPack } from '@/features/auth/permissions'
 import { useSession } from '@/features/auth/useSession'
+import { useBookingChoice } from '@/features/couriers/courierQueries'
+import { CourierSelect } from '@/features/couriers/CourierSelect'
+import { problemMessage } from '@/lib/problemErrors'
+import { useDownloadLabels } from './labels'
 import { parseFilters, toApiParams, toSearchParams, type OrderFilters } from './orderFilters'
-import { canCancel, canConfirm, invalidateOrders, orderListQuery } from './orderQueries'
+import {
+  canBook,
+  canCancel,
+  canConfirm,
+  hasLabel,
+  invalidateOrders,
+  orderListQuery,
+} from './orderQueries'
 import { OrderRow } from './OrderRow'
 
 const selectClass = 'h-10 w-full rounded-md border border-input bg-transparent px-2 text-sm'
@@ -167,22 +181,29 @@ function FilterBar({ filters, onChange, onClear }: FilterBarProps): ReactElement
   )
 }
 
-type BulkAction = 'confirm' | 'cancel'
+type BulkAction = 'confirm' | 'cancel' | 'book'
 
 function OrderResults({ filters }: { filters: OrderFilters }): ReactElement {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const { data: session } = useSession()
-  const canAct = canEnterOrders(session?.role)
+  const canChange = canEnterOrders(session?.role)
+  const mayPack = canPack(session?.role)
+  const canAct = canChange || mayPack
+  const choice = useBookingChoice()
+  const [picked, setPicked] = useState<CourierProvider | null>(null)
+  const courier = picked ?? choice.preferred
+  const labels = useDownloadLabels()
   const list = useInfiniteQuery(orderListQuery(toApiParams(filters)))
   const [selected, setSelected] = useState<ReadonlySet<string>>(new Set())
   const [results, setResults] = useState<ReadonlyMap<string, BulkItemResult>>(new Map())
 
   const bulk = useMutation({
-    mutationFn: ({ action, orderIds }: { action: BulkAction; orderIds: string[] }) =>
-      action === 'confirm'
-        ? postApiOrdersBulkConfirm({ orderIds })
-        : postApiOrdersBulkCancel({ orderIds }),
+    mutationFn: ({ action, orderIds }: { action: BulkAction; orderIds: string[] }) => {
+      if (action === 'confirm') return postApiOrdersBulkConfirm({ orderIds })
+      if (action === 'cancel') return postApiOrdersBulkCancel({ orderIds })
+      return postApiOrdersBulkBook({ orderIds, courier })
+    },
     onSuccess: (result: BulkActionResult) => {
       setResults(new Map(result.results.map((r) => [r.orderId, r])))
       // Keep failed orders selected so the packer can see and retry them.
@@ -218,8 +239,14 @@ function OrderResults({ filters }: { filters: OrderFilters }): ReactElement {
   const run = (action: BulkAction) => {
     if (action === 'cancel' && !window.confirm(t('orders.cancelAsk', { count: selected.size })))
       return
-    bulk.mutate({ action, orderIds: [...selected] })
+    // Book sends only the confirmed orders: the others would just come back as failures.
+    const orderIds =
+      action === 'book'
+        ? selectedOrders.filter((o) => canBook(o.status)).map((o) => o.id)
+        : [...selected]
+    bulk.mutate({ action, orderIds })
   }
+  const labelIds = selectedOrders.filter((o) => hasLabel(o.status)).map((o) => o.id)
 
   return (
     <div className="flex flex-col gap-3">
@@ -241,27 +268,69 @@ function OrderResults({ filters }: { filters: OrderFilters }): ReactElement {
               <span className="text-sm text-muted-foreground">
                 {t('orders.selected', { count: selected.size })}
               </span>
-              <Button
-                size="sm"
-                disabled={bulk.isPending || !selectedOrders.some((o) => canConfirm(o.status))}
-                onClick={() => {
-                  run('confirm')
-                }}
-              >
-                {bulk.isPending ? t('orders.working') : t('orders.confirm')}
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={bulk.isPending || !selectedOrders.some((o) => canCancel(o.status))}
-                onClick={() => {
-                  run('cancel')
-                }}
-              >
-                {t('orders.cancel')}
-              </Button>
+              {canChange && (
+                <>
+                  <Button
+                    size="sm"
+                    disabled={bulk.isPending || !selectedOrders.some((o) => canConfirm(o.status))}
+                    onClick={() => {
+                      run('confirm')
+                    }}
+                  >
+                    {bulk.isPending ? t('orders.working') : t('orders.confirm')}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={bulk.isPending || !selectedOrders.some((o) => canCancel(o.status))}
+                    onClick={() => {
+                      run('cancel')
+                    }}
+                  >
+                    {t('orders.cancel')}
+                  </Button>
+                </>
+              )}
+              {mayPack && (
+                <>
+                  <Button
+                    size="sm"
+                    disabled={
+                      bulk.isPending ||
+                      courier === null ||
+                      !selectedOrders.some((o) => canBook(o.status))
+                    }
+                    onClick={() => {
+                      run('book')
+                    }}
+                  >
+                    {t('orders.book')}
+                  </Button>
+                  {Object.values(LabelFormat).map((format) => (
+                    <Button
+                      key={format}
+                      size="sm"
+                      variant="outline"
+                      disabled={labels.isPending || labelIds.length === 0}
+                      onClick={() => {
+                        labels.mutate({ ids: labelIds, format })
+                      }}
+                    >
+                      {t(`labels.download${format}`)}
+                    </Button>
+                  ))}
+                </>
+              )}
             </>
           )}
+          {/* Several couriers and no default: say which one bulk booking uses. */}
+          {mayPack &&
+            selected.size > 0 &&
+            (choice.connected.length !== 1 || choice.preferred === null) && (
+              <div className="w-full">
+                <CourierSelect connected={choice.connected} value={courier} onChange={setPicked} />
+              </div>
+            )}
         </div>
       )}
       <div aria-live="polite">
@@ -273,6 +342,11 @@ function OrderResults({ filters }: { filters: OrderFilters }): ReactElement {
         {bulk.error && (
           <p role="alert" className="text-sm text-destructive">
             {bulk.error instanceof ApiProblem ? bulk.error.message : t('errors.network')}
+          </p>
+        )}
+        {labels.error && (
+          <p role="alert" className="text-sm text-destructive">
+            {t(problemMessage(labels.error))}
           </p>
         )}
       </div>
