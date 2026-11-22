@@ -165,6 +165,16 @@ public class CourierBatchSenderTests
         public Task<CredentialCheck> ValidateCredentialsAsync(CourierCredentials credentials, CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 
+        public bool SupportsLocations => false;
+
+
+        public Task<IReadOnlyList<CourierLocation>> GetLocationsAsync(
+
+            CourierCredentials credentials, LocationLevel level, string? parentId, CancellationToken cancellationToken) =>
+
+            throw new NotSupportedException();
+
+
         public Task<CourierQuote> QuoteAsync(CourierCredentials credentials, ParcelRequest parcel, CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 

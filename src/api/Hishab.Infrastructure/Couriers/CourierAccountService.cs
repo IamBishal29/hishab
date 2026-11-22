@@ -145,7 +145,7 @@ internal sealed partial class CourierAccountService(
     }
 
     private static CourierConnection ToConnection(ICourierProvider adapter, CourierAccount? account) =>
-        new(adapter.Code, account is not null, account?.CredentialHint, account?.ConnectedAt, adapter.CredentialFields);
+        new(adapter.Code, account is not null, account?.CredentialHint, account?.ConnectedAt, adapter.CredentialFields, adapter.SupportsLocations);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Courier {Provider} connected ({CourierAccountId})")]
     private static partial void LogConnected(ILogger logger, CourierProvider provider, Guid courierAccountId);

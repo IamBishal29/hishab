@@ -265,6 +265,14 @@ Never read, print or commit `.env`, user-secrets, tokens or keys. Put placeholde
   `CourierAuthExpiredException` (422, reconnect). Pathao (`Couriers:Pathao`): no bulk, no city/zone
   yet (#66). Contract tests: WireMock + real DI (`PathaoContractTests`); keep `TimeProvider.System`
   there (Polly waits on the DI clock).
+- Courier locations (#66): adapters with `SupportsLocations` implement `GetLocationsAsync` (City, Zone
+  of a city, Area of a zone; IDs as text). Callers use `ICourierLocationService` (IMemoryCache 24 h per
+  courier/level/parent; empty lists not cached; zones only for listed cities; `EnsureValidAsync` keys
+  errors `destination.*`). `CourierDestination` lives on `Shipment` (nullable `destination_*` columns +
+  check constraint); a Requested shipment cannot change it (409), null keeps the saved one; parcels take
+  it from the saved shipment. Endpoints: `GET /api/couriers/{provider}/locations?level=&parentId=` (all
+  staff), `POST /api/orders/{id}/quote` (`CanPack`, saves nothing), `destination` on `/book`. Pathao JSON
+  omits nulls. Fake tree: Dhaka 1 (Mirpur 11: 111, 112; Dhanmondi 12: 121), Chattogram 2 (Agrabad 21: 211).
 - PDFs (ADR 0008): HTML templates printed by headless Chromium (`ChromiumPdfRenderer`, singleton, JS
   off, all requests aborted, max 2 at once); HTML-encode every value; font Noto Sans Bengali embedded
   (`Labels/Fonts`, inlined as data: URI). Labels: `GET /api/orders/labels?ids=&format=A4|Thermal`

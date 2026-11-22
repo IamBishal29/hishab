@@ -190,7 +190,7 @@ internal sealed partial class OrderService(
     }
 
     internal static ShipmentDto ToDto(Shipment s) =>
-        new(s.Id, s.Provider, s.State, s.ConsignmentId, s.TrackingCode, s.DeliveryFee?.Amount, s.Error, s.RequestedAt, s.BookedAt);
+        new(s.Id, s.Provider, s.State, s.ConsignmentId, s.TrackingCode, s.DeliveryFee?.Amount, s.Error, s.RequestedAt, s.BookedAt, s.Destination);
 
     private OrderDto ToDto(Order o)
     {

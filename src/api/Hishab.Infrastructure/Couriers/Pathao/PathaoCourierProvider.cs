@@ -69,20 +69,77 @@ internal sealed partial class PathaoCourierProvider(
             : CredentialCheck.ValidKeeping(issued.Into(credentials.Values)); // the password ends here
     }
 
-    public Task<CourierQuote> QuoteAsync(CourierCredentials credentials, ParcelRequest parcel, CancellationToken cancellationToken) =>
-        throw new DomainValidationException("courier", "Pathao prices need the delivery city and zone, which orders do not have yet.");
+    /// <summary>Pathao routes and prices by its own city / zone / area IDs.</summary>
+    public bool SupportsLocations => true;
+
+    public async Task<IReadOnlyList<CourierLocation>> GetLocationsAsync(
+        CourierCredentials credentials, LocationLevel level, string? parentId, CancellationToken cancellationToken)
+    {
+        var path = level switch
+        {
+            LocationLevel.City => "aladdin/api/v1/city-list",
+            LocationLevel.Zone => $"aladdin/api/v1/cities/{Uri.EscapeDataString(parentId!)}/zone-list",
+            _ => $"aladdin/api/v1/zones/{Uri.EscapeDataString(parentId!)}/area-list",
+        };
+        using var response = await AuthorizedAsync(credentials, HttpMethod.Get, path, null, cancellationToken);
+        EnsureAnswered(response);
+        var rows = (await ReadAsync<Envelope<LocationPage>>(response, cancellationToken))?.Data?.Data
+            ?? throw new CourierUnavailableException(Code); // a 200 we cannot read: try again later, cache nothing
+
+        return
+        [
+            .. rows
+                // Areas without home delivery cannot receive a parcel at the door: not offered.
+                .Where(r => level != LocationLevel.Area || r.HomeDeliveryAvailable != false)
+                .Select(r => (Id: r.CityId ?? r.ZoneId ?? r.AreaId, Name: r.CityName ?? r.ZoneName ?? r.AreaName))
+                .Where(r => r.Id is not null && !string.IsNullOrWhiteSpace(r.Name))
+                .Select(r => new CourierLocation(r.Id!.Value.ToString(CultureInfo.InvariantCulture), r.Name!.Trim())),
+        ];
+    }
+
+    /// <summary>Pathao's price plan for this parcel; it needs the city and zone (its prices go by zone).</summary>
+    public async Task<CourierQuote> QuoteAsync(CourierCredentials credentials, ParcelRequest parcel, CancellationToken cancellationToken)
+    {
+        var destination = parcel.Destination
+            ?? throw new DomainValidationException("destination", "Choose the delivery city and zone to see the Pathao price.");
+        var request = new
+        {
+            store_id = StoreId(credentials),
+            item_type = ParcelItemType,
+            delivery_type = options.Value.DeliveryType,
+            item_weight = options.Value.DefaultItemWeightKg,
+            recipient_city = LocationId(destination.CityId),
+            recipient_zone = LocationId(destination.ZoneId),
+        };
+
+        using var response = await AuthorizedAsync(credentials, HttpMethod.Post, "aladdin/api/v1/merchant/price-plan", request, cancellationToken);
+        EnsureAnswered(response);
+        var plan = (await ReadAsync<Envelope<PricePlan>>(response, cancellationToken))?.Data;
+        if (plan?.FinalPrice is not { } fee)
+        {
+            throw new CourierUnavailableException(Code);
+        }
+
+        var codCharge = Math.Round(parcel.CodAmount.Amount * (plan.CodPercentage ?? 0m), 2, MidpointRounding.AwayFromZero);
+        return new CourierQuote(Money.Bdt(Math.Round(fee, 2, MidpointRounding.AwayFromZero)), Money.Bdt(codCharge));
+    }
 
     public async Task<BookingResult> BookAsync(CourierCredentials credentials, ParcelRequest parcel, CancellationToken cancellationToken)
     {
+        var destination = parcel.Destination;
         var order = new
         {
-            store_id = int.Parse(credentials[StoreIdKey], CultureInfo.InvariantCulture),
+            store_id = StoreId(credentials),
             merchant_order_id = parcel.MerchantReference,
             recipient_name = parcel.RecipientName,
             recipient_phone = LocalPhone(parcel.RecipientPhone),
             recipient_address = parcel.RecipientAddress,
+            // Sent when staff chose them (exact price and routing); otherwise Pathao reads the address.
+            recipient_city = destination is null ? (int?)null : LocationId(destination.CityId),
+            recipient_zone = destination is null ? (int?)null : LocationId(destination.ZoneId),
+            recipient_area = destination?.AreaId is { } area ? LocationId(area) : (int?)null,
             delivery_type = options.Value.DeliveryType,
-            item_type = 2, // parcel (1 = document)
+            item_type = ParcelItemType,
             special_instruction = parcel.Note,
             item_quantity = parcel.ItemCount,
             item_weight = options.Value.DefaultItemWeightKg,
@@ -120,6 +177,16 @@ internal sealed partial class PathaoCourierProvider(
         var status = PathaoStatuses.Map(info.OrderStatus);
         return new ParcelStatusResult(consignmentId, status, info.UpdatedAt, status == ParcelStatus.Unknown ? info.OrderStatus : null);
     }
+
+    private const int ParcelItemType = 2; // parcel (1 = document)
+
+    private static int StoreId(CourierCredentials credentials) => int.Parse(credentials[StoreIdKey], CultureInfo.InvariantCulture);
+
+    /// <summary>Our location IDs are text; Pathao's are numbers (they came from its own lists).</summary>
+    private static int LocationId(string id) =>
+        int.TryParse(id, NumberStyles.None, CultureInfo.InvariantCulture, out var value)
+            ? value
+            : throw new DomainValidationException("destination", "This is not a Pathao location.");
 
     private HttpClient Http() => httpFactory.CreateClient(HttpClientName);
 
@@ -213,6 +280,14 @@ internal sealed partial class PathaoCourierProvider(
     private sealed record Envelope<T>(string? Message, int? Code, T? Data, Dictionary<string, string[]>? Errors);
 
     private sealed record CreatedOrder(string? ConsignmentId, string? MerchantOrderId, string? OrderStatus, decimal? DeliveryFee);
+
+    /// <summary>The list endpoints wrap rows twice: <c>{ data: { data: [ ... ] } }</c>.</summary>
+    private sealed record LocationPage(List<LocationRow>? Data);
+
+    private sealed record LocationRow(
+        int? CityId, string? CityName, int? ZoneId, string? ZoneName, int? AreaId, string? AreaName, bool? HomeDeliveryAvailable);
+
+    private sealed record PricePlan(decimal? FinalPrice, decimal? CodPercentage);
 
     private sealed record OrderInfo(string? ConsignmentId, string? OrderStatus, DateTimeOffset? UpdatedAt);
 

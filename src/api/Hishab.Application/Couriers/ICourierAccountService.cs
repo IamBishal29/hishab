@@ -24,12 +24,14 @@ public interface ICourierAccountService
     Task<CourierCredentials> GetCredentialsAsync(CourierProvider provider, CancellationToken cancellationToken);
 }
 
+/// <param name="SupportsLocations">The courier routes by its own city / zone / area: offer the location picker when booking.</param>
 public sealed record CourierConnection(
     CourierProvider Provider,
     bool IsConnected,
     string? CredentialHint,
     DateTimeOffset? ConnectedAt,
-    IReadOnlyList<CourierCredentialField> Fields);
+    IReadOnlyList<CourierCredentialField> Fields,
+    bool SupportsLocations);
 
 /// <summary>Encrypts credentials for one shop (ADR 0007). A ciphertext only decrypts for the shop it was made for.</summary>
 public interface ICourierCredentialProtector

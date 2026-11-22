@@ -10,7 +10,10 @@ internal sealed class ShipmentConfiguration : IEntityTypeConfiguration<Shipment>
 {
     public void Configure(EntityTypeBuilder<Shipment> builder)
     {
-        builder.ToTable("shipments");
+        // A destination is whole or absent (the entity enforces it too; this guards raw SQL fixes).
+        builder.ToTable("shipments", t => t.HasCheckConstraint(
+            "ck_shipments_destination_complete",
+            "(destination_city_id IS NULL) = (destination_zone_id IS NULL) AND (destination_area_id IS NULL OR destination_zone_id IS NOT NULL)"));
         builder.Property(s => s.Provider).HasConversion<string>().HasMaxLength(16);
         builder.Property(s => s.State).HasConversion<string>().HasMaxLength(16);
         builder.Property(s => s.MerchantReference).HasMaxLength(Shipment.ReferenceMaxLength);
@@ -21,6 +24,10 @@ internal sealed class ShipmentConfiguration : IEntityTypeConfiguration<Shipment>
         builder.Property(s => s.CourierStatus).HasMaxLength(Shipment.ConsignmentMaxLength);
         builder.Property(s => s.StatusCheckedAt).IsNotAudited(); // changes on every sync: not history
         builder.Ignore(s => s.IsTracking);
+        builder.Ignore(s => s.Destination);
+        builder.Property(s => s.DestinationCityId).HasMaxLength(CourierDestination.IdMaxLength);
+        builder.Property(s => s.DestinationZoneId).HasMaxLength(CourierDestination.IdMaxLength);
+        builder.Property(s => s.DestinationAreaId).HasMaxLength(CourierDestination.IdMaxLength);
         builder.Property<uint>("Version").IsRowVersion();
 
         builder.HasOne<Order>().WithMany().HasForeignKey(s => s.OrderId).OnDelete(DeleteBehavior.Restrict);

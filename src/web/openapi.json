@@ -490,6 +490,150 @@
         }
       }
     },
+    "/api/couriers/{provider}/locations": {
+      "get": {
+        "tags": [
+          "Couriers"
+        ],
+        "summary": "One level of a courier's location list, for the booking form: cities (no parentId), the\nzones of a city, or the areas of a zone (areas without home delivery are left out). Sorted\nby name; cached for a day. All staff. 400 if the courier has no lists, is not connected, or\nthe parent is unknown; 503 if the courier did not answer.",
+        "parameters": [
+          {
+            "name": "provider",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/CourierProvider"
+            }
+          },
+          {
+            "name": "level",
+            "in": "query",
+            "schema": {
+              "default": "City",
+              "$ref": "#/components/schemas/LocationLevel"
+            }
+          },
+          {
+            "name": "parentId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CourierLocation"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CourierLocation"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CourierLocation"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/couriers": {
       "get": {
         "tags": [
@@ -2398,6 +2542,187 @@
           },
           "409": {
             "description": "Conflict",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/orders/{id}/quote": {
+      "post": {
+        "tags": [
+          "Orders"
+        ],
+        "summary": "The courier's price for this order (delivery fee and COD charge), to a destination for\ncouriers that price by location (Pathao needs city and zone). Saves nothing. 400 if a\ndestination is needed or not in the courier's lists; 503 if the courier did not answer.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/BookOrderRequest"
+                  }
+                ]
+              }
+            },
+            "text/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/BookOrderRequest"
+                  }
+                ]
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/BookOrderRequest"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CourierQuoteResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CourierQuoteResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CourierQuoteResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
             "content": {
               "text/plain": {
                 "schema": {
@@ -4865,6 +5190,17 @@
                 "$ref": "#/components/schemas/CourierProvider"
               }
             ]
+          },
+          "destination": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "description": "Where the courier delivers, in its own location IDs (couriers with `supportsLocations`,\nfrom GET /api/couriers/{provider}/locations). Omit to book by address.",
+                "$ref": "#/components/schemas/DestinationRequest"
+              }
+            ]
           }
         }
       },
@@ -5021,7 +5357,8 @@
           "isConnected",
           "credentialHint",
           "connectedAt",
-          "fields"
+          "fields",
+          "supportsLocations"
         ],
         "type": "object",
         "properties": {
@@ -5049,6 +5386,9 @@
             "items": {
               "$ref": "#/components/schemas/CourierCredentialField"
             }
+          },
+          "supportsLocations": {
+            "type": "boolean"
           }
         }
       },
@@ -5067,12 +5407,66 @@
           }
         }
       },
+      "CourierDestination": {
+        "required": [
+          "cityId",
+          "zoneId"
+        ],
+        "type": "object",
+        "properties": {
+          "cityId": {
+            "type": "string"
+          },
+          "zoneId": {
+            "type": "string"
+          },
+          "areaId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "CourierLocation": {
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
       "CourierProvider": {
         "enum": [
           "Fake",
           "Pathao",
           "Steadfast"
         ]
+      },
+      "CourierQuoteResponse": {
+        "required": [
+          "deliveryFee",
+          "codCharge"
+        ],
+        "type": "object",
+        "properties": {
+          "deliveryFee": {
+            "type": "number",
+            "format": "double"
+          },
+          "codCharge": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "description": "A courier's price for one order."
       },
       "CreateOrderLineRequest": {
         "required": [
@@ -5436,6 +5830,37 @@
           }
         }
       },
+      "DestinationRequest": {
+        "required": [
+          "cityId",
+          "zoneId"
+        ],
+        "type": "object",
+        "properties": {
+          "cityId": {
+            "examples": [
+              1
+            ],
+            "type": "string"
+          },
+          "zoneId": {
+            "examples": [
+              11
+            ],
+            "type": "string"
+          },
+          "areaId": {
+            "examples": [
+              111
+            ],
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "A courier's own location IDs: city and zone required, area optional."
+      },
       "FindOrCreateCustomerRequest": {
         "required": [
           "phone"
@@ -5496,6 +5921,13 @@
         "enum": [
           "A4",
           "Thermal"
+        ]
+      },
+      "LocationLevel": {
+        "enum": [
+          "City",
+          "Zone",
+          "Area"
         ]
       },
       "LoginResponse": {
@@ -6087,7 +6519,8 @@
           "deliveryFee",
           "error",
           "requestedAt",
-          "bookedAt"
+          "bookedAt",
+          "destination"
         ],
         "type": "object",
         "properties": {
@@ -6136,6 +6569,16 @@
               "string"
             ],
             "format": "date-time"
+          },
+          "destination": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CourierDestination"
+              }
+            ]
           }
         }
       },

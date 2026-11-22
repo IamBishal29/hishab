@@ -14,8 +14,19 @@ public interface IShipmentService
     /// <exception cref="Domain.Common.NotFoundException">No such order in this shop.</exception>
     /// <exception cref="Domain.Common.ConflictException">The order is not confirmed, or another booking is in progress.</exception>
     /// <exception cref="Domain.Common.DomainValidationException">No courier chosen or connected, no address, or the courier refused the parcel.</exception>
+    /// <remarks>
+    /// <paramref name="destination"/> (couriers with location lists only) is checked against the
+    /// courier's lists and saved on the shipment; null keeps what an earlier attempt saved, or books
+    /// by address. An unfinished attempt cannot change it (409).
+    /// </remarks>
     /// <exception cref="CourierUnavailableException">The courier did not answer; retrying is safe.</exception>
-    Task<OrderDetails> BookAsync(Guid orderId, CourierProvider? courier, CancellationToken cancellationToken);
+    Task<OrderDetails> BookAsync(Guid orderId, CourierProvider? courier, CourierDestination? destination, CancellationToken cancellationToken);
+
+    /// <summary>The courier's price for this order (to the destination, for couriers that need one). Saves nothing.</summary>
+    /// <exception cref="Domain.Common.NotFoundException">No such order in this shop.</exception>
+    /// <exception cref="Domain.Common.DomainValidationException">No courier, an invalid destination, or the courier needs one.</exception>
+    /// <exception cref="CourierUnavailableException">The courier did not answer.</exception>
+    Task<CourierQuote> QuoteAsync(Guid orderId, CourierProvider? courier, CourierDestination? destination, CancellationToken cancellationToken);
 
     /// <summary>
     /// Books many orders with one courier. Each order succeeds or fails on its own: booked orders

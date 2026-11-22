@@ -153,6 +153,95 @@ public sealed class PathaoContractTests : IDisposable
         sent.GetProperty("amount_to_collect").GetDecimal().ShouldBe(1360m);
         sent.GetProperty("item_quantity").GetInt32().ShouldBe(2);
         sent.GetProperty("delivery_type").GetInt32().ShouldBe(48);
+        // No destination chosen: the location fields are left out, not sent as null (as before #66).
+        sent.TryGetProperty("recipient_city", out _).ShouldBeFalse();
+        sent.TryGetProperty("recipient_zone", out _).ShouldBeFalse();
+        sent.TryGetProperty("recipient_area", out _).ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task Booking_with_a_destination_sends_pathaos_numeric_city_zone_and_area()
+    {
+        OrderCreated();
+
+        await Pathao.BookAsync(Connected(), Parcel() with { Destination = new CourierDestination("1", "11", "111") }, Ct);
+
+        var sent = JsonDocument.Parse(_pathao.LogEntries.Single().RequestMessage!.Body!).RootElement;
+        sent.GetProperty("recipient_city").GetInt32().ShouldBe(1);
+        sent.GetProperty("recipient_zone").GetInt32().ShouldBe(11);
+        sent.GetProperty("recipient_area").GetInt32().ShouldBe(111);
+    }
+
+    private void Locations(string path, object rows) =>
+        _pathao.Given(Request.Create().WithPath(path).UsingGet().WithHeader("Authorization", "Bearer acc-1"))
+            .RespondWith(Response.Create().WithStatusCode(200).WithBodyAsJson(new
+            {
+                message = "List fetched",
+                type = "success",
+                code = 200,
+                data = new { data = rows }, // Pathao wraps lists twice
+            }));
+
+    [Fact]
+    public async Task Cities_and_zones_are_read_from_pathaos_nested_lists_as_text_ids()
+    {
+        Locations("/aladdin/api/v1/city-list", new[] { new { city_id = 1, city_name = "Dhaka" }, new { city_id = 2, city_name = " Chattogram " } });
+        Locations("/aladdin/api/v1/cities/1/zone-list", new[] { new { zone_id = 11, zone_name = "Mirpur" } });
+
+        var cities = await Pathao.GetLocationsAsync(Connected(), LocationLevel.City, null, Ct);
+        var zones = await Pathao.GetLocationsAsync(Connected(), LocationLevel.Zone, "1", Ct);
+
+        cities.ShouldBe([new CourierLocation("1", "Dhaka"), new CourierLocation("2", "Chattogram")]);
+        zones.ShouldBe([new CourierLocation("11", "Mirpur")]);
+    }
+
+    [Fact]
+    public async Task Areas_without_home_delivery_are_not_offered()
+    {
+        Locations("/aladdin/api/v1/zones/11/area-list", new object[]
+        {
+            new { area_id = 111, area_name = "Mirpur 10", home_delivery_available = true, pickup_available = true },
+            new { area_id = 112, area_name = "Cantonment", home_delivery_available = false, pickup_available = true },
+        });
+
+        var areas = await Pathao.GetLocationsAsync(Connected(), LocationLevel.Area, "11", Ct);
+
+        areas.ShouldBe([new CourierLocation("111", "Mirpur 10")]);
+    }
+
+    [Fact]
+    public async Task A_list_pathao_answers_but_we_cannot_read_is_an_outage_not_an_empty_list()
+    {
+        _pathao.Given(Request.Create().WithPath("/aladdin/api/v1/city-list").UsingGet())
+            .RespondWith(Response.Create().WithStatusCode(200).WithBody("<html>maintenance</html>"));
+
+        await Should.ThrowAsync<CourierUnavailableException>(() => Pathao.GetLocationsAsync(Connected(), LocationLevel.City, null, Ct));
+    }
+
+    [Fact]
+    public async Task A_quote_asks_pathaos_price_plan_for_the_zone()
+    {
+        _pathao.Given(Request.Create().WithPath("/aladdin/api/v1/merchant/price-plan").UsingPost()
+                .WithBody(new JsonPartialMatcher(new { store_id = 123, recipient_city = 1, recipient_zone = 11, item_type = 2, delivery_type = 48 })))
+            .RespondWith(Response.Create().WithStatusCode(200).WithBodyAsJson(new
+            {
+                message = "price",
+                code = 200,
+                data = new { price = 80, discount = 10, promo_discount = 0, final_price = 70, cod_enabled = 1, cod_percentage = 0.01 },
+            }));
+
+        var quote = await Pathao.QuoteAsync(Connected(), Parcel() with { Destination = new CourierDestination("1", "11") }, Ct);
+
+        quote.ShouldBe(new CourierQuote(Money.Bdt(70m), Money.Bdt(13.60m))); // 1% of the 1,360 COD
+    }
+
+    [Fact]
+    public async Task A_quote_without_a_destination_asks_for_city_and_zone()
+    {
+        var error = await Should.ThrowAsync<DomainValidationException>(() => Pathao.QuoteAsync(Connected(), Parcel(), Ct));
+
+        error.Errors.ShouldContainKey("destination");
+        _pathao.LogEntries.ShouldBeEmpty(); // nothing is sent
     }
 
     [Fact]

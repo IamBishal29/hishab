@@ -2,9 +2,10 @@
 
 ## Current
 - Milestone: M3 Couriers (M1 and M2 complete)
-- Issue: none in progress (#26 in review, PR #70)
+- Issue: none in progress (#66 in review, PR #72)
 - Branch: none (start the next one from main)
-- Next step: #66 "Courier city/zone lookup" (lowest open in M3 after #26), then #68 invoices.
+- Next step: #68 "Order invoices as PDF" (lowest open in M3), then #71 web location picker (needs #72
+  merged first).
 
 ## Done
 - Product discovery: PRD written (docs/PRD.md); name chosen: Hishab
@@ -123,9 +124,19 @@
   disconnect, default), ShipmentPanel on order detail (book, refusal shown once, label download),
   bulk book + labels on the list (packers can select; only Confirmed sent), PDFs downloaded not
   opened, applyProblem routes unmatched server keys to root; 70 web tests; note 26; screenshots
+- #66 Courier locations, backend (PR #72): SupportsLocations + GetLocationsAsync (Pathao city/zone/area
+  lists, Fake tree), ICourierLocationService (IMemoryCache 24 h, empty lists not cached, zones only for
+  listed cities, EnsureValidAsync), CourierDestination on Shipment (nullable columns + check constraint,
+  frozen while Requested), destination on /book, POST /orders/{id}/quote (Pathao price-plan), GET
+  /couriers/{p}/locations, Pathao JSON omits nulls; 536 .NET tests; note 27. Web picker split to #71.
 - #24 Steadfast: paused and moved out of M3 (docs behind the merchant login, no sandbox; Syed's choice)
 
 ## Decisions waiting for Syed
+- **Pathao sandbox check (#66, PR #72):** add city-list, cities/{id}/zone-list, zones/{id}/area-list and
+  merchant/price-plan to the #23 checklist (paths, `data.data` envelope, `home_delivery_available`,
+  `final_price` / `cod_percentage` are from the community SDK, not a live sandbox).
+- Locations (#66): ~1,040 lines excl. migration/generated (tests 449). Bulk booking stays address-only;
+  cache is per instance (no single-flight). Say if you want an ADR for "destination on the Shipment".
 - Courier UI (#26): PR is ~1,390 lines (one PR: Syed's choice; tests/fakes 503). Bulk bar wraps onto
   three rows at 390 px (5 actions); an overflow menu would tidy it. Bundle 199 kB gzip (code-splitting
   follow-up). Screenshots taken against a throwaway Postgres with process-only secrets (.env still absent).
@@ -233,4 +244,5 @@
 - 2026-11-21: #24 paused (Syed's choice); #25 with headless Chromium (Syed's choice, ADR 0008),
   invoices split to #68; waiting on the Chromium install
 - 2026-11-22: Chromium installed; #25 tested end to end with Docker, label screenshot added; PR #69 open (merged)
-- 2026-11-22: #26 as one PR, labels downloaded (Syed's choices); PR #70 open
+- 2026-11-22: #26 as one PR, labels downloaded (Syed's choices); PR #70 open (merged)
+- 2026-11-22: #66 destination on the Shipment, backend now + web split to #71 (Syed's choices); PR #72 open
