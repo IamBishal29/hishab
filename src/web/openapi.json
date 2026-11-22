@@ -2877,6 +2877,119 @@
         }
       }
     },
+    "/api/orders/invoices": {
+      "get": {
+        "tags": [
+          "Orders"
+        ],
+        "summary": "Invoices for the buyer as one PDF, one per page (Bangla supported), in the order given.\nSelling prices only, never costs. 400 if an order is cancelled; 404 if an order is not in\nthis shop; 503 if printing is unavailable right now.",
+        "parameters": [
+          {
+            "name": "Ids",
+            "in": "query",
+            "description": "Orders to print (any status but Cancelled), at most 100; repeat the parameter: `?ids=..&amp;ids=..`.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "Format",
+            "in": "query",
+            "description": "A5 (folds into the parcel, default) or A4; one invoice per page.",
+            "schema": {
+              "$ref": "#/components/schemas/InvoiceFormat"
+            },
+            "example": "A5"
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "$ref": "#/components/schemas/Stream"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/orders/{id}/cancel": {
       "post": {
         "tags": [
@@ -5915,6 +6028,12 @@
             "$ref": "#/components/schemas/ShopRole"
           }
         }
+      },
+      "InvoiceFormat": {
+        "enum": [
+          "A5",
+          "A4"
+        ]
       },
       "JsonElement": { },
       "LabelFormat": {

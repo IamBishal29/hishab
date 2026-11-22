@@ -342,6 +342,14 @@ export interface InviteStaffRequest {
   role: ShopRole;
 }
 
+export type InvoiceFormat = typeof InvoiceFormat[keyof typeof InvoiceFormat];
+
+
+export const InvoiceFormat = {
+  A5: 'A5',
+  A4: 'A4',
+} as const;
+
 export type LabelFormat = typeof LabelFormat[keyof typeof LabelFormat];
 
 
@@ -726,6 +734,13 @@ export type GetApiOrdersLabelsParams = {
   Ids?: string[];
   /** A4 sheet (8 per page) or thermal 100 × 150 mm (one per page). */
   Format?: LabelFormat;
+};
+
+export type GetApiOrdersInvoicesParams = {
+  /** Orders to print (any status but Cancelled), at most 100; repeat the parameter: `?ids=..&amp;ids=..`. */
+  Ids?: string[];
+  /** A5 (folds into the parcel, default) or A4; one invoice per page. */
+  Format?: InvoiceFormat;
 };
 
 export type GetApiProductsParams = {
@@ -2898,6 +2913,140 @@ export function useGetApiOrdersLabels<TData = Awaited<ReturnType<typeof getApiOr
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getGetApiOrdersLabelsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetApiOrdersInvoicesUrl = (params?: GetApiOrdersInvoicesParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = ["Ids"];
+
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? 'null' : String(v));
+      });
+      return;
+    }
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/orders/invoices?${stringifiedParams}` : `/api/orders/invoices`
+}
+
+/**
+ * @summary Invoices for the buyer as one PDF, one per page (Bangla supported), in the order given.
+Selling prices only, never costs. 400 if an order is cancelled; 404 if an order is not in
+this shop; 503 if printing is unavailable right now.
+ */
+export const getApiOrdersInvoices = async (params?: GetApiOrdersInvoicesParams, options?: Parameters<typeof apiFetch>[1]): Promise<Blob> => {
+
+  return apiFetch<Blob>(getGetApiOrdersInvoicesUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetApiOrdersInvoicesQueryKey = (params?: GetApiOrdersInvoicesParams,) => {
+    return [
+    `/api/orders/invoices`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetApiOrdersInvoicesQueryOptions = <TData = Awaited<ReturnType<typeof getApiOrdersInvoices>>, TError = ValidationProblemDetails | ProblemDetails>(params?: GetApiOrdersInvoicesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiOrdersInvoices>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiOrdersInvoicesQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiOrdersInvoices>>> = ({ signal }) => getApiOrdersInvoices(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiOrdersInvoices>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetApiOrdersInvoicesQueryResult = NonNullable<Awaited<ReturnType<typeof getApiOrdersInvoices>>>
+export type GetApiOrdersInvoicesQueryError = ValidationProblemDetails | ProblemDetails
+
+
+/**
+ * @summary Invoices for the buyer as one PDF, one per page (Bangla supported), in the order given.
+Selling prices only, never costs. 400 if an order is cancelled; 404 if an order is not in
+this shop; 503 if printing is unavailable right now.
+ */
+export function useGetApiOrdersInvoices<TData = Awaited<ReturnType<typeof getApiOrdersInvoices>>, TError = ValidationProblemDetails | ProblemDetails>(
+ params: undefined |  GetApiOrdersInvoicesParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiOrdersInvoices>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getApiOrdersInvoices>>,
+          TError,
+          Awaited<ReturnType<typeof getApiOrdersInvoices>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Invoices for the buyer as one PDF, one per page (Bangla supported), in the order given.
+Selling prices only, never costs. 400 if an order is cancelled; 404 if an order is not in
+this shop; 503 if printing is unavailable right now.
+ */
+export function useGetApiOrdersInvoices<TData = Awaited<ReturnType<typeof getApiOrdersInvoices>>, TError = ValidationProblemDetails | ProblemDetails>(
+ params?: GetApiOrdersInvoicesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiOrdersInvoices>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getApiOrdersInvoices>>,
+          TError,
+          Awaited<ReturnType<typeof getApiOrdersInvoices>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Invoices for the buyer as one PDF, one per page (Bangla supported), in the order given.
+Selling prices only, never costs. 400 if an order is cancelled; 404 if an order is not in
+this shop; 503 if printing is unavailable right now.
+ */
+export function useGetApiOrdersInvoices<TData = Awaited<ReturnType<typeof getApiOrdersInvoices>>, TError = ValidationProblemDetails | ProblemDetails>(
+ params?: GetApiOrdersInvoicesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiOrdersInvoices>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Invoices for the buyer as one PDF, one per page (Bangla supported), in the order given.
+Selling prices only, never costs. 400 if an order is cancelled; 404 if an order is not in
+this shop; 503 if printing is unavailable right now.
+ */
+export function useGetApiOrdersInvoices<TData = Awaited<ReturnType<typeof getApiOrdersInvoices>>, TError = ValidationProblemDetails | ProblemDetails>(
+ params?: GetApiOrdersInvoicesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiOrdersInvoices>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetApiOrdersInvoicesQueryOptions(params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
