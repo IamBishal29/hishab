@@ -2,7 +2,7 @@ import type { ReactElement } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, Navigate, Outlet, useLocation, useNavigate } from 'react-router'
 import { Button } from '@/components/ui/button'
-import { canEnterOrders } from '@/features/auth/permissions'
+import { canEnterOrders, canManageShop } from '@/features/auth/permissions'
 import { endSession, useSession } from '@/features/auth/useSession'
 
 /** Protected routes: wait for the session (a reload restores it from the refresh cookie), else go to login. */
@@ -53,13 +53,18 @@ export function HomePage(): ReactElement {
     <section className="mx-auto max-w-md">
       <h1 className="text-2xl font-bold">{t('home.title')}</h1>
       <p className="text-muted-foreground">{t('home.signedInAs', { role: session?.role ?? '' })}</p>
-      <div className="mt-4 flex gap-2">
+      <div className="mt-4 flex flex-wrap gap-2">
         <Button asChild variant="outline">
           <Link to="/orders">{t('home.orders')}</Link>
         </Button>
         {canEnterOrders(session?.role) && (
           <Button asChild>
             <Link to="/orders/new">{t('home.newOrder')}</Link>
+          </Button>
+        )}
+        {canManageShop(session?.role) && (
+          <Button asChild variant="outline">
+            <Link to="/settings/couriers">{t('home.couriers')}</Link>
           </Button>
         )}
       </div>

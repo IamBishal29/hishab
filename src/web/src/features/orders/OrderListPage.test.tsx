@@ -1,9 +1,10 @@
-import { render, screen, within } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { createMemoryRouter } from 'react-router'
 import App from '@/App'
 import { routes } from '@/app/routes'
-import { api, listItem } from '@/test/server'
+import { captureDownloads } from '@/test/downloads'
+import { api, bookedShipment, connected, listItem } from '@/test/server'
 
 function openList(url = '/orders') {
   api.hasRefreshCookie = true
@@ -94,13 +95,80 @@ describe('OrderListPage', () => {
     ask.mockRestore()
   })
 
-  it('shows packers the list without selection or bulk actions', async () => {
+  it('lets packers book and print but not confirm or cancel', async () => {
     api.role = 'Packer'
-    api.orders = [listItem(2)]
+    api.orders = [listItem(2, { status: 'Confirmed' })]
     openList()
-    await screen.findByRole('link', { name: '#2' })
+    await user().click(await screen.findByLabelText('Select order #2'))
 
-    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Book courier' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Labels (thermal)' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Confirm' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Cancel' })).not.toBeInTheDocument()
+  })
+
+  it('offers moderators no booking or labels', async () => {
+    api.role = 'Moderator'
+    api.orders = [listItem(2, { status: 'Confirmed' })]
+    openList()
+    await user().click(await screen.findByLabelText('Select order #2'))
+
+    expect(screen.getByRole('button', { name: 'Confirm' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Book courier' })).not.toBeInTheDocument()
+  })
+
+  it('books only the confirmed orders with the one connected courier and shows each result', async () => {
+    api.couriers = [connected('Fake')]
+    api.orders = [
+      listItem(3, { status: 'Confirmed' }),
+      listItem(2, { status: 'Confirmed' }),
+      listItem(1),
+    ]
+    api.refusals['o-2'] = 'Pickup area not served.'
+    openList()
+    await user().click(await screen.findByLabelText('Select all shown'))
+
+    await user().click(screen.getByRole('button', { name: 'Book courier' }))
+
+    expect(await screen.findByText('1 done, 1 not changed.')).toBeInTheDocument()
+    expect(api.bookings).toEqual([
+      { orderId: 'o-3', courier: 'Fake' },
+      { orderId: 'o-2', courier: 'Fake' },
+    ])
+    expect(within(row(3)).getByText('Now Booked')).toBeInTheDocument()
+    expect(within(row(2)).getByRole('alert')).toHaveTextContent(
+      'Not changed: Pickup area not served.',
+    )
+  })
+
+  it('asks which courier to use when several are connected and none is the default', async () => {
+    api.couriers = [connected('Fake'), connected('Pathao')]
+    api.orders = [listItem(3, { status: 'Confirmed' })]
+    openList()
+    await user().click(await screen.findByLabelText('Select order #3'))
+
+    expect(screen.getByRole('button', { name: 'Book courier' })).toBeDisabled()
+    await user().selectOptions(screen.getByLabelText('Courier'), 'Pathao')
+    await user().click(screen.getByRole('button', { name: 'Book courier' }))
+
+    expect(await screen.findByText('1 done, 0 not changed.')).toBeInTheDocument()
+    expect(api.bookings).toEqual([{ orderId: 'o-3', courier: 'Pathao' }])
+  })
+
+  it('downloads one labels PDF for the selected booked orders only', async () => {
+    const downloads = captureDownloads()
+    api.orders = [listItem(5, { status: 'Booked' }), listItem(4, { status: 'Confirmed' })]
+    api.shipments['o-5'] = { ...bookedShipment, id: 's-5' }
+    openList()
+    await user().click(await screen.findByLabelText('Select all shown'))
+
+    await user().click(screen.getByRole('button', { name: 'Labels (thermal)' }))
+
+    await waitFor(() => {
+      expect(downloads.map((d) => d.name)).toEqual(['labels-thermal.pdf'])
+    })
+    expect(api.labelQueries.map((q) => q.toString())).toEqual(['Ids=o-5&Format=Thermal'])
+    expect(downloads[0]?.blob.type).toBe('application/pdf')
   })
 
   it('says so when no order matches', async () => {

@@ -35,7 +35,13 @@ export function invalidateOrders(queryClient: QueryClient, orderIds: readonly st
   }
 }
 
-/** The PRD lifecycle steps a person can take from the order screens (courier steps come later). */
+/** Only confirmed orders can be booked (PRD lifecycle). */
+export const canBook = (status: OrderStatus): boolean => status === OrderStatus.Confirmed
+/** Orders with a courier booking whose label a packer may (re)print. */
+export const hasLabel = (status: OrderStatus): boolean =>
+  status === OrderStatus.Booked || status === OrderStatus.InTransit
+
+/** The PRD lifecycle steps a person can take from the order screens. */
 export const canConfirm = (status: OrderStatus): boolean => status === OrderStatus.New
 export const canCancel = (status: OrderStatus): boolean =>
   status === OrderStatus.New || status === OrderStatus.Confirmed

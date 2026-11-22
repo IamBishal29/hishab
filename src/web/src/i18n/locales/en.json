@@ -6,7 +6,8 @@
   },
   "common": {
     "loading": "Loading…",
-    "retry": "Try again"
+    "retry": "Try again",
+    "cancel": "Cancel"
   },
   "errors": {
     "network": "Could not reach Hishab. Check your connection and try again.",
@@ -40,7 +41,8 @@
     "title": "Welcome to Hishab",
     "signedInAs": "Signed in as {{role}}.",
     "newOrder": "New order",
-    "orders": "Orders"
+    "orders": "Orders",
+    "couriers": "Couriers"
   },
   "order": {
     "title": "New order",
@@ -130,7 +132,8 @@
     "cod": "COD {{amount}}",
     "inside": "Inside Dhaka",
     "outside": "Outside Dhaka",
-    "cancelAsk": "Cancel {{count}} selected orders? This cannot be undone."
+    "cancelAsk": "Cancel {{count}} selected orders? This cannot be undone.",
+    "book": "Book courier"
   },
   "orderDetail": {
     "title": "Order #{{number}}",
@@ -171,5 +174,47 @@
     "saved": "Saved.",
     "orderList": "Orders from this customer",
     "noOrders": "No orders yet."
+  },
+  "couriers": {
+    "title": "Couriers",
+    "intro": "Connect the couriers you ship with, using the API keys from their merchant panel. Hishab checks the keys with the courier and stores them encrypted.",
+    "notAllowed": "Only the owner or a manager can change courier connections.",
+    "names": {
+      "Fake": "Test courier",
+      "Pathao": "Pathao",
+      "Steadfast": "Steadfast"
+    },
+    "default": "Default",
+    "connectedAs": "Connected · key {{hint}} · since {{date}}",
+    "notConnected": "Not connected",
+    "saved": "{{name}} connected. The keys are stored encrypted and will not be shown again.",
+    "disconnected": "{{name}} disconnected.",
+    "replace": "Replace keys",
+    "makeDefault": "Use as default",
+    "disconnect": "Disconnect",
+    "disconnectAsk": "Disconnect {{name}}? Booked parcels are not affected, but you cannot book with it until you connect again.",
+    "showKeys": "Show what I type",
+    "writeOnly": "For your safety, saved keys are never shown again. To change them, enter new ones.",
+    "required": "Enter this value.",
+    "checking": "Checking with the courier…",
+    "connect": "Save and connect"
+  },
+  "booking": {
+    "title": "Courier",
+    "courier": "Courier",
+    "consignment": "Consignment ID",
+    "tracking": "Tracking code",
+    "fee": "Delivery fee",
+    "rejected": "The courier refused this parcel: {{message}}",
+    "requested": "Booking was sent but the courier has not answered yet. Booking again is safe: the courier will not get a second parcel.",
+    "noCourier": "No courier is connected yet.",
+    "connectOne": "Connect a courier",
+    "choose": "Choose a courier",
+    "book": "Book with courier",
+    "booking": "Booking…"
+  },
+  "labels": {
+    "downloadA4": "Labels (A4)",
+    "downloadThermal": "Labels (thermal)"
   }
 }

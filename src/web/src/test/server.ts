@@ -2,11 +2,14 @@ import { http, HttpResponse } from 'msw'
 import { setupServer } from 'msw/node'
 import type {
   BulkItemResult,
+  CourierConnection,
+  CourierProvider,
   CustomerDetails,
   CustomerDto,
   OrderDetails,
   OrderListItem,
   OrderStatus,
+  ShipmentDto,
 } from '@/api/generated/hishab'
 
 /** A fake Hishab API for component tests. `api` holds the state tests arrange and inspect. */
@@ -36,6 +39,67 @@ export const api = {
   customerUpdates: [] as Record<string, unknown>[],
   /** The next customer change fails with these field errors. */
   nextCustomerFailure: null as null | Record<string, string[]>,
+  /** GET /api/couriers; PUT/DELETE change it. */
+  couriers: courierList(),
+  /** Every PUT /api/couriers/{provider} with the keys as sent. */
+  courierPuts: [] as { provider: string; credentials: Record<string, string> }[],
+  defaultCourier: null as CourierProvider | null,
+  /** The latest shipment per order ID (OrderDetails.shipment). */
+  shipments: {} as Record<string, ShipmentDto>,
+  /** Every booking: order ID and the courier asked for. */
+  bookings: [] as { orderId: string; courier: string | null }[],
+  /** The courier refuses these orders' parcels with this reason. */
+  refusals: {} as Record<string, string>,
+  /** Query strings of every GET /api/orders/labels. */
+  labelQueries: [] as URLSearchParams[],
+}
+
+/** The couriers the API registers, none connected: Fake (one key) and Pathao (two fields). */
+export function courierList(): CourierConnection[] {
+  return [
+    {
+      provider: 'Fake',
+      isConnected: false,
+      credentialHint: null,
+      connectedAt: null,
+      fields: [{ name: 'apiKey', label: 'API key' }],
+    },
+    {
+      provider: 'Pathao',
+      isConnected: false,
+      credentialHint: null,
+      connectedAt: null,
+      fields: [
+        { name: 'clientId', label: 'Client ID' },
+        { name: 'clientSecret', label: 'Client secret' },
+      ],
+    },
+  ]
+}
+
+/** A booked Fake shipment (spread and set `id` per order). */
+export const bookedShipment: ShipmentDto = {
+  id: 's-1',
+  provider: 'Fake',
+  state: 'Booked',
+  consignmentId: 'FAKE-6E0EA41631',
+  trackingCode: 'TRK6E0EA41631',
+  deliveryFee: 60,
+  error: null,
+  requestedAt: '2026-11-20T07:00:00Z',
+  bookedAt: '2026-11-20T07:00:01Z',
+}
+
+/** A connected courier (for booking tests). */
+export function connected(provider: CourierProvider): CourierConnection {
+  const courier = courierList().find((c) => c.provider === provider)
+  if (!courier) throw new Error(provider)
+  return {
+    ...courier,
+    isConnected: true,
+    credentialHint: '••••7890',
+    connectedAt: '2026-11-20T04:00:00Z',
+  }
 }
 
 export function customerPage(overrides: Partial<CustomerDto> = {}): CustomerDetails {
@@ -130,7 +194,7 @@ export function detailsOf(item: OrderListItem): OrderDetails {
       cancelled: 0,
     },
     warnings: [],
-    shipment: null,
+    shipment: api.shipments[item.id] ?? null,
   }
 }
 
@@ -159,6 +223,48 @@ function changeStatus(id: string, to: OrderStatus): BulkItemResult {
   }
   order.status = to
   return { orderId: id, succeeded: true, status: to, error: null, message: null }
+}
+
+/** Books like the API: confirmed orders only; a refusal is stored on a Rejected shipment. */
+function bookOrder(id: string, courier: string | null): BulkItemResult {
+  api.bookings.push({ orderId: id, courier })
+  const order = api.orders.find((o) => o.id === id)
+  const provider = (courier ?? api.defaultCourier ?? 'Fake') as CourierProvider
+  const fail = (error: string, message: string): BulkItemResult => ({
+    orderId: id,
+    succeeded: false,
+    status: null,
+    error,
+    message,
+  })
+  if (order?.status !== 'Confirmed') {
+    return fail('invalidTransition', 'Only confirmed orders can be booked.')
+  }
+  const shipment: ShipmentDto = {
+    id: `s-${id}`,
+    provider,
+    state: 'Booked',
+    consignmentId: null,
+    trackingCode: null,
+    deliveryFee: null,
+    error: null,
+    requestedAt: '2026-11-20T07:00:00Z',
+    bookedAt: null,
+  }
+  const refusal = api.refusals[id]
+  if (refusal) {
+    api.shipments[id] = { ...shipment, state: 'Rejected', error: refusal }
+    return fail('courierRejected', refusal)
+  }
+  api.shipments[id] = {
+    ...shipment,
+    consignmentId: `FAKE-${String(order.number)}`,
+    trackingCode: `TRK${String(order.number)}`,
+    deliveryFee: 60,
+    bookedAt: '2026-11-20T07:00:01Z',
+  }
+  order.status = 'Booked'
+  return { orderId: id, succeeded: true, status: 'Booked', error: null, message: null }
 }
 
 export interface LookupResult {
@@ -260,12 +366,44 @@ export const handlers = [
       name: api.shopName,
       logoUrl: null,
       pickupAddress: null,
-      defaultCourier: null,
+      defaultCourier: api.defaultCourier,
       deliveryChargeInsideDhaka: 60,
       deliveryChargeOutsideDhaka: 120,
       currency: 'BDT',
     }),
   ),
+
+  http.get('*/api/couriers', () => HttpResponse.json(api.couriers)),
+
+  http.put('*/api/couriers/:provider', async ({ request, params }) => {
+    const { credentials } = (await request.json()) as { credentials: Record<string, string> }
+    api.courierPuts.push({ provider: String(params.provider), credentials })
+    const index = api.couriers.findIndex((c) => c.provider === params.provider)
+    const courier = api.couriers[index]
+    if (!courier) return problem(400, { provider: ['Not available yet.'] })
+    if (Object.values(credentials).includes('invalid')) {
+      return problem(400, { credentials: ['The courier rejected these keys.'] })
+    }
+    const key = credentials[courier.fields[0]?.name ?? ''] ?? ''
+    const updated = {
+      ...courier,
+      isConnected: true,
+      credentialHint: `••••${key.slice(-4)}`,
+      connectedAt: '2026-11-22T04:00:00Z',
+    }
+    api.couriers[index] = updated
+    return HttpResponse.json(updated)
+  }),
+
+  http.delete('*/api/couriers/:provider', ({ params }) => {
+    api.couriers = api.couriers.map((c) =>
+      c.provider === params.provider
+        ? { ...c, isConnected: false, credentialHint: null, connectedAt: null }
+        : c,
+    )
+    if (api.defaultCourier === params.provider) api.defaultCourier = null
+    return new HttpResponse(null, { status: 204 })
+  }),
 
   http.post('*/api/customers/lookup', async ({ request }) => {
     const { phone } = (await request.json()) as { phone: string }
@@ -315,9 +453,37 @@ export const handlers = [
     })
   }),
 
+  // Before /orders/:id, which would otherwise take "labels" as an order ID.
+  http.get('*/api/orders/labels', ({ request }) => {
+    const query = new URL(request.url).searchParams
+    api.labelQueries.push(query)
+    const notBooked = query
+      .getAll('Ids')
+      .filter((id) => api.shipments[id]?.state !== 'Booked')
+      .map((id) => `#${id.slice(2)}`)
+    if (notBooked.length > 0) {
+      return problem(400, {
+        orderIds: [`Book these orders with a courier first: ${notBooked.join(', ')}.`],
+      })
+    }
+    return new HttpResponse(new Blob(['%PDF-1.7'], { type: 'application/pdf' }), {
+      headers: { 'content-type': 'application/pdf' },
+    })
+  }),
+
   http.get('*/api/orders/:id', ({ params }) => {
     const order = api.orders.find((o) => o.id === params.id)
     return order ? HttpResponse.json(detailsOf(order)) : problem(404)
+  }),
+
+  http.post('*/api/orders/bulk/book', async ({ request }) => {
+    const { orderIds, courier } = (await request.json()) as {
+      orderIds: string[]
+      courier: string | null
+    }
+    const results = orderIds.map((id) => bookOrder(id, courier))
+    const succeeded = results.filter((r) => r.succeeded).length
+    return HttpResponse.json({ succeeded, failed: results.length - succeeded, results })
   }),
 
   http.post('*/api/orders/bulk/:action', async ({ request, params }) => {
@@ -326,6 +492,18 @@ export const handlers = [
     const results = orderIds.map((id) => changeStatus(id, to))
     const succeeded = results.filter((r) => r.succeeded).length
     return HttpResponse.json({ succeeded, failed: results.length - succeeded, results })
+  }),
+
+  http.post('*/api/orders/:id/book', async ({ request, params }) => {
+    const id = String(params.id)
+    const body = (await request.json()) as { courier: string | null } | null
+    const result = bookOrder(id, body?.courier ?? null)
+    const order = api.orders.find((o) => o.id === id)
+    if (result.error === 'courierRejected') {
+      return problem(400, { courier: [result.message ?? ''] })
+    }
+    if (!result.succeeded || !order) return problem(409, undefined, result.message ?? undefined)
+    return HttpResponse.json(detailsOf(order))
   }),
 
   http.post('*/api/orders/:id/:action', ({ params }) => {
@@ -366,8 +544,12 @@ export const handlers = [
   ),
 
   http.put('*/api/shop', async ({ request }) => {
-    const body = (await request.json()) as { name: string }
+    const body = (await request.json()) as {
+      name: string
+      defaultCourier?: CourierProvider | null
+    }
     api.shopName = body.name
+    api.defaultCourier = body.defaultCourier ?? null
     return HttpResponse.json({ id: 's-1', currency: 'BDT', ...body })
   }),
 ]
@@ -389,4 +571,11 @@ export function resetApi(): void {
   api.customerPages = {}
   api.customerUpdates = []
   api.nextCustomerFailure = null
+  api.couriers = courierList()
+  api.courierPuts = []
+  api.defaultCourier = null
+  api.shipments = {}
+  api.bookings = []
+  api.refusals = {}
+  api.labelQueries = []
 }

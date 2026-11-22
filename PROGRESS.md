@@ -2,10 +2,9 @@
 
 ## Current
 - Milestone: M3 Couriers (M1 and M2 complete)
-- Issue: none in progress (#25 in review, PR #69)
+- Issue: none in progress (#26 in review, PR #70)
 - Branch: none (start the next one from main)
-- Next step: after #69 merges, #26 "Web: courier settings, booking and label printing" (lowest open in
-  M3; it uses the label endpoint from #69). Then #68 invoices, #66 city/zone.
+- Next step: #66 "Courier city/zone lookup" (lowest open in M3 after #26), then #68 invoices.
 
 ## Done
 - Product discovery: PRD written (docs/PRD.md); name chosen: Hishab
@@ -120,9 +119,16 @@
   headless Chromium (ADR 0008: Bangla shaping, Noto Sans Bengali embedded, JS off, all requests aborted,
   max 2 renders), 3 queries per batch, 400 names unbooked orders, 503 when Chromium is missing; web
   apiFetch returns Blobs; CI installs Chromium; 501 .NET + 53 web tests; note 25. Invoices split to #68.
+- #26 Courier UI (PR #70): /settings/couriers (write-only keys from server-driven fields, replace,
+  disconnect, default), ShipmentPanel on order detail (book, refusal shown once, label download),
+  bulk book + labels on the list (packers can select; only Confirmed sent), PDFs downloaded not
+  opened, applyProblem routes unmatched server keys to root; 70 web tests; note 26; screenshots
 - #24 Steadfast: paused and moved out of M3 (docs behind the merchant login, no sandbox; Syed's choice)
 
 ## Decisions waiting for Syed
+- Courier UI (#26): PR is ~1,390 lines (one PR: Syed's choice; tests/fakes 503). Bulk bar wraps onto
+  three rows at 390 px (5 actions); an overflow menu would tidy it. Bundle 199 kB gzip (code-splitting
+  follow-up). Screenshots taken against a throwaway Postgres with process-only secrets (.env still absent).
 - Labels (#25): long consignment IDs wrap on the thermal label (see screenshot); no barcode/QR yet (say
   if couriers or riders need one). One unexplained integration failure on the first local run (three
   re-runs green); watch CI on #69.
@@ -226,4 +232,5 @@
 - 2026-11-21: #23 with the login exchanged once (Syed's choice); city/zone split to #66; PR #67 open (merged)
 - 2026-11-21: #24 paused (Syed's choice); #25 with headless Chromium (Syed's choice, ADR 0008),
   invoices split to #68; waiting on the Chromium install
-- 2026-11-22: Chromium installed; #25 tested end to end with Docker, label screenshot added; PR #69 open
+- 2026-11-22: Chromium installed; #25 tested end to end with Docker, label screenshot added; PR #69 open (merged)
+- 2026-11-22: #26 as one PR, labels downloaded (Syed's choices); PR #70 open

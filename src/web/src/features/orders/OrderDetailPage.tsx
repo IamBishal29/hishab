@@ -16,6 +16,7 @@ import { useSession } from '@/features/auth/useSession'
 import { formatDhakaDateTime } from '@/lib/dates'
 import { formatMoney } from '@/lib/money'
 import { canCancel, canConfirm, invalidateOrders } from './orderQueries'
+import { ShipmentPanel } from './ShipmentPanel'
 import { StatusBadge } from './StatusBadge'
 
 export function OrderDetailPage(): ReactElement {
@@ -110,6 +111,8 @@ function OrderView({ details }: { details: OrderDetails }): ReactElement {
           {change.error instanceof ApiProblem ? change.error.message : t('errors.network')}
         </p>
       )}
+
+      <ShipmentPanel details={details} />
 
       <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
         <dt className="text-muted-foreground">{t('orderDetail.customer')}</dt>
