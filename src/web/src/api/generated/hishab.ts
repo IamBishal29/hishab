@@ -143,6 +143,62 @@ export interface ChangeStaffRoleRequest {
   role: ShopRole;
 }
 
+export type CodAge = typeof CodAge[keyof typeof CodAge];
+
+
+export const CodAge = {
+  Days0To3: 'Days0To3',
+  Days4To7: 'Days4To7',
+  Days8To14: 'Days8To14',
+  Days15Plus: 'Days15Plus',
+} as const;
+
+/**
+ * Unpaid cash that has been with the courier for this long (Dhaka days since delivery).
+ */
+export interface CodAgeBucketDto {
+  /** Days0To3, Days4To7, Days8To14 or Days15Plus. */
+  age: CodAge;
+  /** How many parcels. */
+  parcels: number;
+  /** Their COD total, in BDT. */
+  amount: number;
+}
+
+/**
+ * One courier's cash position. Expected = collected + outstanding.
+ */
+export interface CourierCodDto {
+  courier: null | CourierProvider;
+  /** Delivered parcels (settled or not). */
+  deliveredParcels: number;
+  /** COD due on every delivered parcel (order total minus advance), in BDT. */
+  expected: number;
+  /** Paid out to the shop (COD settled), in BDT. */
+  collected: number;
+  /** Still with the courier, in BDT. */
+  outstanding: number;
+  /** Parcels not paid out yet. */
+  outstandingParcels: number;
+  /**
+     * Age of the oldest unpaid parcel in days; null when nothing is owed.
+     * @nullable
+     */
+  oldestOutstandingDays: number | null;
+  /** Outstanding split by age: always four buckets, youngest first. */
+  outstandingByAge: CodAgeBucketDto[];
+}
+
+/**
+ * What every courier owes the shop, and the totals.
+ */
+export interface CodSummaryResponse {
+  couriers: CourierCodDto[];
+  expected: number;
+  collected: number;
+  outstanding: number;
+}
+
 /**
  * The courier's fields (see `fields` in GET /api/couriers), e.g. `{ "apiKey": "..." }`. Stored encrypted, never returned.
  */
@@ -2249,6 +2305,120 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return useMutation(getDeleteApiCustomersIdBlockMutationOptions(options), queryClient);
     }
+
+export const getGetApiMoneyCodSummaryUrl = () => {
+
+
+
+
+  return `/api/money/cod-summary`
+}
+
+/**
+ * @summary How much cash each courier owes the shop: COD expected on delivered parcels, collected
+(settled), and outstanding split by age in Dhaka days since delivery.
+ */
+export const getApiMoneyCodSummary = async ( options?: Parameters<typeof apiFetch>[1]): Promise<CodSummaryResponse> => {
+
+  return apiFetch<CodSummaryResponse>(getGetApiMoneyCodSummaryUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetApiMoneyCodSummaryQueryKey = () => {
+    return [
+    `/api/money/cod-summary`
+    ] as const;
+    }
+
+
+export const getGetApiMoneyCodSummaryQueryOptions = <TData = Awaited<ReturnType<typeof getApiMoneyCodSummary>>, TError = ProblemDetails>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiMoneyCodSummary>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiMoneyCodSummaryQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiMoneyCodSummary>>> = ({ signal }) => getApiMoneyCodSummary({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiMoneyCodSummary>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetApiMoneyCodSummaryQueryResult = NonNullable<Awaited<ReturnType<typeof getApiMoneyCodSummary>>>
+export type GetApiMoneyCodSummaryQueryError = ProblemDetails
+
+
+/**
+ * @summary How much cash each courier owes the shop: COD expected on delivered parcels, collected
+(settled), and outstanding split by age in Dhaka days since delivery.
+ */
+export function useGetApiMoneyCodSummary<TData = Awaited<ReturnType<typeof getApiMoneyCodSummary>>, TError = ProblemDetails>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiMoneyCodSummary>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getApiMoneyCodSummary>>,
+          TError,
+          Awaited<ReturnType<typeof getApiMoneyCodSummary>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary How much cash each courier owes the shop: COD expected on delivered parcels, collected
+(settled), and outstanding split by age in Dhaka days since delivery.
+ */
+export function useGetApiMoneyCodSummary<TData = Awaited<ReturnType<typeof getApiMoneyCodSummary>>, TError = ProblemDetails>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiMoneyCodSummary>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getApiMoneyCodSummary>>,
+          TError,
+          Awaited<ReturnType<typeof getApiMoneyCodSummary>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary How much cash each courier owes the shop: COD expected on delivered parcels, collected
+(settled), and outstanding split by age in Dhaka days since delivery.
+ */
+export function useGetApiMoneyCodSummary<TData = Awaited<ReturnType<typeof getApiMoneyCodSummary>>, TError = ProblemDetails>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiMoneyCodSummary>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary How much cash each courier owes the shop: COD expected on delivered parcels, collected
+(settled), and outstanding split by age in Dhaka days since delivery.
+ */
+export function useGetApiMoneyCodSummary<TData = Awaited<ReturnType<typeof getApiMoneyCodSummary>>, TError = ProblemDetails>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiMoneyCodSummary>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetApiMoneyCodSummaryQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getPostApiOrdersUrl = () => {
 

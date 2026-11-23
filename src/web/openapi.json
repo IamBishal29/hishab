@@ -1790,6 +1790,76 @@
         }
       }
     },
+    "/api/money/cod-summary": {
+      "get": {
+        "tags": [
+          "Money"
+        ],
+        "summary": "How much cash each courier owes the shop: COD expected on delivered parcels, collected\n(settled), and outstanding split by age in Dhaka days since delivery.",
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CodSummaryResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CodSummaryResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CodSummaryResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/orders": {
       "post": {
         "tags": [
@@ -5452,6 +5522,69 @@
           }
         }
       },
+      "CodAge": {
+        "enum": [
+          "Days0To3",
+          "Days4To7",
+          "Days8To14",
+          "Days15Plus"
+        ]
+      },
+      "CodAgeBucketDto": {
+        "required": [
+          "age",
+          "parcels",
+          "amount"
+        ],
+        "type": "object",
+        "properties": {
+          "age": {
+            "description": "Days0To3, Days4To7, Days8To14 or Days15Plus.",
+            "$ref": "#/components/schemas/CodAge"
+          },
+          "parcels": {
+            "type": "integer",
+            "description": "How many parcels.",
+            "format": "int32"
+          },
+          "amount": {
+            "type": "number",
+            "description": "Their COD total, in BDT.",
+            "format": "double"
+          }
+        },
+        "description": "Unpaid cash that has been with the courier for this long (Dhaka days since delivery)."
+      },
+      "CodSummaryResponse": {
+        "required": [
+          "couriers",
+          "expected",
+          "collected",
+          "outstanding"
+        ],
+        "type": "object",
+        "properties": {
+          "couriers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CourierCodDto"
+            }
+          },
+          "expected": {
+            "type": "number",
+            "format": "double"
+          },
+          "collected": {
+            "type": "number",
+            "format": "double"
+          },
+          "outstanding": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "description": "What every courier owes the shop, and the totals."
+      },
       "ConnectCourierRequest": {
         "type": "object",
         "properties": {
@@ -5463,6 +5596,73 @@
             "description": "The courier's fields (see `fields` in GET /api/couriers), e.g. `{ \"apiKey\": \"...\" }`. Stored encrypted, never returned."
           }
         }
+      },
+      "CourierCodDto": {
+        "required": [
+          "courier",
+          "deliveredParcels",
+          "expected",
+          "collected",
+          "outstanding",
+          "outstandingParcels",
+          "oldestOutstandingDays",
+          "outstandingByAge"
+        ],
+        "type": "object",
+        "properties": {
+          "courier": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "description": "The courier holding the cash; null for delivered orders without a booked shipment.",
+                "$ref": "#/components/schemas/CourierProvider"
+              }
+            ]
+          },
+          "deliveredParcels": {
+            "type": "integer",
+            "description": "Delivered parcels (settled or not).",
+            "format": "int32"
+          },
+          "expected": {
+            "type": "number",
+            "description": "COD due on every delivered parcel (order total minus advance), in BDT.",
+            "format": "double"
+          },
+          "collected": {
+            "type": "number",
+            "description": "Paid out to the shop (COD settled), in BDT.",
+            "format": "double"
+          },
+          "outstanding": {
+            "type": "number",
+            "description": "Still with the courier, in BDT.",
+            "format": "double"
+          },
+          "outstandingParcels": {
+            "type": "integer",
+            "description": "Parcels not paid out yet.",
+            "format": "int32"
+          },
+          "oldestOutstandingDays": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "description": "Age of the oldest unpaid parcel in days; null when nothing is owed.",
+            "format": "int32"
+          },
+          "outstandingByAge": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CodAgeBucketDto"
+            },
+            "description": "Outstanding split by age: always four buckets, youngest first."
+          }
+        },
+        "description": "One courier's cash position. Expected = collected + outstanding."
       },
       "CourierConnection": {
         "required": [
@@ -7177,6 +7377,9 @@
     },
     {
       "name": "Customers"
+    },
+    {
+      "name": "Money"
     },
     {
       "name": "Orders"
