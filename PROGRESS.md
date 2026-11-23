@@ -1,11 +1,11 @@
 # Progress
 
 ## Current
-- Milestone: M3 Couriers (M1 and M2 complete)
-- Issue: none in progress (#68 in review, PR #73)
+- Milestone: M3 Couriers (M1 and M2 complete); #71 was its last open issue
+- Issue: none in progress (#71 in review, PR #74)
 - Branch: none (start the next one from main)
-- Next step: #71 "Web: courier delivery location picker" (last open in M3; #72 is merged). An
-  "Invoice" button next to "Labels" could ride along (see open questions).
+- Next step: once PR #74 is merged, close M3 and start the lowest open issue in M4. A web "Invoice"
+  button next to "Labels" is still open (see questions).
 
 ## Done
 - Product discovery: PRD written (docs/PRD.md); name chosen: Hishab
@@ -132,9 +132,17 @@
 - #68 Invoices (PR #73): GET /api/orders/invoices (A5 default / A4, one per page, CanPack, not for
   Cancelled), Invoice/InvoiceLine allow-list without costs (reflection guard), PrintHtml shared with
   labels, Dhaka date; 548 .NET tests; note 28; sample screenshot
+- #71 Location picker (PR #74): city -> zone -> area selects per courier with supportsLocations (one
+  query per parent, 1 h stale, filter box on long lists), courier price via useQuote (query, not
+  mutation), destination sent on booking and shown by name; city without zone blocks Book; 73 web
+  tests; note 29; screenshots taken against Vite with a mocked API (Docker was off)
 - #24 Steadfast: paused and moved out of M3 (docs behind the merchant login, no sandbox; Syed's choice)
 
 ## Decisions waiting for Syed
+- Location picker (#71): bulk booking is still address-only. The "Delivery location" row on a booked
+  shipment loads the courier's lists to show names; storing names on the shipment would avoid that
+  (needs a migration). The picker always starts empty: pre-filling it from the customer's last
+  booking would save packers time. Say if you want either.
 - Invoices (#68): same permission as labels (Owner/Manager/Packer; Moderators cannot print); New and
   Confirmed orders can be invoiced. No web button yet: add it with #71 or separately? (small)
 - **Pathao sandbox check (#66, PR #72):** add city-list, cities/{id}/zone-list, zones/{id}/area-list and

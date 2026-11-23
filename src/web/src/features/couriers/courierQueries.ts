@@ -26,6 +26,8 @@ export interface BookingChoice {
   connected: CourierProvider[]
   /** Preselected: the shop's default courier if connected, else the only connected one. */
   preferred: CourierProvider | null
+  /** Connected couriers that take a delivery location (city / zone / area) when booking. */
+  withLocations: CourierProvider[]
   isPending: boolean
 }
 
@@ -33,12 +35,14 @@ export interface BookingChoice {
 export function useBookingChoice(): BookingChoice {
   const couriers = useGetApiCouriers()
   const shop = useGetApiShop()
-  const connected = (couriers.data ?? []).filter((c) => c.isConnected).map((c) => c.provider)
+  const live = (couriers.data ?? []).filter((c) => c.isConnected)
+  const connected = live.map((c) => c.provider)
   const fallback = connected.length === 1 ? (connected[0] ?? null) : null
   const defaultCourier = shop.data?.defaultCourier ?? null
   return {
     connected,
     preferred: defaultCourier && connected.includes(defaultCourier) ? defaultCourier : fallback,
+    withLocations: live.filter((c) => c.supportsLocations).map((c) => c.provider),
     isPending: couriers.isPending || shop.isPending,
   }
 }

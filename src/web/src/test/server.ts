@@ -3,6 +3,8 @@ import { setupServer } from 'msw/node'
 import type {
   BulkItemResult,
   CourierConnection,
+  CourierDestination,
+  CourierLocation,
   CourierProvider,
   CustomerDetails,
   CustomerDto,
@@ -46,8 +48,12 @@ export const api = {
   defaultCourier: null as CourierProvider | null,
   /** The latest shipment per order ID (OrderDetails.shipment). */
   shipments: {} as Record<string, ShipmentDto>,
-  /** Every booking: order ID and the courier asked for. */
-  bookings: [] as { orderId: string; courier: string | null }[],
+  /** Every booking: order ID, the courier asked for and the destination, if one was sent. */
+  bookings: [] as { orderId: string; courier: string | null; destination?: CourierDestination }[],
+  /** Every POST /api/orders/{id}/quote body. */
+  quoteRequests: [] as { courier: string | null; destination: CourierDestination | null }[],
+  /** Every GET /api/couriers/{provider}/locations query string. */
+  locationQueries: [] as string[],
   /** The courier refuses these orders' parcels with this reason. */
   refusals: {} as Record<string, string>,
   /** Query strings of every GET /api/orders/labels. */
@@ -77,6 +83,25 @@ export function courierList(): CourierConnection[] {
       supportsLocations: true,
     },
   ]
+}
+
+/** The Fake courier's location tree, as the API's Fake provider serves it (key: level:parentId). */
+export const fakeLocations: Record<string, CourierLocation[]> = {
+  'City:': [
+    { id: '1', name: 'Dhaka' },
+    { id: '2', name: 'Chattogram' },
+  ],
+  'Zone:1': [
+    { id: '11', name: 'Mirpur' },
+    { id: '12', name: 'Dhanmondi' },
+  ],
+  'Zone:2': [{ id: '21', name: 'Agrabad' }],
+  'Area:11': [
+    { id: '111', name: 'Mirpur 10' },
+    { id: '112', name: 'Pallabi' },
+  ],
+  'Area:12': [{ id: '121', name: 'Dhanmondi 27' }],
+  'Area:21': [{ id: '211', name: 'Agrabad C/A' }],
 }
 
 /** A booked Fake shipment (spread and set `id` per order). */
@@ -229,8 +254,12 @@ function changeStatus(id: string, to: OrderStatus): BulkItemResult {
 }
 
 /** Books like the API: confirmed orders only; a refusal is stored on a Rejected shipment. */
-function bookOrder(id: string, courier: string | null): BulkItemResult {
-  api.bookings.push({ orderId: id, courier })
+function bookOrder(
+  id: string,
+  courier: string | null,
+  destination?: CourierDestination,
+): BulkItemResult {
+  api.bookings.push(destination ? { orderId: id, courier, destination } : { orderId: id, courier })
   const order = api.orders.find((o) => o.id === id)
   const provider = (courier ?? api.defaultCourier ?? 'Fake') as CourierProvider
   const fail = (error: string, message: string): BulkItemResult => ({
@@ -253,7 +282,7 @@ function bookOrder(id: string, courier: string | null): BulkItemResult {
     error: null,
     requestedAt: '2026-11-20T07:00:00Z',
     bookedAt: null,
-    destination: null,
+    destination: destination ?? null,
   }
   const refusal = api.refusals[id]
   if (refusal) {
@@ -498,10 +527,36 @@ export const handlers = [
     return HttpResponse.json({ succeeded, failed: results.length - succeeded, results })
   }),
 
+  http.get('*/api/couriers/:provider/locations', ({ request }) => {
+    const query = new URL(request.url).searchParams
+    api.locationQueries.push(query.toString())
+    const key = `${query.get('level') ?? 'City'}:${query.get('parentId') ?? ''}`
+    return HttpResponse.json(fakeLocations[key] ?? [])
+  }),
+
+  http.post('*/api/orders/:id/quote', async ({ request, params }) => {
+    const body = (await request.json()) as {
+      courier: string | null
+      destination: CourierDestination | null
+    } | null
+    const destination = body?.destination ?? null
+    api.quoteRequests.push({ courier: body?.courier ?? null, destination })
+    const order = api.orders.find((o) => o.id === params.id)
+    if (!order) return problem(404)
+    // Like the Fake provider: 60 inside Dhaka (city 1), 120 elsewhere; COD charge 1%.
+    return HttpResponse.json({
+      deliveryFee: destination?.cityId === '1' ? 60 : 120,
+      codCharge: Math.round(order.total) / 100,
+    })
+  }),
+
   http.post('*/api/orders/:id/book', async ({ request, params }) => {
     const id = String(params.id)
-    const body = (await request.json()) as { courier: string | null } | null
-    const result = bookOrder(id, body?.courier ?? null)
+    const body = (await request.json()) as {
+      courier: string | null
+      destination?: CourierDestination | null
+    } | null
+    const result = bookOrder(id, body?.courier ?? null, body?.destination ?? undefined)
     const order = api.orders.find((o) => o.id === id)
     if (result.error === 'courierRejected') {
       return problem(400, { courier: [result.message ?? ''] })
@@ -580,6 +635,8 @@ export function resetApi(): void {
   api.defaultCourier = null
   api.shipments = {}
   api.bookings = []
+  api.quoteRequests = []
+  api.locationQueries = []
   api.refusals = {}
   api.labelQueries = []
 }
