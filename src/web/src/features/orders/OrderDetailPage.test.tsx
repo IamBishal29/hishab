@@ -126,6 +126,83 @@ describe('OrderDetailPage', () => {
       expect(api.labelQueries.map((q) => q.toString())).toEqual(['Ids=o-7&Format=A4'])
     })
 
+    describe('delivery location', () => {
+      const select = (name: string | RegExp) => panel().getByRole('combobox', { name })
+      const pick = async (name: string | RegExp, option: string) => {
+        await waitFor(() => {
+          expect(select(name)).toBeEnabled()
+        })
+        await user().selectOptions(select(name), option)
+      }
+
+      beforeEach(() => {
+        api.couriers = [connected('Fake')]
+        api.orders = [listItem(7, { status: 'Confirmed' })]
+      })
+
+      it('books to the chosen city, zone and area after showing the courier price', async () => {
+        openOrder('o-7')
+        await screen.findByRole('combobox', { name: 'City' })
+        expect(panel().queryByRole('combobox', { name: 'Zone' })).not.toBeInTheDocument()
+
+        await pick('City', 'Dhaka')
+        await pick('Zone', 'Mirpur')
+        expect(
+          // formatMoney puts a no-break space inside "BDT 60.00"; the matcher collapses it.
+          await panel().findByText(
+            /^Courier price: BDT\s60\.00 delivery \+ BDT\s13\.60 COD charge$/,
+          ),
+        ).toBeInTheDocument()
+        await pick('Area (optional)', 'Pallabi')
+        await user().click(panel().getByRole('button', { name: 'Book with courier' }))
+
+        expect(await panel().findByText('Dhaka / Mirpur / Pallabi')).toBeInTheDocument()
+        expect(api.bookings).toEqual([
+          {
+            orderId: 'o-7',
+            courier: 'Fake',
+            destination: { cityId: '1', zoneId: '11', areaId: '112' },
+          },
+        ])
+        expect(api.quoteRequests.at(-1)?.destination).toEqual({
+          cityId: '1',
+          zoneId: '11',
+          areaId: '112',
+        })
+      })
+
+      it('clears the zone when the city changes and reuses lists it already loaded', async () => {
+        openOrder('o-7')
+        await screen.findByRole('combobox', { name: 'City' })
+
+        await pick('City', 'Dhaka')
+        await pick('Zone', 'Mirpur')
+        await pick('City', 'Chattogram')
+        expect(select('Zone')).toHaveValue('')
+        expect(panel().queryByRole('combobox', { name: /Area/ })).not.toBeInTheDocument()
+        await pick('City', 'Dhaka')
+
+        expect(panel().getByRole('option', { name: 'Dhanmondi' })).toBeInTheDocument()
+        expect(api.locationQueries.filter((q) => q === 'level=Zone&parentId=1')).toHaveLength(1)
+        expect(api.locationQueries.filter((q) => q === 'level=City')).toHaveLength(1)
+      })
+
+      it('blocks booking with a city but no zone, and books by address once the city is cleared', async () => {
+        openOrder('o-7')
+        await screen.findByRole('combobox', { name: 'City' })
+
+        await pick('City', 'Chattogram')
+        expect(panel().getByRole('button', { name: 'Book with courier' })).toBeDisabled()
+        expect(api.quoteRequests).toHaveLength(0)
+
+        await user().selectOptions(select('City'), '')
+        await user().click(panel().getByRole('button', { name: 'Book with courier' }))
+
+        expect(await panel().findByText('FAKE-7')).toBeInTheDocument()
+        expect(api.bookings).toEqual([{ orderId: 'o-7', courier: 'Fake' }])
+      })
+    })
+
     it('offers moderators no booking', async () => {
       api.role = 'Moderator'
       api.couriers = [connected('Fake')]
