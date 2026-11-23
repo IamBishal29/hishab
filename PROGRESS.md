@@ -1,11 +1,12 @@
 # Progress
 
 ## Current
-- Milestone: M3 Couriers (M1 and M2 complete); #71 was its last open issue
-- Issue: none in progress (#71 in review, PR #74)
+- Milestone: M4 Money & risk (M1-M3 complete)
+- Issue: none in progress (#27 in review, PR #75)
 - Branch: none (start the next one from main)
-- Next step: once PR #74 is merged, close M3 and start the lowest open issue in M4. A web "Invoice"
-  button next to "Labels" is still open (see questions).
+- Next step: #28 "Record courier payouts and match them to parcels" (replaces "collected = CodSettled"
+  with matched payout amounts; decide how partial payouts settle an order). A web "Invoice" button
+  next to "Labels" is still open (see questions).
 
 ## Done
 - Product discovery: PRD written (docs/PRD.md); name chosen: Hishab
@@ -136,9 +137,19 @@
   query per parent, 1 h stale, filter box on long lists), courier price via useQuote (query, not
   mutation), destination sent on booking and shown by name; city without zone blocks Book; 73 web
   tests; note 29; screenshots taken against Vite with a mocked API (Docker was off)
+- #27 COD summary (PR #75): GET /api/money/cod-summary (CanSeeProfit): expected (Order.CodAmount of
+  delivered parcels), collected (CodSettled until #28), outstanding aged in Dhaka days (0-3/4-7/8-14/15+,
+  oldest unpaid), per courier + totals; pure CodReconciliation in Domain/Finance; 568 .NET tests; note 30
 - #24 Steadfast: paused and moved out of M3 (docs behind the merchant login, no sandbox; Syed's choice)
 
 ## Decisions waiting for Syed
+- **Docker side effect (#27):** I started Docker Desktop for the integration tests, and it also restarted
+  another project's containers (shopflow/* and a kind node). The machine got too slow for vitest, so web
+  tests were not run locally for PR #75 (only the generated client changed; CI runs them). Stop those
+  containers when you don't need them.
+- COD summary (#27): plan features (COD tracking = Starter+ in the PRD) are not enforced: open an issue
+  for a plan feature catalogue? The summary loads whole delivered orders (fine for MVP; scaling path in note 30).
+  Buckets 0-3/4-7/8-14/15+ are my guess at courier payout rhythms: say if sellers think differently.
 - Location picker (#71): bulk booking is still address-only. The "Delivery location" row on a booked
   shipment loads the courier's lists to show names; storing names on the shipment would avoid that
   (needs a migration). The picker always starts empty: pre-filling it from the customer's last
