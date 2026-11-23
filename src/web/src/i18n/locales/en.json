@@ -216,5 +216,22 @@
   "labels": {
     "downloadA4": "Labels (A4)",
     "downloadThermal": "Labels (thermal)"
+  },
+  "destination": {
+    "title": "Delivery location",
+    "city": "City",
+    "zone": "Zone",
+    "area": "Area",
+    "optional": "{{label}} (optional)",
+    "choose": "Choose…",
+    "noArea": "No area",
+    "filter": "Search {{label}}",
+    "filterPlaceholder": "Type to search",
+    "loadFailed": "Could not load this list from the courier. Try again in a moment.",
+    "byAddress": "Choose a city and zone for an exact price, or book by address only.",
+    "needZone": "Choose a zone too, or set the city back to “Choose…” to book by address.",
+    "pricing": "Asking the courier for a price…",
+    "quote": "Courier price: {{fee}} delivery + {{cod}} COD charge",
+    "quoteFailed": "No price from the courier: {{message}}"
   }
 }
