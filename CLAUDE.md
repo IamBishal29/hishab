@@ -290,6 +290,10 @@ Never read, print or commit `.env`, user-secrets, tokens or keys. Put placeholde
   connected, else the only one). Files: `saveFile` (lib/download.ts, download link, never
   `window.open` after an await); tests use `captureDownloads()`. Action errors: `problemMessage`.
   `applyProblem` sends server keys with no form field to `root`.
+- Delivery location (#71): `DestinationPicker` + `useLocations(provider, level, parentId)` (one query per
+  parent, 1 h stale) and `useQuote` (a query: POST /quote saves nothing) in `features/couriers`. Parent
+  change clears children; courier change clears all; city without zone disables Book (no silent
+  address-only). `useBookingChoice().withLocations` = connected couriers with `supportsLocations`.
 - Screenshots for UI PRs live in `docs/screenshots/NN-*.png` (390 px wide, headless Chrome).
 - Field-level rules belong in services via `IRequestContext.Has(permission)`, not only in controllers.
 - Audit: mark entities `IAuditable` (Domain); `AuditInterceptor` writes `AuditEntry` rows in the
