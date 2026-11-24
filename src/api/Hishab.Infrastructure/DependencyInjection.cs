@@ -2,6 +2,7 @@ using Hishab.Application.Common.Auditing;
 using Hishab.Application.Common.Tenancy;
 using Hishab.Application.Couriers;
 using Hishab.Application.Customers;
+using Hishab.Application.Finance;
 using Hishab.Application.Orders;
 using Hishab.Application.Products;
 using Hishab.Application.Shops;
@@ -11,6 +12,7 @@ using Hishab.Infrastructure.Couriers;
 using Hishab.Infrastructure.Couriers.Fake;
 using Hishab.Infrastructure.Couriers.Pathao;
 using Hishab.Infrastructure.Customers;
+using Hishab.Infrastructure.Finance;
 using Hishab.Infrastructure.Identity;
 using Hishab.Infrastructure.Jobs;
 using Hishab.Infrastructure.Labels;
@@ -65,6 +67,7 @@ public static class DependencyInjection
         services.AddScoped<ICustomerService, CustomerService>();
         services.AddScoped<IOrderService, OrderService>();
         services.AddScoped<ICustomerOrderHistory, CustomerOrderHistoryQuery>();
+        services.AddScoped<ICodSummaryService, CodSummaryService>();
         AddCouriers(services, configuration);
         JobsSetup.AddJobs(services, configuration);
         services.AddSingleton<ChromiumPdfRenderer>(); // one browser per process (ADR 0008)

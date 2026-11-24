@@ -294,6 +294,10 @@ Never read, print or commit `.env`, user-secrets, tokens or keys. Put placeholde
   parent, 1 h stale) and `useQuote` (a query: POST /quote saves nothing) in `features/couriers`. Parent
   change clears children; courier change clears all; city without zone disables Book (no silent
   address-only). `useBookingChoice().withLocations` = connected couriers with `supportsLocations`.
+- Money module (#27): namespaces are `Finance` (`Hishab.Domain.Finance`, ...), because a `Money`
+  namespace would shadow the `Money` value object. `CodReconciliation.Summarize` (pure; Dhaka-day ages,
+  buckets 0-3/4-7/8-14/15+) behind `ICodSummaryService`; `GET /api/money/cod-summary` (`CanSeeProfit`).
+  Collected = CodSettled orders until #28 records payouts. No plan gate yet (Syed: separate issue).
 - Screenshots for UI PRs live in `docs/screenshots/NN-*.png` (390 px wide, headless Chrome).
 - Field-level rules belong in services via `IRequestContext.Has(permission)`, not only in controllers.
 - Audit: mark entities `IAuditable` (Domain); `AuditInterceptor` writes `AuditEntry` rows in the
