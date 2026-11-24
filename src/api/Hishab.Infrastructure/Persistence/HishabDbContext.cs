@@ -3,6 +3,7 @@ using Hishab.Application.Common.Tenancy;
 using Hishab.Domain.Common;
 using Hishab.Domain.Couriers;
 using Hishab.Domain.Customers;
+using Hishab.Domain.Finance;
 using Hishab.Domain.Orders;
 using Hishab.Domain.Products;
 using Hishab.Domain.Shops;
@@ -67,6 +68,8 @@ public class HishabDbContext : IdentityUserContext<HishabUser, Guid>, IDataProte
     public DbSet<CourierAccount> CourierAccounts => Set<CourierAccount>();
 
     public DbSet<Shipment> Shipments => Set<Shipment>();
+
+    public DbSet<Payout> Payouts => Set<Payout>();
 
     /// <summary>The Data Protection key ring, each key wrapped by the certificate (ADR 0007). Not tenant-owned.</summary>
     public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();

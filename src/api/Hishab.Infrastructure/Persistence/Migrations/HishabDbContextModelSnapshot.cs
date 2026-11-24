@@ -300,6 +300,9 @@ namespace Hishab.Infrastructure.Persistence.Migrations
                         .IsUnique()
                         .HasDatabaseName("ix_shipments_tenant_id_order_id_provider");
 
+                    b.HasIndex("TenantId", "Provider", "ConsignmentId")
+                        .HasDatabaseName("ix_shipments_tenant_id_provider_consignment_id");
+
                     b.HasIndex("TenantId", "Provider", "StatusCheckedAt")
                         .HasDatabaseName("ix_shipments_tracking")
                         .HasFilter("state = 'Booked' AND (parcel_status IS NULL OR (parcel_status <> 'Delivered' AND parcel_status <> 'Returned' AND parcel_status <> 'Cancelled'))");
@@ -378,6 +381,67 @@ namespace Hishab.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_customers_tenant_id_phone");
 
                     b.ToTable("customers", (string)null);
+                });
+
+            modelBuilder.Entity("Hishab.Domain.Finance.Payout", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<decimal>("NetAmount")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)")
+                        .HasColumnName("net_amount");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("note");
+
+                    b.Property<DateOnly>("PaidOn")
+                        .HasColumnType("date")
+                        .HasColumnName("paid_on");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("provider");
+
+                    b.Property<DateTimeOffset>("RecordedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("recorded_at");
+
+                    b.Property<Guid?>("RecordedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("recorded_by");
+
+                    b.Property<string>("Reference")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("reference");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_payouts");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_payouts_tenant_id");
+
+                    b.HasIndex("TenantId", "PaidOn", "RecordedAt")
+                        .HasDatabaseName("ix_payouts_tenant_id_paid_on_recorded_at");
+
+                    b.HasIndex("TenantId", "Provider", "Reference")
+                        .IsUnique()
+                        .HasDatabaseName("ux_payouts_provider_reference");
+
+                    b.ToTable("payouts", (string)null);
                 });
 
             modelBuilder.Entity("Hishab.Domain.Orders.Order", b =>
@@ -1014,6 +1078,99 @@ namespace Hishab.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_shipments_orders_order_id");
+                });
+
+            modelBuilder.Entity("Hishab.Domain.Finance.Payout", b =>
+                {
+                    b.OwnsMany("Hishab.Domain.Finance.PayoutLine", "Lines", b1 =>
+                        {
+                            b1.Property<Guid>("Id")
+                                .HasColumnType("uuid")
+                                .HasColumnName("id");
+
+                            b1.Property<decimal?>("CodDue")
+                                .HasPrecision(12, 2)
+                                .HasColumnType("numeric(12,2)")
+                                .HasColumnName("cod_due");
+
+                            b1.Property<decimal>("CodFee")
+                                .HasPrecision(12, 2)
+                                .HasColumnType("numeric(12,2)")
+                                .HasColumnName("cod_fee");
+
+                            b1.Property<decimal>("Collected")
+                                .HasPrecision(12, 2)
+                                .HasColumnType("numeric(12,2)")
+                                .HasColumnName("collected");
+
+                            b1.Property<string>("ConsignmentId")
+                                .IsRequired()
+                                .HasMaxLength(64)
+                                .HasColumnType("character varying(64)")
+                                .HasColumnName("consignment_id");
+
+                            b1.Property<decimal>("DeliveryFee")
+                                .HasPrecision(12, 2)
+                                .HasColumnType("numeric(12,2)")
+                                .HasColumnName("delivery_fee");
+
+                            b1.Property<string>("Match")
+                                .IsRequired()
+                                .HasMaxLength(24)
+                                .HasColumnType("character varying(24)")
+                                .HasColumnName("match");
+
+                            b1.Property<Guid?>("OrderId")
+                                .HasColumnType("uuid")
+                                .HasColumnName("order_id");
+
+                            b1.Property<Guid>("PayoutId")
+                                .HasColumnType("uuid")
+                                .HasColumnName("payout_id");
+
+                            b1.Property<int>("Sequence")
+                                .HasColumnType("integer")
+                                .HasColumnName("sequence");
+
+                            b1.Property<Guid?>("SettledShipmentId")
+                                .HasColumnType("uuid")
+                                .HasColumnName("settled_shipment_id");
+
+                            b1.HasKey("Id")
+                                .HasName("pk_payout_lines");
+
+                            b1.HasIndex("OrderId")
+                                .HasDatabaseName("ix_payout_lines_order_id");
+
+                            b1.HasIndex("SettledShipmentId")
+                                .IsUnique()
+                                .HasDatabaseName("ux_payout_lines_settled_shipment")
+                                .HasFilter("settled_shipment_id IS NOT NULL");
+
+                            b1.HasIndex("PayoutId", "Sequence")
+                                .IsUnique()
+                                .HasDatabaseName("ix_payout_lines_payout_id_sequence");
+
+                            b1.ToTable("payout_lines", (string)null);
+
+                            b1.HasOne("Hishab.Domain.Orders.Order", null)
+                                .WithMany()
+                                .HasForeignKey("OrderId")
+                                .OnDelete(DeleteBehavior.Restrict)
+                                .HasConstraintName("fk_payout_lines_orders_order_id");
+
+                            b1.WithOwner()
+                                .HasForeignKey("PayoutId")
+                                .HasConstraintName("fk_payout_lines_payouts_payout_id");
+
+                            b1.HasOne("Hishab.Domain.Couriers.Shipment", null)
+                                .WithMany()
+                                .HasForeignKey("SettledShipmentId")
+                                .OnDelete(DeleteBehavior.Restrict)
+                                .HasConstraintName("fk_payout_lines_shipments_settled_shipment_id");
+                        });
+
+                    b.Navigation("Lines");
                 });
 
             modelBuilder.Entity("Hishab.Domain.Orders.Order", b =>

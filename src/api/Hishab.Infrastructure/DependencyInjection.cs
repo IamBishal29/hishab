@@ -68,6 +68,7 @@ public static class DependencyInjection
         services.AddScoped<IOrderService, OrderService>();
         services.AddScoped<ICustomerOrderHistory, CustomerOrderHistoryQuery>();
         services.AddScoped<ICodSummaryService, CodSummaryService>();
+        services.AddScoped<IPayoutService, PayoutService>();
         AddCouriers(services, configuration);
         JobsSetup.AddJobs(services, configuration);
         services.AddSingleton<ChromiumPdfRenderer>(); // one browser per process (ADR 0008)
