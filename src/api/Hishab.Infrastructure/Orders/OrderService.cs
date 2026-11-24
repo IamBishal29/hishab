@@ -22,6 +22,7 @@ internal sealed partial class OrderService(
     HishabDbContext db,
     ICustomerService customers,
     ICustomerOrderHistory history,
+    ICustomerRiskAssessor risk,
     IPlanLimitService limits,
     ITenantContext tenant,
     IRequestContext request,
@@ -179,7 +180,8 @@ internal sealed partial class OrderService(
             record.PreviousOrders,
             record.Delivered,
             record.Returned,
-            record.Cancelled);
+            record.Cancelled,
+            risk.Assess(record, customer.IsBlocked));
 
         IReadOnlyList<string> warnings = customer.IsBlocked ? [OrderWarnings.CustomerBlocked] : [];
         var shipment = await db.Shipments.AsNoTracking()

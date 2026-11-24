@@ -67,6 +67,11 @@ public static class DependencyInjection
         services.AddScoped<ICustomerService, CustomerService>();
         services.AddScoped<IOrderService, OrderService>();
         services.AddScoped<ICustomerOrderHistory, CustomerOrderHistoryQuery>();
+        services.AddOptions<RiskOptions>()
+            .Bind(configuration.GetSection(RiskOptions.SectionName))
+            .Validate(o => o.ToThresholds().IsValid, "Risk thresholds are inconsistent: RiskyMinReturns >= 1, 0 < WatchReturnRate <= RiskyReturnRate <= 1, RecentReturnDays and WatchCancellations >= 1.")
+            .ValidateOnStart();
+        services.AddSingleton<ICustomerRiskAssessor, CustomerRiskAssessor>();
         services.AddScoped<ICodSummaryService, CodSummaryService>();
         services.AddScoped<IPayoutService, PayoutService>();
         AddCouriers(services, configuration);

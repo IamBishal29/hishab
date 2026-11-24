@@ -149,7 +149,7 @@ public sealed record OrderLineDto(
 
 public sealed record OrderStatusChangeDto(OrderStatus? From, OrderStatus To, Guid? ChangedBy, DateTimeOffset ChangedAt, string? Note);
 
-/// <summary>Earlier orders of this customer with this shop (the current order excluded): feeds the risk check.</summary>
+/// <summary>Earlier orders of this customer with this shop (the current order excluded), and the risk badge they give.</summary>
 public sealed record CustomerSummary(
     Guid Id,
     string Phone,
@@ -159,7 +159,8 @@ public sealed record CustomerSummary(
     int PreviousOrders,
     int Delivered,
     int Returned,
-    int Cancelled);
+    int Cancelled,
+    Hishab.Domain.Customers.RiskAssessment Risk);
 
 public static class OrderWarnings
 {

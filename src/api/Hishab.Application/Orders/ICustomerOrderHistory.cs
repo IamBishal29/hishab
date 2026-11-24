@@ -11,4 +11,12 @@ public interface ICustomerOrderHistory
 }
 
 /// <summary>Delivered includes COD settled; returned includes received back.</summary>
-public sealed record CustomerOrderHistory(int PreviousOrders, int Delivered, int Returned, int Cancelled);
+/// <param name="LastDeliveredAt">When the latest of these orders was delivered; null if never.</param>
+/// <param name="LastReturnedAt">When the latest of these orders was returned; null if never.</param>
+public sealed record CustomerOrderHistory(
+    int PreviousOrders,
+    int Delivered,
+    int Returned,
+    int Cancelled,
+    DateTimeOffset? LastDeliveredAt,
+    DateTimeOffset? LastReturnedAt);
