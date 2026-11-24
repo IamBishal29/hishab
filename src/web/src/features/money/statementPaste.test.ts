@@ -2,7 +2,8 @@ import { parseStatement } from './statementPaste'
 
 describe('parseStatement', () => {
   it('reads tab-separated rows from a spreadsheet, keeping thousands separators apart', () => {
-    const text = 'Consignment\tCollected\tDelivery\tCOD fee\nDH-1\t1,200.00\t60\t12\nDH-2\t৳850\t120\t8.50\n'
+    const text =
+      'Consignment\tCollected\tDelivery\tCOD fee\nDH-1\t1,200.00\t60\t12\nDH-2\t৳850\t120\t8.50\n'
 
     expect(parseStatement(text)).toEqual({
       rows: [
