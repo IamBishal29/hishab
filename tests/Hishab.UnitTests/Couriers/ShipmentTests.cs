@@ -76,4 +76,33 @@ public class ShipmentTests
 
         shipment.Error!.Length.ShouldBe(Shipment.ErrorMaxLength);
     }
+
+    [Fact]
+    public void A_booked_parcel_takes_a_return_charge_and_a_correction_replaces_it()
+    {
+        var shipment = Shipment.Request(_orderId, CourierProvider.Fake, _now);
+        shipment.MarkBooked("CN-1", null, Money.Bdt(60m), _now);
+
+        shipment.RecordReturnCharge(Money.Bdt(60m));
+        shipment.RecordReturnCharge(Money.Bdt(30m));
+
+        shipment.ReturnCharge.ShouldBe(Money.Bdt(30m));
+    }
+
+    [Fact]
+    public void A_parcel_that_never_left_has_no_return_charge()
+    {
+        var shipment = Shipment.Request(_orderId, CourierProvider.Fake, _now);
+
+        Should.Throw<ConflictException>(() => shipment.RecordReturnCharge(Money.Bdt(60m)));
+    }
+
+    [Fact]
+    public void A_negative_return_charge_is_rejected_on_its_field()
+    {
+        var shipment = Shipment.Request(_orderId, CourierProvider.Fake, _now);
+        shipment.MarkBooked("CN-1", null, null, _now);
+
+        Should.Throw<DomainValidationException>(() => shipment.RecordReturnCharge(Money.Bdt(-1m))).Errors.Keys.ShouldBe(["returnCharge"]);
+    }
 }
