@@ -53,7 +53,13 @@ export default function ProfitChart({ points }: { points: ProfitPoint[] }): Reac
             formatter={(value) => [money(Number(value)), t('dashboard.profit')]}
             labelFormatter={(k) => (typeof k === 'string' ? pointLabel(k, i18n.language) : '')}
           />
-          <Bar dataKey="profit" fill={SERIES} maxBarSize={24} radius={[4, 4, 0, 0]} />
+          <Bar
+            dataKey="profit"
+            fill={SERIES}
+            maxBarSize={24}
+            radius={[4, 4, 0, 0]}
+            isAnimationActive={false}
+          />
         </BarChart>
       </ResponsiveContainer>
     </div>

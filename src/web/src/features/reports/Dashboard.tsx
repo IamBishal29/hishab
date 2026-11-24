@@ -70,7 +70,16 @@ function Card({
   const body = (
     <>
       <dt className="text-xs text-muted-foreground">{label}</dt>
-      <dd className="text-lg font-semibold">{value}</dd>
+      {/* Counts are short; money ("BDT 12,345.00") is smaller and may wrap to fit 360 px. */}
+      <dd
+        className={
+          typeof value === 'number'
+            ? 'text-lg font-semibold'
+            : 'text-sm font-semibold break-words sm:text-base'
+        }
+      >
+        {value}
+      </dd>
     </>
   )
   return to ? (
