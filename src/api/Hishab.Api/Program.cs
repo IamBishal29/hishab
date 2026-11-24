@@ -6,6 +6,7 @@ using Hishab.Api.Auth;
 using Hishab.Api.Errors;
 using Hishab.Api.Logging;
 using Hishab.Api.Middleware;
+using Hishab.Api.OpenApi;
 using Hishab.Api.RateLimiting;
 using Hishab.Api.Routing;
 using Hishab.Api.Validation;
@@ -30,7 +31,7 @@ builder.Services.AddControllers(options =>
 // documented contract (and the generated web client) differs from what the API really sends.
 builder.Services.ConfigureHttpJsonOptions(o => ConfigureJson(o.SerializerOptions));
 builder.Services.AddHishabRateLimiting(builder.Configuration);
-builder.Services.AddOpenApi();
+builder.Services.AddOpenApi(o => o.AddSchemaTransformer<EnumSchemaTransformer>());
 builder.Services.AddHishabJwtAuthentication();
 builder.Services.AddHishabAuthorization();
 builder.Services.AddHttpContextAccessor();
