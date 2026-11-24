@@ -17,8 +17,10 @@ public sealed record CodAgeBucketDto(CodAge Age, int Parcels, decimal Amount);
 /// <param name="Courier">The courier holding the cash; null for delivered orders without a booked shipment.</param>
 /// <param name="DeliveredParcels">Delivered parcels (settled or not).</param>
 /// <param name="Expected">COD due on every delivered parcel (order total minus advance), in BDT.</param>
-/// <param name="Collected">Paid out to the shop (COD settled), in BDT.</param>
-/// <param name="Outstanding">Still with the courier, in BDT.</param>
+/// <param name="Collected">What payouts actually paid for settled parcels, in BDT.</param>
+/// <param name="Shortfall">Settled parcels' due minus what was paid (positive = short-paid), in BDT.</param>
+/// <param name="ShortPaidParcels">Settled parcels paid a different amount than due.</param>
+/// <param name="Outstanding">Still with the courier (not paid out yet), in BDT.</param>
 /// <param name="OutstandingParcels">Parcels not paid out yet.</param>
 /// <param name="OldestOutstandingDays">Age of the oldest unpaid parcel in days; null when nothing is owed.</param>
 /// <param name="OutstandingByAge">Outstanding split by age: always four buckets, youngest first.</param>
@@ -27,13 +29,15 @@ public sealed record CourierCodDto(
     int DeliveredParcels,
     decimal Expected,
     decimal Collected,
+    decimal Shortfall,
+    int ShortPaidParcels,
     decimal Outstanding,
     int OutstandingParcels,
     int? OldestOutstandingDays,
     IReadOnlyList<CodAgeBucketDto> OutstandingByAge);
 
-/// <summary>What every courier owes the shop, and the totals.</summary>
-public sealed record CodSummaryResponse(IReadOnlyList<CourierCodDto> Couriers, decimal Expected, decimal Collected, decimal Outstanding)
+/// <summary>What every courier owes the shop, and the totals. Expected = collected + shortfall + outstanding.</summary>
+public sealed record CodSummaryResponse(IReadOnlyList<CourierCodDto> Couriers, decimal Expected, decimal Collected, decimal Shortfall, decimal Outstanding)
 {
     public static CodSummaryResponse From(CodSummary summary) => new(
         [.. summary.Couriers.Select(c => new CourierCodDto(
@@ -41,12 +45,15 @@ public sealed record CodSummaryResponse(IReadOnlyList<CourierCodDto> Couriers, d
             c.DeliveredParcels,
             c.Expected.Amount,
             c.Collected.Amount,
+            c.Shortfall.Amount,
+            c.ShortPaidParcels,
             c.Outstanding.Amount,
             c.OutstandingParcels,
             c.OldestOutstandingDays,
             [.. c.OutstandingByAge.Select(b => new CodAgeBucketDto(b.Age, b.Parcels, b.Amount.Amount))]))],
         summary.Expected.Amount,
         summary.Collected.Amount,
+        summary.Shortfall.Amount,
         summary.Outstanding.Amount);
 }
 
@@ -56,7 +63,7 @@ public sealed record CodSummaryResponse(IReadOnlyList<CourierCodDto> Couriers, d
 [Authorize(Policy = Policies.CanSeeProfit)]
 [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
 [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
-public sealed class MoneyController(ICodSummaryService cod) : ControllerBase
+public sealed class MoneyController(ICodSummaryService cod, IPayoutService payouts) : ControllerBase
 {
     /// <summary>
     /// How much cash each courier owes the shop: COD expected on delivered parcels, collected
@@ -66,4 +73,36 @@ public sealed class MoneyController(ICodSummaryService cod) : ControllerBase
     [ProducesResponseType<CodSummaryResponse>(StatusCodes.Status200OK)]
     public async Task<ActionResult<CodSummaryResponse>> CodSummary(CancellationToken cancellationToken) =>
         Ok(CodSummaryResponse.From(await cod.GetAsync(cancellationToken)));
+
+    /// <summary>
+    /// Records a courier payout from its statement and matches each line to a delivered parcel by
+    /// consignment ID. Matched orders become CodSettled (a short or over payment still settles, with the
+    /// gap shown); lines that match nothing are kept with the reason. One payout per courier and reference.
+    /// </summary>
+    [HttpPost("payouts")]
+    [ProducesResponseType<PayoutResponse>(StatusCodes.Status201Created)]
+    [ProducesResponseType<HttpValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<PayoutResponse>> RecordPayout(RecordPayoutRequest request, CancellationToken cancellationToken)
+    {
+        var recorded = PayoutResponse.From(await payouts.RecordAsync(request.ToCommand(), cancellationToken));
+        return Created($"/api/money/payouts/{recorded.Payout.Id}", recorded);
+    }
+
+    /// <summary>Recorded payouts, newest paid first.</summary>
+    [HttpGet("payouts")]
+    [ProducesResponseType<PayoutListResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<HttpValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<PayoutListResponse>> ListPayouts([FromQuery] PayoutListQuery query, CancellationToken cancellationToken)
+    {
+        var page = await payouts.ListAsync(query.Courier, query.Page, query.PageSize, cancellationToken);
+        return Ok(new PayoutListResponse([.. page.Items.Select(PayoutSummaryDto.From)], page.Page, page.PageSize, page.Total));
+    }
+
+    /// <summary>One payout with every statement line and what it matched.</summary>
+    [HttpGet("payouts/{id:guid}")]
+    [ProducesResponseType<PayoutResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<PayoutResponse>> GetPayout(Guid id, CancellationToken cancellationToken) =>
+        Ok(PayoutResponse.From(await payouts.GetAsync(id, cancellationToken)));
 }
