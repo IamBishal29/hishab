@@ -1316,7 +1316,7 @@
         "tags": [
           "Customers"
         ],
-        "summary": "The customer with their order history in this shop (counts and delivered value).",
+        "summary": "The customer with their order history in this shop (counts, delivered value and risk badge).",
         "parameters": [
           {
             "name": "id",
@@ -6283,7 +6283,8 @@
         "required": [
           "customer",
           "history",
-          "deliveredValue"
+          "deliveredValue",
+          "risk"
         ],
         "type": "object",
         "properties": {
@@ -6299,6 +6300,10 @@
             "type": "number",
             "description": "Sum of the totals of delivered and COD-settled orders, in BDT.",
             "format": "double"
+          },
+          "risk": {
+            "description": "New, Safe, Watch or Risky, with every reason that applies (this shop's history only).",
+            "$ref": "#/components/schemas/RiskAssessment"
           }
         },
         "description": "The customer page: details, track record and what they have paid for."
@@ -6382,25 +6387,34 @@
       "CustomerLookupResponse": {
         "required": [
           "customer",
-          "history"
+          "history",
+          "risk"
         ],
         "type": "object",
         "properties": {
           "customer": {
+            "description": "The customer's details.",
             "$ref": "#/components/schemas/CustomerDto"
           },
           "history": {
+            "description": "Order counts by outcome in this shop.",
             "$ref": "#/components/schemas/CustomerOrderHistory"
+          },
+          "risk": {
+            "description": "New, Safe, Watch or Risky, with every reason that applies (this shop's history only).",
+            "$ref": "#/components/schemas/RiskAssessment"
           }
         },
-        "description": "The customer and their track record with this shop."
+        "description": "The customer, their track record with this shop and the risk badge it gives."
       },
       "CustomerOrderHistory": {
         "required": [
           "previousOrders",
           "delivered",
           "returned",
-          "cancelled"
+          "cancelled",
+          "lastDeliveredAt",
+          "lastReturnedAt"
         ],
         "type": "object",
         "properties": {
@@ -6419,6 +6433,20 @@
           "cancelled": {
             "type": "integer",
             "format": "int32"
+          },
+          "lastDeliveredAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "lastReturnedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         }
       },
@@ -6451,6 +6479,14 @@
           }
         }
       },
+      "CustomerRiskLevel": {
+        "enum": [
+          "New",
+          "Safe",
+          "Watch",
+          "Risky"
+        ]
+      },
       "CustomerSummary": {
         "required": [
           "id",
@@ -6461,7 +6497,8 @@
           "previousOrders",
           "delivered",
           "returned",
-          "cancelled"
+          "cancelled",
+          "risk"
         ],
         "type": "object",
         "properties": {
@@ -6502,6 +6539,9 @@
           "cancelled": {
             "type": "integer",
             "format": "int32"
+          },
+          "risk": {
+            "$ref": "#/components/schemas/RiskAssessment"
           }
         }
       },
@@ -7538,6 +7578,42 @@
             "type": "string"
           }
         }
+      },
+      "RiskAssessment": {
+        "required": [
+          "level",
+          "reasons",
+          "returnRate"
+        ],
+        "type": "object",
+        "properties": {
+          "level": {
+            "$ref": "#/components/schemas/CustomerRiskLevel"
+          },
+          "reasons": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RiskReason"
+            }
+          },
+          "returnRate": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          }
+        }
+      },
+      "RiskReason": {
+        "enum": [
+          "Blocked",
+          "HighReturnRate",
+          "ElevatedReturnRate",
+          "RecentReturn",
+          "ManyCancellations",
+          "NoHistory"
+        ]
       },
       "ShipmentDto": {
         "required": [

@@ -338,6 +338,39 @@ export interface CustomerOrderHistory {
   delivered: number;
   returned: number;
   cancelled: number;
+  /** @nullable */
+  lastDeliveredAt: string | null;
+  /** @nullable */
+  lastReturnedAt: string | null;
+}
+
+export type CustomerRiskLevel = typeof CustomerRiskLevel[keyof typeof CustomerRiskLevel];
+
+
+export const CustomerRiskLevel = {
+  New: 'New',
+  Safe: 'Safe',
+  Watch: 'Watch',
+  Risky: 'Risky',
+} as const;
+
+export type RiskReason = typeof RiskReason[keyof typeof RiskReason];
+
+
+export const RiskReason = {
+  Blocked: 'Blocked',
+  HighReturnRate: 'HighReturnRate',
+  ElevatedReturnRate: 'ElevatedReturnRate',
+  RecentReturn: 'RecentReturn',
+  ManyCancellations: 'ManyCancellations',
+  NoHistory: 'NoHistory',
+} as const;
+
+export interface RiskAssessment {
+  level: CustomerRiskLevel;
+  reasons: RiskReason[];
+  /** @nullable */
+  returnRate: number | null;
 }
 
 /**
@@ -350,6 +383,8 @@ export interface CustomerDetails {
   history: CustomerOrderHistory;
   /** Sum of the totals of delivered and COD-settled orders, in BDT. */
   deliveredValue: number;
+  /** New, Safe, Watch or Risky, with every reason that applies (this shop's history only). */
+  risk: RiskAssessment;
 }
 
 /**
@@ -360,11 +395,15 @@ export interface CustomerLookupRequest {
 }
 
 /**
- * The customer and their track record with this shop.
+ * The customer, their track record with this shop and the risk badge it gives.
  */
 export interface CustomerLookupResponse {
+  /** The customer's details. */
   customer: CustomerDto;
+  /** Order counts by outcome in this shop. */
   history: CustomerOrderHistory;
+  /** New, Safe, Watch or Risky, with every reason that applies (this shop's history only). */
+  risk: RiskAssessment;
 }
 
 export interface CustomerPage {
@@ -386,6 +425,7 @@ export interface CustomerSummary {
   delivered: number;
   returned: number;
   cancelled: number;
+  risk: RiskAssessment;
 }
 
 export interface FindOrCreateCustomerRequest {
@@ -2162,7 +2202,7 @@ export const getGetApiCustomersIdUrl = (id: string,) => {
 }
 
 /**
- * @summary The customer with their order history in this shop (counts and delivered value).
+ * @summary The customer with their order history in this shop (counts, delivered value and risk badge).
  */
 export const getApiCustomersId = async (id: string, options?: Parameters<typeof apiFetch>[1]): Promise<CustomerDetails> => {
 
@@ -2208,7 +2248,7 @@ export type GetApiCustomersIdQueryResult = NonNullable<Awaited<ReturnType<typeof
 export type GetApiCustomersIdQueryError = ProblemDetails
 
 
-/** @summary The customer with their order history in this shop (counts and delivered value). */
+/** @summary The customer with their order history in this shop (counts, delivered value and risk badge). */
 export function useGetApiCustomersId<TData = Awaited<ReturnType<typeof getApiCustomersId>>, TError = ProblemDetails>(
  id: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCustomersId>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
@@ -2219,7 +2259,7 @@ export function useGetApiCustomersId<TData = Awaited<ReturnType<typeof getApiCus
       >, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-/** @summary The customer with their order history in this shop (counts and delivered value). */
+/** @summary The customer with their order history in this shop (counts, delivered value and risk badge). */
 export function useGetApiCustomersId<TData = Awaited<ReturnType<typeof getApiCustomersId>>, TError = ProblemDetails>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCustomersId>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
@@ -2230,12 +2270,12 @@ export function useGetApiCustomersId<TData = Awaited<ReturnType<typeof getApiCus
       >, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-/** @summary The customer with their order history in this shop (counts and delivered value). */
+/** @summary The customer with their order history in this shop (counts, delivered value and risk badge). */
 export function useGetApiCustomersId<TData = Awaited<ReturnType<typeof getApiCustomersId>>, TError = ProblemDetails>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCustomersId>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-/** @summary The customer with their order history in this shop (counts and delivered value). */
+/** @summary The customer with their order history in this shop (counts, delivered value and risk badge). */
 export function useGetApiCustomersId<TData = Awaited<ReturnType<typeof getApiCustomersId>>, TError = ProblemDetails>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCustomersId>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient
