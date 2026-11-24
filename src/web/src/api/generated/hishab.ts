@@ -1061,6 +1061,25 @@ export type GetApiCustomersParams = {
   PageSize?: number;
 };
 
+export type GetApiExportOrdersCsvParams = {
+  /** One or more statuses; repeat the parameter for several. */
+  Status?: OrderStatus[];
+  /** First day (Asia/Dhaka), inclusive. <example>2026-11-01</example> */
+  From?: string;
+  /** Last day (Asia/Dhaka), inclusive. <example>2026-11-30</example> */
+  To?: string;
+  IsInsideDhaka?: boolean;
+  Source?: OrderSource;
+  /** Order number, part of the customer's name, or 3+ digits of their phone. */
+  Search?: string;
+  CustomerId?: string;
+};
+
+export type GetApiExportCustomersCsvParams = {
+  /** Part of a name, or at least 3 digits of a phone number. */
+  Search?: string;
+};
+
 export type GetApiMoneyPayoutsParams = {
   /** Only this courier's payouts. */
   Courier?: CourierProvider;
@@ -2614,6 +2633,243 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return useMutation(getDeleteApiCustomersIdBlockMutationOptions(options), queryClient);
     }
+
+export const getGetApiExportOrdersCsvUrl = (params?: GetApiExportOrdersCsvParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = ["Status"];
+
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? 'null' : String(v));
+      });
+      return;
+    }
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/export/orders.csv?${stringifiedParams}` : `/api/export/orders.csv`
+}
+
+/**
+ * @summary Every order matching the order list's filters, newest first, one row per order (items as text).
+Streamed: large shops download without the server loading everything first.
+ */
+export const getApiExportOrdersCsv = async (params?: GetApiExportOrdersCsvParams, options?: Parameters<typeof apiFetch>[1]): Promise<Stream> => {
+
+  return apiFetch<Stream>(getGetApiExportOrdersCsvUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetApiExportOrdersCsvQueryKey = (params?: GetApiExportOrdersCsvParams,) => {
+    return [
+    `/api/export/orders.csv`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetApiExportOrdersCsvQueryOptions = <TData = Awaited<ReturnType<typeof getApiExportOrdersCsv>>, TError = ValidationProblemDetails | ProblemDetails>(params?: GetApiExportOrdersCsvParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiExportOrdersCsv>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiExportOrdersCsvQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiExportOrdersCsv>>> = ({ signal }) => getApiExportOrdersCsv(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiExportOrdersCsv>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetApiExportOrdersCsvQueryResult = NonNullable<Awaited<ReturnType<typeof getApiExportOrdersCsv>>>
+export type GetApiExportOrdersCsvQueryError = ValidationProblemDetails | ProblemDetails
+
+
+/**
+ * @summary Every order matching the order list's filters, newest first, one row per order (items as text).
+Streamed: large shops download without the server loading everything first.
+ */
+export function useGetApiExportOrdersCsv<TData = Awaited<ReturnType<typeof getApiExportOrdersCsv>>, TError = ValidationProblemDetails | ProblemDetails>(
+ params: undefined |  GetApiExportOrdersCsvParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiExportOrdersCsv>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getApiExportOrdersCsv>>,
+          TError,
+          Awaited<ReturnType<typeof getApiExportOrdersCsv>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Every order matching the order list's filters, newest first, one row per order (items as text).
+Streamed: large shops download without the server loading everything first.
+ */
+export function useGetApiExportOrdersCsv<TData = Awaited<ReturnType<typeof getApiExportOrdersCsv>>, TError = ValidationProblemDetails | ProblemDetails>(
+ params?: GetApiExportOrdersCsvParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiExportOrdersCsv>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getApiExportOrdersCsv>>,
+          TError,
+          Awaited<ReturnType<typeof getApiExportOrdersCsv>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Every order matching the order list's filters, newest first, one row per order (items as text).
+Streamed: large shops download without the server loading everything first.
+ */
+export function useGetApiExportOrdersCsv<TData = Awaited<ReturnType<typeof getApiExportOrdersCsv>>, TError = ValidationProblemDetails | ProblemDetails>(
+ params?: GetApiExportOrdersCsvParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiExportOrdersCsv>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Every order matching the order list's filters, newest first, one row per order (items as text).
+Streamed: large shops download without the server loading everything first.
+ */
+export function useGetApiExportOrdersCsv<TData = Awaited<ReturnType<typeof getApiExportOrdersCsv>>, TError = ValidationProblemDetails | ProblemDetails>(
+ params?: GetApiExportOrdersCsvParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiExportOrdersCsv>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetApiExportOrdersCsvQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetApiExportCustomersCsvUrl = (params?: GetApiExportCustomersCsvParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/export/customers.csv?${stringifiedParams}` : `/api/export/customers.csv`
+}
+
+/**
+ * @summary Every customer matching the customer list's search, newest first, with order counts.
+ */
+export const getApiExportCustomersCsv = async (params?: GetApiExportCustomersCsvParams, options?: Parameters<typeof apiFetch>[1]): Promise<Stream> => {
+
+  return apiFetch<Stream>(getGetApiExportCustomersCsvUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetApiExportCustomersCsvQueryKey = (params?: GetApiExportCustomersCsvParams,) => {
+    return [
+    `/api/export/customers.csv`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetApiExportCustomersCsvQueryOptions = <TData = Awaited<ReturnType<typeof getApiExportCustomersCsv>>, TError = ValidationProblemDetails | ProblemDetails>(params?: GetApiExportCustomersCsvParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiExportCustomersCsv>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiExportCustomersCsvQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiExportCustomersCsv>>> = ({ signal }) => getApiExportCustomersCsv(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiExportCustomersCsv>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetApiExportCustomersCsvQueryResult = NonNullable<Awaited<ReturnType<typeof getApiExportCustomersCsv>>>
+export type GetApiExportCustomersCsvQueryError = ValidationProblemDetails | ProblemDetails
+
+
+/** @summary Every customer matching the customer list's search, newest first, with order counts. */
+export function useGetApiExportCustomersCsv<TData = Awaited<ReturnType<typeof getApiExportCustomersCsv>>, TError = ValidationProblemDetails | ProblemDetails>(
+ params: undefined |  GetApiExportCustomersCsvParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiExportCustomersCsv>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getApiExportCustomersCsv>>,
+          TError,
+          Awaited<ReturnType<typeof getApiExportCustomersCsv>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/** @summary Every customer matching the customer list's search, newest first, with order counts. */
+export function useGetApiExportCustomersCsv<TData = Awaited<ReturnType<typeof getApiExportCustomersCsv>>, TError = ValidationProblemDetails | ProblemDetails>(
+ params?: GetApiExportCustomersCsvParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiExportCustomersCsv>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getApiExportCustomersCsv>>,
+          TError,
+          Awaited<ReturnType<typeof getApiExportCustomersCsv>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/** @summary Every customer matching the customer list's search, newest first, with order counts. */
+export function useGetApiExportCustomersCsv<TData = Awaited<ReturnType<typeof getApiExportCustomersCsv>>, TError = ValidationProblemDetails | ProblemDetails>(
+ params?: GetApiExportCustomersCsvParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiExportCustomersCsv>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/** @summary Every customer matching the customer list's search, newest first, with order counts. */
+export function useGetApiExportCustomersCsv<TData = Awaited<ReturnType<typeof getApiExportCustomersCsv>>, TError = ValidationProblemDetails | ProblemDetails>(
+ params?: GetApiExportCustomersCsvParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiExportCustomersCsv>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetApiExportCustomersCsvQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getGetApiMoneyCodSummaryUrl = () => {
 
