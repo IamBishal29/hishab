@@ -2,11 +2,10 @@
 
 ## Current
 - Milestone: M4 Money & risk (M1-M3 complete)
-- Issue: none in progress (#27 in review, PR #75)
+- Issue: none in progress (#28 in review, PR #77)
 - Branch: none (start the next one from main)
-- Next step: #28 "Record courier payouts and match them to parcels" (replaces "collected = CodSettled"
-  with matched payout amounts; decide how partial payouts settle an order). A web "Invoice" button
-  next to "Labels" is still open (see questions).
+- Next step: #29 "Customer risk score: Safe, Watch, Risky" (lowest open in M4). #76 (receive returned
+  parcels with return charges + payout re-match, split from #28) is also in M4.
 
 ## Done
 - Product discovery: PRD written (docs/PRD.md); name chosen: Hishab
@@ -140,13 +139,21 @@
 - #27 COD summary (PR #75): GET /api/money/cod-summary (CanSeeProfit): expected (Order.CodAmount of
   delivered parcels), collected (CodSettled until #28), outstanding aged in Dhaka days (0-3/4-7/8-14/15+,
   oldest unpaid), per courier + totals; pure CodReconciliation in Domain/Finance; 568 .NET tests; note 30
+- #28 Payouts (PR #77): Payout aggregate with owned lines, pure PayoutMatching rules (repeat, unknown,
+  already paid, not delivered, amount differs, settled), one SaveChanges for payout + CodSettled moves,
+  short payments settle with a visible shortfall, mismatches saved with a reason, one statement per
+  (courier, reference) and one settlement per parcel (unique indexes, race test), COD summary collected =
+  paid amounts + shortfall; POST/GET /api/money/payouts; 589 .NET + 73 web tests; note 31. Returns -> #76.
 - #24 Steadfast: paused and moved out of M3 (docs behind the merchant login, no sandbox; Syed's choice)
 
 ## Decisions waiting for Syed
-- **Docker side effect (#27):** I started Docker Desktop for the integration tests, and it also restarted
-  another project's containers (shopflow/* and a kind node). The machine got too slow for vitest, so web
-  tests were not run locally for PR #75 (only the generated client changed; CI runs them). Stop those
-  containers when you don't need them.
+- **Docker (#28):** I started Docker Desktop and stopped (not removed) the 5 shopflow containers, as you
+  chose. `docker start shopflow-control-plane shopflow-api-gateway shopflow-payment-service
+  shopflow-order-service shopflow-notification-service` brings them back. Docker is still running.
+- Payouts (#28): PR is ~1,300 lines excl. migration/generated (tests ~560). Fixing a mismatched payout
+  needs #76 (re-match); there is no delete/undo, because CodSettled is terminal in the PRD lifecycle.
+  A payout's `difference` is only shown (no claim/correction entry yet). Matching is exact on the
+  trimmed consignment ID (case-sensitive). Net amount cannot be negative (courier invoices = later).
 - COD summary (#27): plan features (COD tracking = Starter+ in the PRD) are not enforced: open an issue
   for a plan feature catalogue? The summary loads whole delivered orders (fine for MVP; scaling path in note 30).
   Buckets 0-3/4-7/8-14/15+ are my guess at courier payout rhythms: say if sellers think differently.
@@ -271,3 +278,5 @@
 - 2026-11-22: #26 as one PR, labels downloaded (Syed's choices); PR #70 open (merged)
 - 2026-11-22: #66 destination on the Shipment, backend now + web split to #71 (Syed's choices); PR #72 open (merged)
 - 2026-11-22: #68 implemented (A5 default, CanPack, routine choices); PR #73 open
+- 2026-11-24: #75 merged; #28 with settle-and-flag short payments, mismatches saved, returns split to #76
+  (Syed's choices); PR #77 open
