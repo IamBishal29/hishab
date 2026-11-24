@@ -185,6 +185,8 @@ public class HishabDbContext : IdentityUserContext<HishabUser, Guid>, IDataProte
     /// </summary>
     private void ApplyTenantRules()
     {
+        StampOwnedTenant();
+
         foreach (var entry in ChangeTracker.Entries<ITenantOwned>())
         {
             if (entry.State is not (EntityState.Added or EntityState.Modified or EntityState.Deleted))
@@ -215,6 +217,27 @@ public class HishabDbContext : IdentityUserContext<HishabUser, Guid>, IDataProte
             if (property.OriginalValue != tenantId || property.CurrentValue != tenantId)
             {
                 throw new CrossTenantWriteException($"Cannot change {entityName}: it belongs to another tenant.");
+            }
+        }
+    }
+
+    /// <summary>Name of the shadow column that copies the owner's tenant onto owned rows used by reports.</summary>
+    public const string OwnedTenantIdProperty = "TenantId";
+
+    /// <summary>
+    /// Owned rows (e.g. order status history) have no filter of their own; some carry a TenantId
+    /// copy for indexing. New ones get the current tenant, which the owner's own rule above checks.
+    /// </summary>
+    private void StampOwnedTenant()
+    {
+        foreach (var entry in ChangeTracker.Entries())
+        {
+            if (entry.State == EntityState.Added
+                && entry.Metadata.IsOwned()
+                && entry.Metadata.FindProperty(OwnedTenantIdProperty) is { } tenantProperty && tenantProperty.IsShadowProperty())
+            {
+                entry.Property(OwnedTenantIdProperty).CurrentValue = _tenantContext.TenantId
+                    ?? throw new CrossTenantWriteException($"Cannot save {entry.Metadata.ClrType.Name}: no tenant is set for this unit of work.");
             }
         }
     }
