@@ -21,6 +21,7 @@ import { applyProblem } from '@/lib/problemErrors'
 import { orderListQuery } from '@/features/orders/orderQueries'
 import { OrderRow } from '@/features/orders/OrderRow'
 import { afterCustomerChange, deliveryRate } from './customerQueries'
+import { RiskBadge } from './RiskBadge'
 
 export function CustomerPage(): ReactElement {
   const { t } = useTranslation()
@@ -64,6 +65,7 @@ function CustomerView({ details }: { details: CustomerDetails }): ReactElement {
           )}
         </div>
         <p className="text-muted-foreground">{customer.phone}</p>
+        <RiskBadge risk={details.risk} />
       </header>
 
       <dl aria-label={t('customer.track')} className="grid grid-cols-3 gap-2 text-center text-sm">

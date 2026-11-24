@@ -321,5 +321,22 @@
     "lineAmounts": "আদায় {{collected}}, চার্জ {{fees}}",
     "due": "পাওনা {{amount}}",
     "lineShortfall": "কম {{amount}}"
+  },
+  "risk": {
+    "label": "ক্রেতার ঝুঁকি",
+    "levels": {
+      "New": "নতুন ক্রেতা",
+      "Safe": "নিরাপদ",
+      "Watch": "নজরে রাখুন",
+      "Risky": "ঝুঁকিপূর্ণ"
+    },
+    "reasons": {
+      "Blocked": "আপনার দোকান ব্লক করেছে",
+      "HighReturnRate": "{{rate}}% পার্সেল ফেরত দিয়েছেন",
+      "ElevatedReturnRate": "{{rate}}% পার্সেল ফেরত দিয়েছেন",
+      "RecentReturn": "সম্প্রতি একটি পার্সেল ফেরত দিয়েছেন",
+      "ManyCancellations": "অনেক অর্ডার বাতিল করেছেন",
+      "NoHistory": "এখনো কোনো পার্সেল ডেলিভারি বা ফেরত হয়নি"
+    }
   }
 }

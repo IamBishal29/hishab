@@ -22,6 +22,7 @@ import { applyProblem } from '@/lib/problemErrors'
 import { useIdempotencyKey } from './idempotencyKey'
 import { ProductPicker, type PickedVariant } from './ProductPicker'
 import { useCustomerLookup } from './useCustomerLookup'
+import { RiskBadge } from '@/features/customers/RiskBadge'
 
 const amount = z
   .number({ error: 'order.amountInvalid' })
@@ -316,6 +317,7 @@ function CustomerPanel({
             : t('order.blockedNoReason')}
         </p>
       )}
+      <RiskBadge risk={lookup.data.risk} />
       <p className="text-sm text-muted-foreground">
         {t('order.history', {
           previous: history.previousOrders,

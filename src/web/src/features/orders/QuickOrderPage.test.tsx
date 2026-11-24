@@ -23,6 +23,7 @@ function knownCustomer(overrides: Partial<LookupResult['customer']> = {}): Looku
       ...overrides,
     },
     history: { previousOrders: 3, delivered: 2, returned: 1, cancelled: 0 },
+    risk: { level: 'Watch', reasons: ['ElevatedReturnRate', 'RecentReturn'], returnRate: 0.33 },
   }
 }
 

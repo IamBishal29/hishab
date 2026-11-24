@@ -321,5 +321,22 @@
     "lineAmounts": "Collected {{collected}}, fees {{fees}}",
     "due": "due {{amount}}",
     "lineShortfall": "short {{amount}}"
+  },
+  "risk": {
+    "label": "Customer risk",
+    "levels": {
+      "New": "New buyer",
+      "Safe": "Safe",
+      "Watch": "Watch",
+      "Risky": "Risky"
+    },
+    "reasons": {
+      "Blocked": "Blocked by your shop",
+      "HighReturnRate": "Returned {{rate}}% of parcels",
+      "ElevatedReturnRate": "Returned {{rate}}% of parcels",
+      "RecentReturn": "Returned a parcel recently",
+      "ManyCancellations": "Cancelled many orders",
+      "NoHistory": "No delivered or returned parcels yet"
+    }
   }
 }

@@ -18,6 +18,7 @@ import { formatMoney } from '@/lib/money'
 import { canCancel, canConfirm, invalidateOrders } from './orderQueries'
 import { ShipmentPanel } from './ShipmentPanel'
 import { StatusBadge } from './StatusBadge'
+import { RiskBadge } from '@/features/customers/RiskBadge'
 
 export function OrderDetailPage(): ReactElement {
   const { t } = useTranslation()
@@ -129,6 +130,9 @@ function OrderView({ details }: { details: OrderDetails }): ReactElement {
               {t('customer.blockedBadge')}
             </span>
           )}
+          <div className="mt-1">
+            <RiskBadge risk={customer.risk} compact />
+          </div>
         </dd>
         <dt className="text-muted-foreground">{t('orderDetail.delivery')}</dt>
         <dd>
