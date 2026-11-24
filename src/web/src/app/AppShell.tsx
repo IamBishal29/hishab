@@ -2,7 +2,7 @@ import type { ReactElement } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, Navigate, Outlet, useLocation, useNavigate } from 'react-router'
 import { Button } from '@/components/ui/button'
-import { canEnterOrders, canManageShop } from '@/features/auth/permissions'
+import { canEnterOrders, canManageShop, canSeeProfit } from '@/features/auth/permissions'
 import { endSession, useSession } from '@/features/auth/useSession'
 
 /** Protected routes: wait for the session (a reload restores it from the refresh cookie), else go to login. */
@@ -65,6 +65,11 @@ export function HomePage(): ReactElement {
         {canManageShop(session?.role) && (
           <Button asChild variant="outline">
             <Link to="/settings/couriers">{t('home.couriers')}</Link>
+          </Button>
+        )}
+        {canSeeProfit(session?.role) && (
+          <Button asChild variant="outline">
+            <Link to="/money">{t('home.money')}</Link>
           </Button>
         )}
       </div>

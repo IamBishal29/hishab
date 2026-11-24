@@ -324,6 +324,11 @@ Never read, print or commit `.env`, user-secrets, tokens or keys. Put placeholde
   (return day) - COD fee (payout line); unknowns count 0 and are listed in `missing`. Status history has a
   shadow `TenantId` (stamped in SaveChanges for owned types that declare it; index tenant_id, to,
   changed_at): filter it explicitly with `EF.Property<Guid>(h, HishabDbContext.OwnedTenantIdProperty)`.
+- Money UI (#32, `features/money`): `/money` (COD summary + payouts), `/money/payouts/new`, `/money/payouts/:id`;
+  `canSeeProfit` (Owner) hides them and disables their queries (the API still answers 403). After a payout or
+  re-match call `afterPayoutChange(queryClient, saved)` (payout, list, COD summary, reports, settled orders).
+  Statement paste: pure `parseStatement` (tabs win over commas; unreadable rows reported, never dropped).
+  MSW money fake lives in `src/test/moneyApi.ts` (`money` state, `recordedPayout()`).
 - Export (#31): `GET /api/export/orders.csv` (order list filters, no paging) and `customers.csv?search=`,
   `CanSeeProfit`, `Cache-Control: no-store`. `ExportService` streams (`AsAsyncEnumerable` -> `Response.Body`,
   never `ToList`); `CsvWriter` (Infrastructure/Export): `Text` for typed text (neutralises = + - @ tab CR),

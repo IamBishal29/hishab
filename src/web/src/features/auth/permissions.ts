@@ -3,6 +3,7 @@
 const enterOrders = new Set<string>(['Owner', 'Manager', 'Moderator'])
 const manageShop = new Set<string>(['Owner', 'Manager'])
 const pack = new Set<string>(['Owner', 'Manager', 'Packer'])
+const seeProfit = new Set<string>(['Owner'])
 
 const has = (roles: ReadonlySet<string>, role: string | undefined): boolean =>
   role !== undefined && roles.has(role)
@@ -12,3 +13,5 @@ export const canEnterOrders = (role: string | undefined): boolean => has(enterOr
 export const canManageShop = (role: string | undefined): boolean => has(manageShop, role)
 /** Book couriers and print labels. */
 export const canPack = (role: string | undefined): boolean => has(pack, role)
+/** Money: COD, payouts, profit, exports. Hiding the screens is UX; the API returns 403 regardless. */
+export const canSeeProfit = (role: string | undefined): boolean => has(seeProfit, role)
