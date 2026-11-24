@@ -322,6 +322,6 @@
   re-match (Syed's choices); PR #79 open
 - 2026-11-24: #79 merged; #30 with delivery-day sales, unknowns as 0 + missing counts, tenant_id on status
   history (Syed's choices); PR #80 open
-- 2026-11-24: #81 merged; #32 with statement paste, one PR (Syed's choices); PR #82 open
 - 2026-11-24: #80 merged; #31 Owner-only export, one row per order (Syed's choices), hand-written CSV writer
   (no library); PR #81 open
+- 2026-11-24: #81 merged; #32 with statement paste, one PR (Syed's choices); PR #82 open
