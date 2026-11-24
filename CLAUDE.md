@@ -324,6 +324,13 @@ Never read, print or commit `.env`, user-secrets, tokens or keys. Put placeholde
   (return day) - COD fee (payout line); unknowns count 0 and are listed in `missing`. Status history has a
   shadow `TenantId` (stamped in SaveChanges for owned types that declare it; index tenant_id, to,
   changed_at): filter it explicitly with `EF.Property<Guid>(h, HishabDbContext.OwnedTenantIdProperty)`.
+- Export (#31): `GET /api/export/orders.csv` (order list filters, no paging) and `customers.csv?search=`,
+  `CanSeeProfit`, `Cache-Control: no-store`. `ExportService` streams (`AsAsyncEnumerable` -> `Response.Body`,
+  never `ToList`); `CsvWriter` (Infrastructure/Export): `Text` for typed text (neutralises = + - @ tab CR),
+  `Raw`/`Number` for our own values; UTF-8 BOM; phones as `01912-345678`. List filters are shared:
+  `OrderService.Filter(db, filter)` and `CustomerService.Search(query, search)`; change them there.
+- OpenAPI: `EnumSchemaTransformer` strips `null` from shared enum schemas (an optional enum query
+  parameter seen first would otherwise make the enum nullable for every client).
 - Screenshots for UI PRs live in `docs/screenshots/NN-*.png` (390 px wide, headless Chrome).
 - Field-level rules belong in services via `IRequestContext.Has(permission)`, not only in controllers.
 - Audit: mark entities `IAuditable` (Domain); `AuditInterceptor` writes `AuditEntry` rows in the

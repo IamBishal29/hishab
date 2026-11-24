@@ -2,10 +2,10 @@
 
 ## Current
 - Milestone: M4 Money & risk (M1-M3 complete)
-- Issue: none in progress (#30 in review, PR #80; #76 merged)
+- Issue: none in progress (#31 in review, PR #81; #30 merged)
 - Branch: none (start the next one from main)
-- Next step: #31 "CSV export of orders and customers" (lowest open in M4), then the web issues #32
-  (COD and payouts screens) and #33 (dashboard with charts and risk badges, uses /api/reports).
+- Next step: #32 "Web: COD and payouts screens" (lowest open in M4), then #33 (dashboard with charts and
+  risk badges, uses /api/reports). Both are web issues; a "Download CSV" button can join one of them.
 
 ## Done
 - Product discovery: PRD written (docs/PRD.md); name chosen: Hishab
@@ -157,6 +157,10 @@
   (sales on the delivery day, returns on the return day, fees from payouts else booking quote, unknowns 0 +
   `missing` counts), tenant_id shadow column on order_status_changes (backfilled) + index (tenant_id, to,
   changed_at); 635 .NET + 73 web tests; note 34
+- #31 CSV export (PR #81): GET /api/export/orders.csv + customers.csv (Owner only, no-store), streamed with
+  AsAsyncEnumerable, CsvWriter (RFC 4180, UTF-8 BOM, CSV-injection neutralising for typed text, phones as
+  01912-345678), list filters shared with the screens, EnumSchemaTransformer fix for nullable shared enums;
+  655 .NET + 73 web tests; note 35
 - #24 Steadfast: paused and moved out of M3 (docs behind the merchant login, no sandbox; Syed's choice)
 
 ## Decisions waiting for Syed
@@ -167,6 +171,8 @@
 - Reports (#30): returned parcels cost only their return charge; a delivery fee the courier deducts on a
   returned parcel's payout line is not counted yet (follow-up if couriers charge both). Index benefit not
   benchmarked at realistic volume (tiny test DB plans via orders). Delivery day = our sync time.
+- Export (#31): a failure mid-stream leaves a truncated file with HTTP 200 (headers already sent); fine for
+  now, a background export job would fix it if shops grow huge. No web button yet.
 - Returns (#76): re-match is manual (your choice); the
   button comes with #32. PR is ~610 lines excl. generated/migration (~700 with docs).
 - **Docker (#28):** I started Docker Desktop and stopped (not removed) the 5 shopflow containers, as you
@@ -308,3 +314,5 @@
   re-match (Syed's choices); PR #79 open
 - 2026-11-24: #79 merged; #30 with delivery-day sales, unknowns as 0 + missing counts, tenant_id on status
   history (Syed's choices); PR #80 open
+- 2026-11-24: #80 merged; #31 Owner-only export, one row per order (Syed's choices), hand-written CSV writer
+  (no library); PR #81 open

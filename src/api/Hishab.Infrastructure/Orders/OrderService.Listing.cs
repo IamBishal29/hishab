@@ -1,5 +1,7 @@
 using Hishab.Application.Orders;
 using Hishab.Domain.Common;
+using Hishab.Domain.Orders;
+using Hishab.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
 namespace Hishab.Infrastructure.Orders;
@@ -18,6 +20,47 @@ internal sealed partial class OrderService
             throw new DomainValidationException(new Dictionary<string, string[]> { ["cursor"] = _invalidCursor });
         }
 
+        var rows = Filter(db, filter);
+        if (after is { } bookmark)
+        {
+            // Row-value comparison: (created_at, number) < (@at, @number). Seeks the index to the
+            // bookmark instead of reading and discarding every earlier row like OFFSET does.
+            rows = rows.Where(r => EF.Functions.LessThan(
+                ValueTuple.Create(r.Order.CreatedAt, r.Order.Number),
+                ValueTuple.Create(bookmark.CreatedAt, bookmark.Number)));
+        }
+
+        var page = await rows
+            // Number breaks ties in created_at: unique per shop and given out in creation order,
+            // so "newest first" stays exact and the cursor always names one row.
+            .OrderByDescending(r => r.Order.CreatedAt).ThenByDescending(r => r.Order.Number)
+            .Take(limit + 1) // one extra row says whether a next page exists, without a COUNT
+            .ToListAsync(cancellationToken);
+
+        var items = page.Take(limit).Select(r => new OrderListItem(
+            r.Order.Id,
+            r.Order.Number,
+            r.Order.Status,
+            r.Order.Source,
+            r.Order.IsInsideDhaka,
+            r.Order.CustomerId,
+            r.Phone,
+            r.Name,
+            r.Order.Lines.Sum(l => l.Quantity),
+            r.Order.Total.Amount,
+            r.Order.CodAmount.Amount,
+            r.Order.CreatedAt)).ToList();
+
+        var next = page.Count > limit ? new OrderCursor(items[^1].CreatedAt, items[^1].Number).Encode() : null;
+        return new OrderListPage(items, next);
+    }
+
+    /// <summary>
+    /// The order list's filters, joined to the customer: shared by the list and the CSV export, so a
+    /// filter means the same thing on screen and in the file. Unordered; callers sort and page.
+    /// </summary>
+    internal static IQueryable<OrderWithCustomer> Filter(HishabDbContext db, OrderListFilter filter)
+    {
         var orders = db.Orders.AsNoTracking();
 
         // Each filter narrows the same index-backed scan: (tenant, status, created_at, number) when a
@@ -55,20 +98,11 @@ internal sealed partial class OrderService
             orders = orders.Where(o => o.Source == source);
         }
 
-        if (after is { } bookmark)
-        {
-            // Row-value comparison: (created_at, number) < (@at, @number). Seeks the index to the
-            // bookmark instead of reading and discarding every earlier row like OFFSET does.
-            orders = orders.Where(o => EF.Functions.LessThan(
-                ValueTuple.Create(o.CreatedAt, o.Number),
-                ValueTuple.Create(bookmark.CreatedAt, bookmark.Number)));
-        }
-
         var rows = orders.Join(
             db.Customers.AsNoTracking(),
             o => o.CustomerId,
             c => c.Id,
-            (o, c) => new { Order = o, c.Phone, c.Name });
+            (o, c) => new OrderWithCustomer { Order = o, Phone = c.Phone, Name = c.Name });
 
         if (!string.IsNullOrWhiteSpace(filter.Search))
         {
@@ -87,33 +121,21 @@ internal sealed partial class OrderService
                 || EF.Functions.ILike(r.Name!, namePattern, @"\"));
         }
 
-        var page = await rows
-            // Number breaks ties in created_at: unique per shop and given out in creation order,
-            // so "newest first" stays exact and the cursor always names one row.
-            .OrderByDescending(r => r.Order.CreatedAt).ThenByDescending(r => r.Order.Number)
-            .Take(limit + 1) // one extra row says whether a next page exists, without a COUNT
-            .ToListAsync(cancellationToken);
-
-        var items = page.Take(limit).Select(r => new OrderListItem(
-            r.Order.Id,
-            r.Order.Number,
-            r.Order.Status,
-            r.Order.Source,
-            r.Order.IsInsideDhaka,
-            r.Order.CustomerId,
-            r.Phone,
-            r.Name,
-            r.Order.Lines.Sum(l => l.Quantity),
-            r.Order.Total.Amount,
-            r.Order.CodAmount.Amount,
-            r.Order.CreatedAt)).ToList();
-
-        var next = page.Count > limit ? new OrderCursor(items[^1].CreatedAt, items[^1].Number).Encode() : null;
-        return new OrderListPage(items, next);
+        return rows;
     }
 
     private static string EscapeLike(string value) =>
         value.Replace(@"\", @"\\", StringComparison.Ordinal)
             .Replace("%", @"\%", StringComparison.Ordinal)
             .Replace("_", @"\_", StringComparison.Ordinal);
+}
+
+/// <summary>An order with its customer's phone and name (a member-init type, so EF can keep composing on it).</summary>
+internal sealed class OrderWithCustomer
+{
+    public required Order Order { get; init; }
+
+    public required string Phone { get; init; }
+
+    public string? Name { get; init; }
 }
