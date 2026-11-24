@@ -28,6 +28,14 @@ public interface IPayoutService
     /// <exception cref="ConflictException">This courier's payout with this reference is already recorded, or a parcel was settled concurrently.</exception>
     Task<PayoutDetails> RecordAsync(RecordPayout payout, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Matches the payout's unknown and undelivered lines again against today's parcels and settles
+    /// the orders they now match, in one transaction. Settled lines and amounts never change.
+    /// </summary>
+    /// <exception cref="NotFoundException">No such payout in this shop.</exception>
+    /// <exception cref="ConflictException">An order or the payout was changed concurrently.</exception>
+    Task<PayoutDetails> RematchAsync(Guid id, CancellationToken cancellationToken);
+
     /// <exception cref="NotFoundException">No such payout in this shop.</exception>
     Task<PayoutDetails> GetAsync(Guid id, CancellationToken cancellationToken);
 

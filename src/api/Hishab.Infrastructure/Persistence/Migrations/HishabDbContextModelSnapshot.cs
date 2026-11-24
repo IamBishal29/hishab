@@ -256,6 +256,11 @@ namespace Hishab.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("requested_at");
 
+                    b.Property<decimal?>("ReturnCharge")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)")
+                        .HasColumnName("return_charge");
+
                     b.Property<string>("State")
                         .IsRequired()
                         .HasMaxLength(16)

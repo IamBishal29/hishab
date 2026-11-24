@@ -107,6 +107,7 @@ public sealed record CreateOrderResult(OrderDetails Details, bool Replayed);
 /// <param name="Shipment">The latest courier booking for this order, if any.</param>
 public sealed record OrderDetails(OrderDto Order, CustomerSummary Customer, IReadOnlyList<string> Warnings, ShipmentDto? Shipment);
 
+/// <param name="ReturnCharge">The courier's charge for bringing a returned parcel back, in BDT; null if not entered or the caller may not see profit.</param>
 public sealed record ShipmentDto(
     Guid Id,
     CourierProvider Provider,
@@ -117,7 +118,8 @@ public sealed record ShipmentDto(
     string? Error,
     DateTimeOffset RequestedAt,
     DateTimeOffset? BookedAt,
-    CourierDestination? Destination);
+    CourierDestination? Destination,
+    decimal? ReturnCharge);
 
 public sealed record OrderDto(
     Guid Id,

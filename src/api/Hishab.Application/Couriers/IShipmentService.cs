@@ -1,4 +1,5 @@
 using Hishab.Application.Orders;
+using Hishab.Domain.Common;
 using Hishab.Domain.Couriers;
 
 namespace Hishab.Application.Couriers;
@@ -34,4 +35,19 @@ public interface IShipmentService
     /// </summary>
     /// <exception cref="Domain.Common.DomainValidationException">No courier chosen or connected (nothing is booked).</exception>
     Task<BulkActionResult> BookManyAsync(IReadOnlyList<Guid> orderIds, CourierProvider? courier, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// The returned parcel is back at the shop: Returned -> ReceivedBack, with the courier's return
+    /// charge when known. Status and charge are saved together.
+    /// </summary>
+    /// <exception cref="Domain.Common.NotFoundException">No such order in this shop.</exception>
+    /// <exception cref="Domain.Common.ConflictException">The order is not Returned, or changed meanwhile.</exception>
+    /// <exception cref="Domain.Common.ForbiddenException">A charge was given by someone who may not see profit.</exception>
+    Task<OrderDetails> ReceiveBackAsync(Guid orderId, Money? returnCharge, string? note, CancellationToken cancellationToken);
+
+    /// <summary>Enters or corrects the return charge of a Returned or ReceivedBack order (needs SeeProfit).</summary>
+    /// <exception cref="Domain.Common.NotFoundException">No such order in this shop.</exception>
+    /// <exception cref="Domain.Common.ConflictException">The order was not returned, or changed meanwhile.</exception>
+    /// <exception cref="Domain.Common.ForbiddenException">The caller may not see profit.</exception>
+    Task<OrderDetails> SetReturnChargeAsync(Guid orderId, Money returnCharge, CancellationToken cancellationToken);
 }

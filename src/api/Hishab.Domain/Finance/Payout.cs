@@ -7,7 +7,8 @@ namespace Hishab.Domain.Finance;
 /// One transfer from a courier to the shop, with the statement lines it pays for. The books must
 /// balance: <see cref="NetAmount"/> (what arrived) = collected - delivery fees - COD fees +
 /// <see cref="Difference"/>. Difference is the part no line explains; it is stored and shown, never
-/// rounded away. Lines are matched once, when the payout is recorded (re-matching: #76).
+/// rounded away. Lines are matched when the payout is recorded; unmatched ones can be re-matched later
+/// (<see cref="Rematch"/>) without changing any amount, so the books still balance.
 /// </summary>
 public sealed class Payout : ITenantOwned, IAuditable
 {
@@ -111,6 +112,32 @@ public sealed class Payout : ITenantOwned, IAuditable
         return payout;
     }
 
+    /// <summary>
+    /// Matches again the lines that found no parcel or an undelivered one, against today's parcels
+    /// (a parcel still in transit on the statement day may be delivered now). Every other line keeps
+    /// its result: a settled line never moves, and a repeated line stays a repeat. Amounts never
+    /// change, so <see cref="Difference"/> stays the same.
+    /// </summary>
+    /// <param name="parcels">Booked parcels of this payout's courier by consignment ID, as in <see cref="Record"/>.</param>
+    /// <returns>The lines that settle an order now; the caller moves those orders to CodSettled.</returns>
+    public IReadOnlyList<PayoutLine> Rematch(IReadOnlyDictionary<string, PayoutParcel> parcels)
+    {
+        var settledNow = new List<PayoutLine>();
+        foreach (var line in Lines.Where(l => PayoutMatching.CanRematch(l.Match)))
+        {
+            // A line that can be re-matched is the consignment's first on this statement: repeats
+            // are RepeatedInPayout, which never re-matches.
+            var parcel = parcels.GetValueOrDefault(line.ConsignmentId);
+            line.Rematch(PayoutMatching.Decide(line.Input, parcel, seenEarlier: false), parcel);
+            if (line.SettlesOrderId is not null)
+            {
+                settledNow.Add(line);
+            }
+        }
+
+        return settledNow;
+    }
+
     private Money Sum(Func<PayoutLine, Money> amount) => _lines.Aggregate(Money.Zero, (sum, l) => sum + amount(l));
 
     private static void Require(bool rule, string field, string message)
@@ -138,13 +165,10 @@ public sealed class PayoutLine
         Collected = input.Collected;
         DeliveryFee = input.DeliveryFee;
         CodFee = input.CodFee;
-        Match = match;
-        OrderId = parcel?.OrderId;
-        CodDue = parcel?.CodDue;
-        // Only a settling line claims the shipment: a unique index on this column means no parcel is
-        // ever settled by two payouts, even when two are recorded at the same moment.
-        SettledShipmentId = PayoutMatching.Settles(match) ? parcel!.ShipmentId : null;
+        SetMatch(match, parcel);
     }
+
+    internal PayoutLineInput Input => new(ConsignmentId, Collected, DeliveryFee, CodFee);
 
     public Guid Id { get; private set; }
 
@@ -174,4 +198,24 @@ public sealed class PayoutLine
 
     /// <summary>Due minus collected on a settled line: positive = short-paid. Null when nothing was settled.</summary>
     public Money? Shortfall => SettledShipmentId is null || CodDue is null ? null : CodDue.Value - Collected;
+
+    internal void Rematch(PayoutLineMatch match, PayoutParcel? parcel)
+    {
+        if (!PayoutMatching.CanRematch(Match))
+        {
+            throw new InvalidOperationException($"A {Match} line is final.");
+        }
+
+        SetMatch(match, parcel);
+    }
+
+    private void SetMatch(PayoutLineMatch match, PayoutParcel? parcel)
+    {
+        Match = match;
+        OrderId = parcel?.OrderId;
+        CodDue = parcel?.CodDue;
+        // Only a settling line claims the shipment: a unique index on this column means no parcel is
+        // ever settled by two payouts, even when two are recorded (or re-matched) at the same moment.
+        SettledShipmentId = PayoutMatching.Settles(match) ? parcel!.ShipmentId : null;
+    }
 }

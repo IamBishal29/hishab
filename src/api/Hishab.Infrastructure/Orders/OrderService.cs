@@ -188,11 +188,12 @@ internal sealed partial class OrderService(
             .Where(s => s.OrderId == order.Id)
             .OrderByDescending(s => s.RequestedAt)
             .FirstOrDefaultAsync(cancellationToken);
-        return new OrderDetails(ToDto(order), summary, warnings, shipment is null ? null : ToDto(shipment));
+        return new OrderDetails(ToDto(order), summary, warnings, shipment is null ? null : ToDto(shipment, request.Has(Permission.SeeProfit)));
     }
 
-    internal static ShipmentDto ToDto(Shipment s) =>
-        new(s.Id, s.Provider, s.State, s.ConsignmentId, s.TrackingCode, s.DeliveryFee?.Amount, s.Error, s.RequestedAt, s.BookedAt, s.Destination);
+    private static ShipmentDto ToDto(Shipment s, bool canSeeProfit) =>
+        new(s.Id, s.Provider, s.State, s.ConsignmentId, s.TrackingCode, s.DeliveryFee?.Amount, s.Error, s.RequestedAt, s.BookedAt, s.Destination,
+            canSeeProfit ? s.ReturnCharge?.Amount : null);
 
     private OrderDto ToDto(Order o)
     {
