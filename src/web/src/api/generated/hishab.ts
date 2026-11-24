@@ -580,6 +580,8 @@ export interface ShipmentDto {
   /** @nullable */
   bookedAt: string | null;
   destination: null | CourierDestination;
+  /** @nullable */
+  returnCharge: number | null;
 }
 
 export interface OrderDetails {
@@ -781,6 +783,22 @@ export interface ProductPage {
 }
 
 /**
+ * A returned parcel is back at the shop.
+ */
+export interface ReceiveBackRequest {
+  /**
+     * What the courier charged to bring it back, in BDT. Optional; only staff who can see profit may send it.
+     * @nullable
+     */
+  returnCharge?: number | null;
+  /**
+     * Saved in the order's history, e.g. the box's condition.
+     * @nullable
+     */
+  note?: string | null;
+}
+
+/**
  * A payout as it arrived: the transfer and the statement lines it pays for.
  */
 export interface RecordPayoutRequest {
@@ -817,6 +835,14 @@ export interface RenameProductRequest {
 
 export interface RequestOtpRequest {
   phone: string;
+}
+
+/**
+ * The courier's charge for bringing a returned parcel back.
+ */
+export interface ReturnChargeRequest {
+  /** In BDT; replaces any earlier amount. */
+  returnCharge: number;
 }
 
 /**
@@ -2808,6 +2834,84 @@ export function useGetApiMoneyPayouts<TData = Awaited<ReturnType<typeof getApiMo
 
 
 
+export const getPostApiMoneyPayoutsIdRematchUrl = (id: string,) => {
+
+
+
+
+  return `/api/money/payouts/${id}/rematch`
+}
+
+/**
+ * @summary Matches the payout's UnknownParcel and NotDelivered lines again (e.g. a parcel that was still in
+transit when the payout was entered and is delivered now) and settles the orders they now match.
+Settled lines and all amounts stay as they are. 409 if an order changed meanwhile (try again).
+ */
+export const postApiMoneyPayoutsIdRematch = async (id: string, options?: Parameters<typeof apiFetch>[1]): Promise<PayoutResponse> => {
+
+  return apiFetch<PayoutResponse>(getPostApiMoneyPayoutsIdRematchUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getPostApiMoneyPayoutsIdRematchMutationKey = () => ['postApiMoneyPayoutsIdRematch'] as const;
+
+export const getPostApiMoneyPayoutsIdRematchMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiMoneyPayoutsIdRematch>>, TError,PostApiMoneyPayoutsIdRematchMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiMoneyPayoutsIdRematch>>, TError,PostApiMoneyPayoutsIdRematchMutationVariables, TContext> => {
+
+const mutationKey = getPostApiMoneyPayoutsIdRematchMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiMoneyPayoutsIdRematch>>, PostApiMoneyPayoutsIdRematchMutationVariables> = (props) => {
+          const {id} = props ?? {};
+
+          return  postApiMoneyPayoutsIdRematch(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiMoneyPayoutsIdRematchMutationResult = NonNullable<Awaited<ReturnType<typeof postApiMoneyPayoutsIdRematch>>>
+
+    export type PostApiMoneyPayoutsIdRematchMutationError = ProblemDetails
+    export type PostApiMoneyPayoutsIdRematchMutationVariables = {id: string}
+
+    /**
+ * @summary Matches the payout's UnknownParcel and NotDelivered lines again (e.g. a parcel that was still in
+transit when the payout was entered and is delivered now) and settles the orders they now match.
+Settled lines and all amounts stay as they are. 409 if an order changed meanwhile (try again).
+ */
+export const usePostApiMoneyPayoutsIdRematch = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiMoneyPayoutsIdRematch>>, TError,PostApiMoneyPayoutsIdRematchMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof postApiMoneyPayoutsIdRematch>>,
+        TError,
+        PostApiMoneyPayoutsIdRematchMutationVariables,
+        TContext
+      > => {
+      return useMutation(getPostApiMoneyPayoutsIdRematchMutationOptions(options), queryClient);
+    }
+
 export const getGetApiMoneyPayoutsIdUrl = (id: string,) => {
 
 
@@ -3789,6 +3893,162 @@ export const usePostApiOrdersIdCancel = <TError = ProblemDetails,
         TContext
       > => {
       return useMutation(getPostApiOrdersIdCancelMutationOptions(options), queryClient);
+    }
+
+export const getPostApiOrdersIdReceiveBackUrl = (id: string,) => {
+
+
+
+
+  return `/api/orders/${id}/receive-back`
+}
+
+/**
+ * @summary A returned parcel is back at the shop: Returned -&gt; ReceivedBack, optionally with the courier's
+return charge (saved together). 403 if a charge is sent by staff who cannot see profit; 409 if
+the order is not Returned or changed meanwhile.
+ */
+export const postApiOrdersIdReceiveBack = async (id: string,
+    nullReceiveBackRequest?: null | ReceiveBackRequest, options?: Parameters<typeof apiFetch>[1]): Promise<OrderDetails> => {
+
+  return apiFetch<OrderDetails>(getPostApiOrdersIdReceiveBackUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: getHeaders({ 'Content-Type': 'application/json' }, options?.headers),
+    body: JSON.stringify(nullReceiveBackRequest)
+  }
+);}
+
+
+
+
+
+export const getPostApiOrdersIdReceiveBackMutationKey = () => ['postApiOrdersIdReceiveBack'] as const;
+
+export const getPostApiOrdersIdReceiveBackMutationOptions = <TError = ValidationProblemDetails | ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiOrdersIdReceiveBack>>, TError,PostApiOrdersIdReceiveBackMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiOrdersIdReceiveBack>>, TError,PostApiOrdersIdReceiveBackMutationVariables, TContext> => {
+
+const mutationKey = getPostApiOrdersIdReceiveBackMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiOrdersIdReceiveBack>>, PostApiOrdersIdReceiveBackMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  postApiOrdersIdReceiveBack(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiOrdersIdReceiveBackMutationResult = NonNullable<Awaited<ReturnType<typeof postApiOrdersIdReceiveBack>>>
+    export type PostApiOrdersIdReceiveBackMutationBody = null | ReceiveBackRequest | undefined
+    export type PostApiOrdersIdReceiveBackMutationError = ValidationProblemDetails | ProblemDetails
+    export type PostApiOrdersIdReceiveBackMutationVariables = {id: string;data?: null | ReceiveBackRequest}
+
+    /**
+ * @summary A returned parcel is back at the shop: Returned -&gt; ReceivedBack, optionally with the courier's
+return charge (saved together). 403 if a charge is sent by staff who cannot see profit; 409 if
+the order is not Returned or changed meanwhile.
+ */
+export const usePostApiOrdersIdReceiveBack = <TError = ValidationProblemDetails | ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiOrdersIdReceiveBack>>, TError,PostApiOrdersIdReceiveBackMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof postApiOrdersIdReceiveBack>>,
+        TError,
+        PostApiOrdersIdReceiveBackMutationVariables,
+        TContext
+      > => {
+      return useMutation(getPostApiOrdersIdReceiveBackMutationOptions(options), queryClient);
+    }
+
+export const getPutApiOrdersIdReturnChargeUrl = (id: string,) => {
+
+
+
+
+  return `/api/orders/${id}/return-charge`
+}
+
+/**
+ * @summary Enters or corrects the courier's return charge on a Returned or ReceivedBack order (for
+parcels a packer received without it). 409 if the order was not returned.
+ */
+export const putApiOrdersIdReturnCharge = async (id: string,
+    returnChargeRequest: ReturnChargeRequest, options?: Parameters<typeof apiFetch>[1]): Promise<OrderDetails> => {
+
+  return apiFetch<OrderDetails>(getPutApiOrdersIdReturnChargeUrl(id),
+  {
+    ...options,
+    method: 'PUT',
+    headers: getHeaders({ 'Content-Type': 'application/json' }, options?.headers),
+    body: JSON.stringify(returnChargeRequest)
+  }
+);}
+
+
+
+
+
+export const getPutApiOrdersIdReturnChargeMutationKey = () => ['putApiOrdersIdReturnCharge'] as const;
+
+export const getPutApiOrdersIdReturnChargeMutationOptions = <TError = ValidationProblemDetails | ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiOrdersIdReturnCharge>>, TError,PutApiOrdersIdReturnChargeMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof putApiOrdersIdReturnCharge>>, TError,PutApiOrdersIdReturnChargeMutationVariables, TContext> => {
+
+const mutationKey = getPutApiOrdersIdReturnChargeMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof putApiOrdersIdReturnCharge>>, PutApiOrdersIdReturnChargeMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  putApiOrdersIdReturnCharge(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PutApiOrdersIdReturnChargeMutationResult = NonNullable<Awaited<ReturnType<typeof putApiOrdersIdReturnCharge>>>
+    export type PutApiOrdersIdReturnChargeMutationBody = ReturnChargeRequest
+    export type PutApiOrdersIdReturnChargeMutationError = ValidationProblemDetails | ProblemDetails
+    export type PutApiOrdersIdReturnChargeMutationVariables = {id: string;data: ReturnChargeRequest}
+
+    /**
+ * @summary Enters or corrects the courier's return charge on a Returned or ReceivedBack order (for
+parcels a packer received without it). 409 if the order was not returned.
+ */
+export const usePutApiOrdersIdReturnCharge = <TError = ValidationProblemDetails | ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiOrdersIdReturnCharge>>, TError,PutApiOrdersIdReturnChargeMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof putApiOrdersIdReturnCharge>>,
+        TError,
+        PutApiOrdersIdReturnChargeMutationVariables,
+        TContext
+      > => {
+      return useMutation(getPutApiOrdersIdReturnChargeMutationOptions(options), queryClient);
     }
 
 export const getPostApiOrdersBulkConfirmUrl = () => {
