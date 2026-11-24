@@ -7821,7 +7821,8 @@
           "itemCount",
           "total",
           "codAmount",
-          "createdAt"
+          "createdAt",
+          "customerRisk"
         ],
         "type": "object",
         "properties": {
@@ -7870,6 +7871,9 @@
           "createdAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "customerRisk": {
+            "$ref": "#/components/schemas/RiskAssessment"
           }
         }
       },
