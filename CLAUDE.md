@@ -198,6 +198,12 @@ Never read, print or commit `.env`, user-secrets, tokens or keys. Put placeholde
   `{ customer, history, deliveredValue }`; `GET /api/orders?customerId=` uses the
   `(tenant_id, customer_id, created_at, number)` index. Composite indexes: equality columns first
   (tenant included, the query filter adds it), sort key last.
+- Risk (#29): pure `CustomerRisk.Assess` (Domain/Customers) -> `RiskAssessment { level, reasons, returnRate }`;
+  levels New (no delivered/returned yet), Safe, Watch, Risky; Blocked is always Risky; every applicable
+  reason listed. `ICustomerRiskAssessor` applies `Risk:*` options (ValidateOnStart, same for all shops)
+  and the clock. History has `lastDeliveredAt`/`lastReturnedAt` (a delivery after a return forgives it).
+  Shown on lookup, `GET /api/customers/{id}` and order details (`customer.risk`, current order excluded).
+  This shop's history only; the shared hashed network is V2.
 - Orders: `Order` aggregate (owned `Lines` + `History`, `xmin` row version). Change status only
   via `Order.TransitionTo` (table `OrderLifecycle`, from the PRD; invalid -> 409). Lines snapshot
   name/label/SKU/price/cost. Concurrent saves of one order -> `DbUpdateConcurrencyException`
