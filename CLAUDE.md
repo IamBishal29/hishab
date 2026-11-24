@@ -297,7 +297,15 @@ Never read, print or commit `.env`, user-secrets, tokens or keys. Put placeholde
 - Money module (#27): namespaces are `Finance` (`Hishab.Domain.Finance`, ...), because a `Money`
   namespace would shadow the `Money` value object. `CodReconciliation.Summarize` (pure; Dhaka-day ages,
   buckets 0-3/4-7/8-14/15+) behind `ICodSummaryService`; `GET /api/money/cod-summary` (`CanSeeProfit`).
-  Collected = CodSettled orders until #28 records payouts. No plan gate yet (Syed: separate issue).
+  No plan gate yet (Syed: separate issue).
+- Payouts (#28): `Payout` aggregate (owned `PayoutLine`s, no TenantId on lines) recorded via
+  `IPayoutService.RecordAsync` in one SaveChanges (payout + Delivered -> CodSettled). Rules in pure
+  `PayoutMatching.Decide` (repeat, unknown, already paid, not delivered, amount differs, settled); short
+  or over payments settle and keep `Shortfall`; mismatches are saved with a reason and settle nothing.
+  Unique (tenant, provider, reference) = one statement once (409); partial unique
+  `ux_payout_lines_settled_shipment` = a parcel settles once. COD summary: collected = settled line
+  amounts (CodSettled without a line = paid in full); expected = collected + shortfall + outstanding.
+  `/api/money/payouts` (POST/GET, `CanSeeProfit`). Returns + re-match: #76.
 - Screenshots for UI PRs live in `docs/screenshots/NN-*.png` (390 px wide, headless Chrome).
 - Field-level rules belong in services via `IRequestContext.Has(permission)`, not only in controllers.
 - Audit: mark entities `IAuditable` (Domain); `AuditInterceptor` writes `AuditEntry` rows in the

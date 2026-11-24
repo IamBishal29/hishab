@@ -6,8 +6,8 @@ namespace Hishab.Application.Finance;
 public interface ICodSummaryService
 {
     /// <summary>
-    /// Every delivered parcel of this shop: expected (COD due), collected (settled) and the unpaid
-    /// rest aged in Dhaka days. Collected = orders in CodSettled until payouts are recorded (#28).
+    /// Every delivered parcel of this shop: expected (COD due), collected (what payouts paid),
+    /// shortfall (settled but short-paid) and the unpaid rest aged in Dhaka days.
     /// </summary>
     Task<CodSummary> GetAsync(CancellationToken cancellationToken);
 }

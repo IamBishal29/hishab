@@ -10,8 +10,8 @@ public class CodReconciliationTests
     // 23 Nov 2026, 10:00 in Dhaka.
     private static readonly DateTimeOffset _now = new(2026, 11, 23, 4, 0, 0, TimeSpan.Zero);
 
-    private static CodParcel Parcel(CourierProvider? courier, decimal due, int daysAgo, bool settled = false) =>
-        new(courier, Money.Bdt(due), _now.AddDays(-daysAgo), settled);
+    private static CodParcel Parcel(CourierProvider? courier, decimal due, int daysAgo, bool settled = false, decimal? paid = null) =>
+        new(courier, Money.Bdt(due), _now.AddDays(-daysAgo), settled || paid is not null ? Money.Bdt(paid ?? due) : null);
 
     [Fact]
     public void Expected_is_collected_plus_outstanding_per_courier_and_in_total()
@@ -35,6 +35,28 @@ public class CodReconciliationTests
         summary.Collected.ShouldBe(Money.Bdt(990m));
         summary.Outstanding.ShouldBe(Money.Bdt(1810.75m));
         (summary.Collected + summary.Outstanding).ShouldBe(summary.Expected);
+    }
+
+    [Fact]
+    public void A_short_paid_parcel_is_settled_and_its_gap_shows_as_shortfall_not_outstanding()
+    {
+        var summary = CodReconciliation.Summarize(
+            [
+                Parcel(CourierProvider.Pathao, 1000m, 3, paid: 950m), // short by 50
+                Parcel(CourierProvider.Pathao, 500m, 3, paid: 510m),  // over by 10
+                Parcel(CourierProvider.Pathao, 700m, 3, settled: true),
+                Parcel(CourierProvider.Pathao, 300m, 1),
+            ],
+            _now);
+
+        var pathao = summary.Couriers.ShouldHaveSingleItem();
+        pathao.Collected.ShouldBe(Money.Bdt(2160m));
+        pathao.Shortfall.ShouldBe(Money.Bdt(40m));
+        pathao.ShortPaidParcels.ShouldBe(2);
+        pathao.Outstanding.ShouldBe(Money.Bdt(300m));
+        pathao.OutstandingParcels.ShouldBe(1);
+        (pathao.Collected + pathao.Shortfall + pathao.Outstanding).ShouldBe(pathao.Expected);
+        summary.Shortfall.ShouldBe(Money.Bdt(40m));
     }
 
     [Fact]

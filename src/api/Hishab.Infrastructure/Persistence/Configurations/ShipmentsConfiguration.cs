@@ -35,6 +35,9 @@ internal sealed class ShipmentConfiguration : IEntityTypeConfiguration<Shipment>
         // One row per order and courier: retries reuse it, so the reference never changes.
         builder.HasIndex(s => new { s.TenantId, s.OrderId, s.Provider }).IsUnique();
 
+        // Payout matching looks parcels up by the courier's consignment ID.
+        builder.HasIndex(s => new { s.TenantId, s.Provider, s.ConsignmentId });
+
         // At most one live booking per order, whatever the courier: two parallel requests (or two
         // couriers) cannot both have a parcel in flight for the same order.
         builder.HasIndex(s => new { s.TenantId, s.OrderId })
