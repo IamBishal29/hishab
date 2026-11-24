@@ -2,10 +2,10 @@
 
 ## Current
 - Milestone: M4 Money & risk (M1-M3 complete)
-- Issue: none in progress (#76 in review, PR #79; #29 merged)
+- Issue: none in progress (#30 in review, PR #80; #76 merged)
 - Branch: none (start the next one from main)
-- Next step: #30 "Dashboard API: today's counts and real profit" (lowest open in M4; return charges now
-  exist on `Shipment.ReturnCharge`).
+- Next step: #31 "CSV export of orders and customers" (lowest open in M4), then the web issues #32
+  (COD and payouts screens) and #33 (dashboard with charts and risk badges, uses /api/reports).
 
 ## Done
 - Product discovery: PRD written (docs/PRD.md); name chosen: Hishab
@@ -153,6 +153,10 @@
   PUT return-charge (CanSeeProfit) for later entry/correction, `Shipment.ReturnCharge` (migration),
   `ShipmentDto.returnCharge` hidden without SeeProfit, payout re-match of UnknownParcel/NotDelivered lines
   only (amounts unchanged, settled-shipment index guards races); 620 .NET + 73 web tests; note 33
+- #30 Dashboard API (PR #80): GET /api/reports/today and /profit (CanSeeProfit), pure ProfitReport.Build
+  (sales on the delivery day, returns on the return day, fees from payouts else booking quote, unknowns 0 +
+  `missing` counts), tenant_id shadow column on order_status_changes (backfilled) + index (tenant_id, to,
+  changed_at); 635 .NET + 73 web tests; note 34
 - #24 Steadfast: paused and moved out of M3 (docs behind the merchant login, no sandbox; Syed's choice)
 
 ## Decisions waiting for Syed
@@ -160,8 +164,10 @@
   last 90 days, or 3+ cancellations). Check them with a few sellers. Cancellations count all cancels,
   including the seller's own (e.g. out of stock); a cancel reason would let us count only buyer-side ones.
   Order list rows have no risk yet (#33 needs a batched per-page query).
-- Returns (#76): for #30, decide what profit uses when a returned parcel has no charge entered yet (0 and
-  flag "charges missing", or estimate from the delivery fee). Re-match is manual (your choice); the
+- Reports (#30): returned parcels cost only their return charge; a delivery fee the courier deducts on a
+  returned parcel's payout line is not counted yet (follow-up if couriers charge both). Index benefit not
+  benchmarked at realistic volume (tiny test DB plans via orders). Delivery day = our sync time.
+- Returns (#76): re-match is manual (your choice); the
   button comes with #32. PR is ~610 lines excl. generated/migration (~700 with docs).
 - **Docker (#28):** I started Docker Desktop and stopped (not removed) the 5 shopflow containers, as you
   chose. `docker start shopflow-control-plane shopflow-api-gateway shopflow-payment-service
@@ -300,3 +306,5 @@
   thresholds (Syed's choices); PR #78 open
 - 2026-11-24: #78 merged; #76 before #30 (profit needs return charges), charge settable later and manual
   re-match (Syed's choices); PR #79 open
+- 2026-11-24: #79 merged; #30 with delivery-day sales, unknowns as 0 + missing counts, tenant_id on status
+  history (Syed's choices); PR #80 open
