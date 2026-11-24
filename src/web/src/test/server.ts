@@ -15,6 +15,7 @@ import type {
   ShipmentDto,
 } from '@/api/generated/hishab'
 import { moneyHandlers, resetMoney } from './moneyApi'
+import { reportsHandlers, resetReports } from './reportsApi'
 
 /** A fake Hishab API for component tests. `api` holds the state tests arrange and inspect. */
 export const api = {
@@ -628,7 +629,7 @@ export const handlers = [
   }),
 ]
 
-export const server = setupServer(...handlers, ...moneyHandlers)
+export const server = setupServer(...handlers, ...moneyHandlers, ...reportsHandlers)
 
 export function resetApi(): void {
   api.hasRefreshCookie = false
@@ -655,4 +656,5 @@ export function resetApi(): void {
   api.refusals = {}
   api.labelQueries = []
   resetMoney()
+  resetReports()
 }

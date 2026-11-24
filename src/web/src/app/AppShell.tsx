@@ -4,6 +4,7 @@ import { Link, Navigate, Outlet, useLocation, useNavigate } from 'react-router'
 import { Button } from '@/components/ui/button'
 import { canEnterOrders, canManageShop, canSeeProfit } from '@/features/auth/permissions'
 import { endSession, useSession } from '@/features/auth/useSession'
+import { Dashboard } from '@/features/reports/Dashboard'
 
 /** Protected routes: wait for the session (a reload restores it from the refresh cookie), else go to login. */
 export function RequireSession(): ReactElement {
@@ -50,7 +51,7 @@ export function HomePage(): ReactElement {
   const { t } = useTranslation()
   const { data: session } = useSession()
   return (
-    <section className="mx-auto max-w-md">
+    <section className="mx-auto max-w-2xl">
       <h1 className="text-2xl font-bold">{t('home.title')}</h1>
       <p className="text-muted-foreground">{t('home.signedInAs', { role: session?.role ?? '' })}</p>
       <div className="mt-4 flex flex-wrap gap-2">
@@ -73,6 +74,12 @@ export function HomePage(): ReactElement {
           </Button>
         )}
       </div>
+      {/* Owners only: the reports API answers 403 to everyone else (it includes profit). */}
+      {canSeeProfit(session?.role) && (
+        <div className="mt-6">
+          <Dashboard />
+        </div>
+      )}
     </section>
   )
 }
