@@ -1,11 +1,12 @@
 # Progress
 
 ## Current
-- Milestone: M4 Money & risk (M1-M3 complete)
-- Issue: none in progress (#32 in review, PR #82; #31 merged)
+- Milestone: M4 Money & risk (last issue #33 in review, PR #83); M5 Showcase polish next
+- Issue: none in progress (#33 in review, PR #83; #32 done)
 - Branch: none (start the next one from main)
-- Next step: #33 (dashboard with charts and risk badges, uses /api/reports; lowest open in M4). A
-  "Download CSV" button (export, #31) can join it.
+- Next step: after #83 merges, M5 starts with #34 "AI chat-to-order API with Gemini" (needs a Gemini
+  free-tier API key in user-secrets first, see below). If the key is not ready, #36 (full Bangla UI) or
+  #37 (demo seed data) need nothing external.
 
 ## Done
 - Product discovery: PRD written (docs/PRD.md); name chosen: Hishab
@@ -165,9 +166,22 @@
   payout form with statement paste (pure parseStatement, unreadable rows listed), payout detail with
   mismatches first + re-match, Owner-only (queries disabled for others), afterPayoutChange fan-out;
   86 web tests; note 36; screenshots
+- #32 merge note: GitHub made the merge commit (8e46349) but never flagged PR #82 as merged; I fast-forwarded
+  the branch to main (PR shows closed) and closed #32 by hand with a comment.
+- #33 Dashboard + risk badges (PR #83): `customerRisk` on order list rows via ForManyAsync (two grouped queries
+  per page, shared Build with the customer page), RiskBadge (word + icon shape + colour + reasons) on lookup,
+  list, detail and customer page, Owner dashboard (today cards, lazy Recharts profit chart 30 days / 12 months,
+  caption + table, missing-cost note); 656 .NET + 107 web tests; note 37; screenshots
 - #24 Steadfast: paused and moved out of M3 (docs behind the merchant login, no sandbox; Syed's choice)
 
 ## Decisions waiting for Syed
+- Dashboard/risk (#33): list risk counts all of a customer's orders (order detail still excludes the shown one).
+  ForManyAsync is not EXPLAIN-checked at volume and there is no SQL query-count test yet (a small EF
+  command-counting interceptor in the test factory would let us assert "2 queries per page"). Loss bars are
+  rounded at the zero line (Recharts sets one radius per series). Flaky tests seen once each, both green on
+  rerun: OrderListPage "reads the filters from a shared link" (web, under full-suite load) and one
+  integration test I could not identify (my output filter dropped its name). Return-charge/receive-back
+  buttons are still API-only.
 - Money UI (#32): PR is ~1,450 lines (tests + MSW fake ~560, strings ~180), more than my 1,000 estimate.
   Paste expects the column order ID, collected, delivery fee, COD fee; real Pathao statement columns are
   unknown (check with a real export; a column-mapping step could follow). No payout list paging yet (latest
@@ -325,3 +339,4 @@
 - 2026-11-24: #80 merged; #31 Owner-only export, one row per order (Syed's choices), hand-written CSV writer
   (no library); PR #81 open
 - 2026-11-24: #81 merged; #32 with statement paste, one PR (Syed's choices); PR #82 open
+- 2026-11-24: #82 merged (GitHub glitch, closed by hand); #33 as one PR, Owner-only dashboard (Syed's choices); PR #83 open
