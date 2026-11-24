@@ -4,11 +4,14 @@ using Hishab.Domain.Couriers;
 namespace Hishab.Domain.Finance;
 
 /// <summary>
-/// One delivered parcel's cash: what the courier collected from the buyer for us (the order's COD
-/// amount) and whether it has been paid out to the shop. <see cref="Courier"/> is null only when a
-/// delivered order has no booked shipment (data repaired by hand): it is still owed, so it is kept.
+/// One delivered parcel's cash: what the courier owes for it (the order's COD amount) and what a
+/// payout actually paid (<see cref="Paid"/>; null while unpaid). <see cref="Courier"/> is null only
+/// when a delivered order has no booked shipment (data repaired by hand): it is still owed, so it is kept.
 /// </summary>
-public sealed record CodParcel(CourierProvider? Courier, Money Due, DateTimeOffset DeliveredAt, bool Settled);
+public sealed record CodParcel(CourierProvider? Courier, Money Due, DateTimeOffset DeliveredAt, Money? Paid)
+{
+    public bool Settled => Paid is not null;
+}
 
 /// <summary>How long outstanding cash has been with the courier, in Dhaka calendar days since delivery.</summary>
 public enum CodAge
@@ -29,23 +32,26 @@ public enum CodAge
 public sealed record CodAgeBucket(CodAge Age, int Parcels, Money Amount);
 
 /// <summary>
-/// One courier's position: <see cref="Expected"/> = <see cref="Collected"/> + <see cref="Outstanding"/>,
-/// always (no rounding anywhere: every amount is an exact sum of two-decimal Money).
+/// One courier's position: <see cref="Expected"/> = <see cref="Collected"/> + <see cref="Shortfall"/> +
+/// <see cref="Outstanding"/>, always (no rounding anywhere: every amount is an exact sum of two-decimal
+/// Money). Shortfall is what settled parcels were short-paid (negative when over-paid).
 /// </summary>
 public sealed record CourierCod(
     CourierProvider? Courier,
     int DeliveredParcels,
     Money Expected,
     Money Collected,
+    Money Shortfall,
+    int ShortPaidParcels,
     Money Outstanding,
     int OutstandingParcels,
     int? OldestOutstandingDays,
     IReadOnlyList<CodAgeBucket> OutstandingByAge);
 
-public sealed record CodSummary(IReadOnlyList<CourierCod> Couriers, Money Expected, Money Collected, Money Outstanding);
+public sealed record CodSummary(IReadOnlyList<CourierCod> Couriers, Money Expected, Money Collected, Money Shortfall, Money Outstanding);
 
 /// <summary>
-/// "Who owes me money": delivered parcels (expected) reconciled against settled ones (collected),
+/// "Who owes me money": delivered parcels (expected) reconciled against what payouts paid (collected),
 /// per courier, with the unpaid rest aged. Pure: the caller supplies the parcels and "today".
 /// </summary>
 public static class CodReconciliation
@@ -65,6 +71,7 @@ public static class CodReconciliation
             couriers,
             Sum(couriers.Select(c => c.Expected)),
             Sum(couriers.Select(c => c.Collected)),
+            Sum(couriers.Select(c => c.Shortfall)),
             Sum(couriers.Select(c => c.Outstanding)));
     }
 
@@ -82,6 +89,7 @@ public static class CodReconciliation
 
     private static CourierCod ForCourier(CourierProvider? courier, IReadOnlyList<CodParcel> parcels, DateOnly today)
     {
+        var paid = parcels.Where(p => p.Settled).Select(p => (p.Due, Paid: p.Paid!.Value)).ToList();
         var unpaid = parcels.Where(p => !p.Settled).Select(p => (p.Due, Days: AgeInDays(p.DeliveredAt, today))).ToList();
 
         // Every bucket is always present (zero when empty), so clients and charts get a fixed shape.
@@ -97,7 +105,9 @@ public static class CodReconciliation
             courier,
             parcels.Count,
             Expected: Sum(parcels.Select(p => p.Due)),
-            Collected: Sum(parcels.Where(p => p.Settled).Select(p => p.Due)),
+            Collected: Sum(paid.Select(p => p.Paid)),
+            Shortfall: Sum(paid.Select(p => p.Due - p.Paid)),
+            ShortPaidParcels: paid.Count(p => p.Paid != p.Due),
             Outstanding: Sum(unpaid.Select(u => u.Due)),
             OutstandingParcels: unpaid.Count,
             OldestOutstandingDays: unpaid.Count == 0 ? null : unpaid.Max(u => u.Days),
