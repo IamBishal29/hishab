@@ -107,4 +107,56 @@ public class PayoutTests
     {
         Should.Throw<DomainValidationException>(() => Record([], [], net: 0m)).Errors.Keys.ShouldBe(["lines"]);
     }
+
+    [Fact]
+    public void Rematch_settles_a_parcel_that_was_in_transit_on_the_statement_day()
+    {
+        var parcel = Parcel(500m, OrderStatus.InTransit);
+        var payout = Record([Line("A", 500m), Line("B", 300m)], new() { ["A"] = parcel }, net: 680m);
+        payout.Lines.Select(l => l.Match).ShouldBe([PayoutLineMatch.NotDelivered, PayoutLineMatch.UnknownParcel]);
+        var differenceBefore = payout.Difference;
+
+        var b = Parcel(300m); // booked under our records after the statement (a lost booking answer)
+        var settled = payout.Rematch(new Dictionary<string, PayoutParcel> { ["A"] = parcel with { OrderStatus = OrderStatus.Delivered }, ["B"] = b });
+
+        settled.Select(l => l.SettlesOrderId).ShouldBe([parcel.OrderId, b.OrderId]);
+        payout.Lines.Select(l => l.Match).ShouldBe([PayoutLineMatch.Settled, PayoutLineMatch.Settled]);
+        payout.Difference.ShouldBe(differenceBefore); // re-matching never touches an amount
+    }
+
+    [Fact]
+    public void Rematch_leaves_settled_paid_and_repeated_lines_alone()
+    {
+        var settledParcel = Parcel(500m);
+        var paidElsewhere = Parcel(200m, OrderStatus.CodSettled);
+        var payout = Record(
+            [Line("A", 500m), Line("A", 500m), Line("P", 200m)],
+            new() { ["A"] = settledParcel, ["P"] = paidElsewhere },
+            net: 1080m);
+
+        // Even if the world changed, final lines keep their result and settle nothing new.
+        var settled = payout.Rematch(new Dictionary<string, PayoutParcel>
+        {
+            ["A"] = settledParcel with { OrderStatus = OrderStatus.CodSettled },
+            ["P"] = paidElsewhere with { OrderStatus = OrderStatus.Delivered },
+        });
+
+        settled.ShouldBeEmpty();
+        payout.Lines.Select(l => l.Match).ShouldBe([PayoutLineMatch.Settled, PayoutLineMatch.RepeatedInPayout, PayoutLineMatch.AlreadyPaid]);
+        payout.Lines[0].SettlesOrderId.ShouldBe(settledParcel.OrderId);
+    }
+
+    [Fact]
+    public void Rematch_records_why_a_line_still_settles_nothing()
+    {
+        var returned = Parcel(500m, OrderStatus.InTransit);
+        var payout = Record([Line("A", 500m)], new() { ["A"] = returned }, net: 440m);
+
+        var settled = payout.Rematch(new Dictionary<string, PayoutParcel> { ["A"] = returned with { OrderStatus = OrderStatus.CodSettled } });
+
+        settled.ShouldBeEmpty();
+        var line = payout.Lines.ShouldHaveSingleItem();
+        line.Match.ShouldBe(PayoutLineMatch.AlreadyPaid); // another payout paid it meanwhile: never twice
+        line.SettlesOrderId.ShouldBeNull();
+    }
 }

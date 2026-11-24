@@ -102,7 +102,8 @@ public sealed class FinanceScenario(HishabApiFactory factory)
         return (orderId, consignment);
     }
 
-    private async Task CourierReports(JsonElement owner, string consignment, ParcelStatus status)
+    /// <summary>The courier reports a new status and the sync job picks it up.</summary>
+    public async Task CourierReports(JsonElement owner, string consignment, ParcelStatus status)
     {
         factory.Services.GetRequiredService<FakeCourierControl>().SetStatus(consignment, status, factory.Clock.GetUtcNow());
         await factory.Services.GetRequiredService<CourierStatusJobs>().SyncShopAsync(ShopId(owner), CourierProvider.Fake, Ct);

@@ -2,10 +2,10 @@
 
 ## Current
 - Milestone: M4 Money & risk (M1-M3 complete)
-- Issue: none in progress (#29 in review, PR #78)
+- Issue: none in progress (#76 in review, PR #79; #29 merged)
 - Branch: none (start the next one from main)
-- Next step: #30 "Dashboard API: today's counts and real profit" (lowest open in M4). #76 (returns with
-  return charges + payout re-match) is also open; real profit needs return charges, so consider #76 first.
+- Next step: #30 "Dashboard API: today's counts and real profit" (lowest open in M4; return charges now
+  exist on `Shipment.ReturnCharge`).
 
 ## Done
 - Product discovery: PRD written (docs/PRD.md); name chosen: Hishab
@@ -149,6 +149,10 @@
   cancellations), thresholds from Risk:* options (ValidateOnStart), history gains last delivered/returned
   dates, risk on lookup, customer page and order details (current order excluded); this shop only;
   608 .NET + 73 web tests; note 32
+- #76 Returns + re-match (PR #79): receive-back (CanPack; charge needs SeeProfit, in the service),
+  PUT return-charge (CanSeeProfit) for later entry/correction, `Shipment.ReturnCharge` (migration),
+  `ShipmentDto.returnCharge` hidden without SeeProfit, payout re-match of UnknownParcel/NotDelivered lines
+  only (amounts unchanged, settled-shipment index guards races); 620 .NET + 73 web tests; note 33
 - #24 Steadfast: paused and moved out of M3 (docs behind the merchant login, no sandbox; Syed's choice)
 
 ## Decisions waiting for Syed
@@ -156,6 +160,9 @@
   last 90 days, or 3+ cancellations). Check them with a few sellers. Cancellations count all cancels,
   including the seller's own (e.g. out of stock); a cancel reason would let us count only buyer-side ones.
   Order list rows have no risk yet (#33 needs a batched per-page query).
+- Returns (#76): for #30, decide what profit uses when a returned parcel has no charge entered yet (0 and
+  flag "charges missing", or estimate from the delivery fee). Re-match is manual (your choice); the
+  button comes with #32. PR is ~610 lines excl. generated/migration (~700 with docs).
 - **Docker (#28):** I started Docker Desktop and stopped (not removed) the 5 shopflow containers, as you
   chose. `docker start shopflow-control-plane shopflow-api-gateway shopflow-payment-service
   shopflow-order-service shopflow-notification-service` brings them back. Docker is still running.
@@ -291,3 +298,5 @@
   (Syed's choices); PR #77 open
 - 2026-11-24: #77 merged; #29 with a New level, risk on lookup/customer/order detail, server-wide
   thresholds (Syed's choices); PR #78 open
+- 2026-11-24: #78 merged; #76 before #30 (profit needs return charges), charge settable later and manual
+  re-match (Syed's choices); PR #79 open

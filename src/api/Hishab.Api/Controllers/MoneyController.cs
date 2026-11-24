@@ -99,6 +99,18 @@ public sealed class MoneyController(ICodSummaryService cod, IPayoutService payou
         return Ok(new PayoutListResponse([.. page.Items.Select(PayoutSummaryDto.From)], page.Page, page.PageSize, page.Total));
     }
 
+    /// <summary>
+    /// Matches the payout's UnknownParcel and NotDelivered lines again (e.g. a parcel that was still in
+    /// transit when the payout was entered and is delivered now) and settles the orders they now match.
+    /// Settled lines and all amounts stay as they are. 409 if an order changed meanwhile (try again).
+    /// </summary>
+    [HttpPost("payouts/{id:guid}/rematch")]
+    [ProducesResponseType<PayoutResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<PayoutResponse>> RematchPayout(Guid id, CancellationToken cancellationToken) =>
+        Ok(PayoutResponse.From(await payouts.RematchAsync(id, cancellationToken)));
+
     /// <summary>One payout with every statement line and what it matched.</summary>
     [HttpGet("payouts/{id:guid}")]
     [ProducesResponseType<PayoutResponse>(StatusCodes.Status200OK)]

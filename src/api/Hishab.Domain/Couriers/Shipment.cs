@@ -82,6 +82,12 @@ public sealed class Shipment : ITenantOwned, IAuditable
     /// <summary>When we last asked; syncs ask the least recently checked parcels first.</summary>
     public DateTimeOffset? StatusCheckedAt { get; private set; }
 
+    /// <summary>
+    /// What the courier charged to carry the parcel back (a cost to the shop); null until entered.
+    /// Read by the profit report. Only for returned parcels: the caller checks the order's status.
+    /// </summary>
+    public Money? ReturnCharge { get; private set; }
+
     /// <summary>Booked and not yet Delivered, Returned or Cancelled at the courier: still worth asking about.</summary>
     public bool IsTracking => State == ShipmentState.Booked && (ParcelStatus is null || !ParcelStatusRules.IsFinal(ParcelStatus.Value));
 
@@ -161,6 +167,24 @@ public sealed class Shipment : ITenantOwned, IAuditable
         CourierStatus = status == Couriers.ParcelStatus.Unknown ? Truncate(courierStatus, ConsignmentMaxLength) : null;
         ParcelStatusAt = changedAt ?? ParcelStatusAt;
         StatusCheckedAt = now;
+    }
+
+    /// <summary>Records (or corrects) the courier's charge for bringing this parcel back.</summary>
+    /// <exception cref="ConflictException">The parcel was never booked, so it never travelled.</exception>
+    /// <exception cref="DomainValidationException">A negative charge.</exception>
+    public void RecordReturnCharge(Money charge)
+    {
+        if (State != ShipmentState.Booked)
+        {
+            throw new ConflictException($"A {State} shipment was never sent, so it has no return charge.");
+        }
+
+        if (charge.IsNegative)
+        {
+            throw new DomainValidationException("returnCharge", "The return charge cannot be negative.");
+        }
+
+        ReturnCharge = charge;
     }
 
     private void SetDestination(CourierDestination? destination)

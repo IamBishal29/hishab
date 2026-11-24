@@ -187,6 +187,48 @@ public sealed class OrderActionRequestValidator : AbstractValidator<OrderActionR
     public OrderActionRequestValidator() => RuleFor(r => r.Note).MaximumLength(Order.NoteMaxLength);
 }
 
+/// <summary>A returned parcel is back at the shop.</summary>
+public sealed class ReceiveBackRequest
+{
+    /// <summary>What the courier charged to bring it back, in BDT. Optional; only staff who can see profit may send it.</summary>
+    /// <example>60.00</example>
+    public decimal? ReturnCharge { get; init; }
+
+    /// <summary>Saved in the order's history, e.g. the box's condition.</summary>
+    /// <example>Box opened, item fine</example>
+    public string? Note { get; init; }
+}
+
+public sealed class ReceiveBackRequestValidator : AbstractValidator<ReceiveBackRequest>
+{
+    public ReceiveBackRequestValidator()
+    {
+        RuleFor(r => r.ReturnCharge!.Value).ReturnCharge().When(r => r.ReturnCharge is not null).OverridePropertyName("returnCharge");
+        RuleFor(r => r.Note).MaximumLength(Order.NoteMaxLength);
+    }
+}
+
+/// <summary>The courier's charge for bringing a returned parcel back.</summary>
+public sealed class ReturnChargeRequest
+{
+    /// <summary>In BDT; replaces any earlier amount.</summary>
+    /// <example>60.00</example>
+    public required decimal ReturnCharge { get; init; }
+}
+
+public sealed class ReturnChargeRequestValidator : AbstractValidator<ReturnChargeRequest>
+{
+    public ReturnChargeRequestValidator() => RuleFor(r => r.ReturnCharge).ReturnCharge();
+}
+
+internal static class ReturnChargeRules
+{
+    public const decimal Max = 100_000m;
+
+    public static IRuleBuilderOptions<T, decimal> ReturnCharge<T>(this IRuleBuilder<T, decimal> rule) =>
+        rule.InclusiveBetween(0m, Max).Must(Money.HasValidScale).WithMessage("Amounts can have at most 2 decimal places.");
+}
+
 public sealed class BulkOrderActionRequest
 {
     public const int MaxOrders = 100;
@@ -423,6 +465,36 @@ public sealed class OrdersController(
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<OrderDetails>> Cancel(Guid id, OrderActionRequest? request, CancellationToken cancellationToken) =>
         Ok(await orders.TransitionAsync(id, OrderStatus.Cancelled, request?.Note, cancellationToken));
+
+    /// <summary>
+    /// A returned parcel is back at the shop: Returned -> ReceivedBack, optionally with the courier's
+    /// return charge (saved together). 403 if a charge is sent by staff who cannot see profit; 409 if
+    /// the order is not Returned or changed meanwhile.
+    /// </summary>
+    [HttpPost("{id:guid}/receive-back")]
+    [Authorize(Policy = Policies.CanPack)]
+    [ProducesResponseType<OrderDetails>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<OrderDetails>> ReceiveBack(Guid id, ReceiveBackRequest? request, CancellationToken cancellationToken) =>
+        Ok(await shipments.ReceiveBackAsync(
+            id, request?.ReturnCharge is { } charge ? Money.Bdt(charge) : null, request?.Note, cancellationToken));
+
+    /// <summary>
+    /// Enters or corrects the courier's return charge on a Returned or ReceivedBack order (for
+    /// parcels a packer received without it). 409 if the order was not returned.
+    /// </summary>
+    [HttpPut("{id:guid}/return-charge")]
+    [Authorize(Policy = Policies.CanSeeProfit)]
+    [ProducesResponseType<OrderDetails>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<OrderDetails>> SetReturnCharge(Guid id, ReturnChargeRequest request, CancellationToken cancellationToken) =>
+        Ok(await shipments.SetReturnChargeAsync(id, Money.Bdt(request.ReturnCharge), cancellationToken));
 
     /// <summary>
     /// Confirms many orders. Always 200 with one result per order: check <c>failed</c> and each

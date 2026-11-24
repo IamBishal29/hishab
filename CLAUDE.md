@@ -311,7 +311,12 @@ Never read, print or commit `.env`, user-secrets, tokens or keys. Put placeholde
   Unique (tenant, provider, reference) = one statement once (409); partial unique
   `ux_payout_lines_settled_shipment` = a parcel settles once. COD summary: collected = settled line
   amounts (CodSettled without a line = paid in full); expected = collected + shortfall + outstanding.
-  `/api/money/payouts` (POST/GET, `CanSeeProfit`). Returns + re-match: #76.
+  `/api/money/payouts` (POST/GET, `CanSeeProfit`).
+- Returns (#76): `POST /api/orders/{id}/receive-back` (`CanPack`; Returned -> ReceivedBack, optional
+  `returnCharge` needs SeeProfit, checked in `ShipmentService`), `PUT /api/orders/{id}/return-charge`
+  (`CanSeeProfit`, Returned/ReceivedBack only). Charge = `Shipment.ReturnCharge` (null = not entered;
+  `ShipmentDto.returnCharge` null without SeeProfit). Re-match: `POST /api/money/payouts/{id}/rematch`
+  re-decides only UnknownParcel/NotDelivered lines (`PayoutMatching.CanRematch`); amounts never change.
 - Screenshots for UI PRs live in `docs/screenshots/NN-*.png` (390 px wide, headless Chrome).
 - Field-level rules belong in services via `IRequestContext.Has(permission)`, not only in controllers.
 - Audit: mark entities `IAuditable` (Domain); `AuditInterceptor` writes `AuditEntry` rows in the

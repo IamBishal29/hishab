@@ -56,4 +56,10 @@ public static class PayoutMatching
 
     /// <summary>The lines that move their order to CodSettled; every other result settles nothing.</summary>
     public static bool Settles(PayoutLineMatch match) => match is PayoutLineMatch.Settled or PayoutLineMatch.AmountDiffers;
+
+    /// <summary>
+    /// Results that can change as parcels move on: an unknown parcel may be booked later (a lost
+    /// booking answer), an undelivered one may be delivered. Settled, already paid and repeated lines are final.
+    /// </summary>
+    public static bool CanRematch(PayoutLineMatch match) => match is PayoutLineMatch.UnknownParcel or PayoutLineMatch.NotDelivered;
 }

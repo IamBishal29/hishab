@@ -152,5 +152,6 @@ public class PayoutApiTests(HishabApiFactory factory) : IClassFixture<HishabApiF
 
         (await _shop.Send(HttpMethod.Post, "/api/money/payouts", staff, Payout("FK-ROLE", 1m, Line("CN", 1m)))).StatusCode.ShouldBe(HttpStatusCode.Forbidden);
         (await _shop.Send(HttpMethod.Get, "/api/money/payouts", staff)).StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        (await _shop.Send(HttpMethod.Post, $"/api/money/payouts/{Guid.NewGuid()}/rematch", staff)).StatusCode.ShouldBe(HttpStatusCode.Forbidden);
     }
 }

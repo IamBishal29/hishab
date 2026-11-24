@@ -116,6 +116,7 @@ export const bookedShipment: ShipmentDto = {
   requestedAt: '2026-11-20T07:00:00Z',
   bookedAt: '2026-11-20T07:00:01Z',
   destination: null,
+  returnCharge: null,
 }
 
 /** A connected courier (for booking tests). */
@@ -292,6 +293,7 @@ function bookOrder(
     requestedAt: '2026-11-20T07:00:00Z',
     bookedAt: null,
     destination: destination ?? null,
+    returnCharge: null,
   }
   const refusal = api.refusals[id]
   if (refusal) {
