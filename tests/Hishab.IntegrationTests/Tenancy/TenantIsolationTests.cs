@@ -2,6 +2,7 @@ using System.Globalization;
 using Hishab.Domain.Common;
 using Hishab.Domain.Couriers;
 using Hishab.Domain.Customers;
+using Hishab.Domain.Finance;
 using Hishab.Domain.Orders;
 using Hishab.Domain.Products;
 using Hishab.Domain.Shops;
@@ -219,6 +220,25 @@ public class TenantIsolationTests(TenancyDatabaseFixture fixture) : IClassFixtur
                 orders.Add(order.Id); // the shipment is created for tenant A, the first one
                 return tenant;
             });
+    }
+
+    [Fact]
+    public async Task Payouts_are_isolated_between_shops()
+    {
+        // Lines that matched nothing have no order or shipment, so no parent rows are needed.
+        await CrossTenantAssert.IsIsolatedAsync(
+            id => fixture.CreateContext(id),
+            () => Payout.Record(
+                CourierProvider.Fake,
+                "FK-ISO-1",
+                new DateOnly(2026, 11, 1),
+                Money.Bdt(100m),
+                null,
+                [new PayoutLineInput("NOT-FOUND", Money.Bdt(100m), Money.Zero, Money.Zero)],
+                new Dictionary<string, PayoutParcel>(),
+                by: null,
+                DateTimeOffset.UtcNow),
+            Ct);
     }
 
     [Fact]
