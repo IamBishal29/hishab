@@ -56,6 +56,11 @@ internal sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
             change.Property(c => c.To).HasConversion<string>().HasMaxLength(16);
             change.Property(c => c.Note).HasMaxLength(Order.NoteMaxLength);
             change.HasIndex("OrderId", nameof(OrderStatusChange.Sequence)).IsUnique(); // one step per position
+
+            // A copy of the order's tenant (stamped by SaveChanges), so reports can find "this shop's
+            // deliveries between two dates" in one index range instead of every shop's.
+            change.Property<Guid>(HishabDbContext.OwnedTenantIdProperty);
+            change.HasIndex(HishabDbContext.OwnedTenantIdProperty, nameof(OrderStatusChange.To), nameof(OrderStatusChange.ChangedAt));
         });
         builder.Navigation(o => o.History).UsePropertyAccessMode(PropertyAccessMode.Field);
     }

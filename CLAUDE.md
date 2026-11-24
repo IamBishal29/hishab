@@ -317,6 +317,13 @@ Never read, print or commit `.env`, user-secrets, tokens or keys. Put placeholde
   (`CanSeeProfit`, Returned/ReceivedBack only). Charge = `Shipment.ReturnCharge` (null = not entered;
   `ShipmentDto.returnCharge` null without SeeProfit). Re-match: `POST /api/money/payouts/{id}/rematch`
   re-decides only UnknownParcel/NotDelivered lines (`PayoutMatching.CanRematch`); amounts never change.
+- Reports (#30): `IDashboardService` (Infrastructure/Reports), computed on read. `GET /api/reports/today`
+  (counts + today's profit) and `GET /api/reports/profit?from=&to=` (Dhaka days, default month so far,
+  max 366), both `CanSeeProfit`. Pure `ProfitReport.Build` (Domain/Reports): profit = sales (order total,
+  on the delivery day) - snapshot cost - delivery fee (payout line, else booking quote) - return charge
+  (return day) - COD fee (payout line); unknowns count 0 and are listed in `missing`. Status history has a
+  shadow `TenantId` (stamped in SaveChanges for owned types that declare it; index tenant_id, to,
+  changed_at): filter it explicitly with `EF.Property<Guid>(h, HishabDbContext.OwnedTenantIdProperty)`.
 - Screenshots for UI PRs live in `docs/screenshots/NN-*.png` (390 px wide, headless Chrome).
 - Field-level rules belong in services via `IRequestContext.Has(permission)`, not only in controllers.
 - Audit: mark entities `IAuditable` (Domain); `AuditInterceptor` writes `AuditEntry` rows in the

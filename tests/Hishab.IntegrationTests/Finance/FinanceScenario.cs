@@ -54,10 +54,10 @@ public sealed class FinanceScenario(HishabApiFactory factory)
         return owner;
     }
 
-    /// <summary>A confirmed order: one line at <paramref name="price"/> + 60 delivery (inside Dhaka) - <paramref name="advance"/>.</summary>
-    public async Task<Guid> ConfirmedOrder(JsonElement owner, decimal price, decimal advance)
+    /// <summary>A confirmed order: one line at <paramref name="price"/> (costing <paramref name="cost"/>, if any) + 60 delivery (inside Dhaka) - <paramref name="advance"/>.</summary>
+    public async Task<Guid> ConfirmedOrder(JsonElement owner, decimal price, decimal advance, decimal? cost = null)
     {
-        var product = await Ok(HttpMethod.Post, "/api/products", owner, new { name = "Polo shirt", variants = new[] { new { sku = "POLO-" + Guid.NewGuid().ToString("N")[..6], price } } });
+        var product = await Ok(HttpMethod.Post, "/api/products", owner, new { name = "Polo shirt", variants = new[] { new { sku = "POLO-" + Guid.NewGuid().ToString("N")[..6], price, costPrice = cost } } });
         var created = await Ok(HttpMethod.Post, "/api/orders", owner, new
         {
             phone = "01912345678",
@@ -74,9 +74,9 @@ public sealed class FinanceScenario(HishabApiFactory factory)
     }
 
     /// <summary>Booked with the Fake courier; returns the order and its consignment ID.</summary>
-    public async Task<(Guid OrderId, string Consignment)> BookedOrder(JsonElement owner, decimal price, decimal advance = 0m)
+    public async Task<(Guid OrderId, string Consignment)> BookedOrder(JsonElement owner, decimal price, decimal advance = 0m, decimal? cost = null)
     {
-        var orderId = await ConfirmedOrder(owner, price, advance);
+        var orderId = await ConfirmedOrder(owner, price, advance, cost);
         var booked = await Ok(HttpMethod.Post, $"/api/orders/{orderId}/book", owner, new { courier = "Fake" });
         return (orderId, booked.GetProperty("shipment").GetProperty("consignmentId").GetString()!);
     }
@@ -90,9 +90,9 @@ public sealed class FinanceScenario(HishabApiFactory factory)
     }
 
     /// <summary>Booked with the Fake courier, delivered via the status sync job, <paramref name="daysAgo"/> days before now.</summary>
-    public async Task<(Guid OrderId, string Consignment)> DeliveredOrder(JsonElement owner, decimal price, decimal advance = 0m, int daysAgo = 0)
+    public async Task<(Guid OrderId, string Consignment)> DeliveredOrder(JsonElement owner, decimal price, decimal advance = 0m, int daysAgo = 0, decimal? cost = null)
     {
-        var (orderId, consignment) = await BookedOrder(owner, price, advance);
+        var (orderId, consignment) = await BookedOrder(owner, price, advance, cost);
         await CourierReports(owner, consignment, ParcelStatus.Delivered);
 
         // The sync stamps "now"; back-date the Delivered step to give the parcel its age.

@@ -1276,6 +1276,10 @@ namespace Hishab.Infrastructure.Persistence.Migrations
                                 .HasColumnType("integer")
                                 .HasColumnName("sequence");
 
+                            b1.Property<Guid>("TenantId")
+                                .HasColumnType("uuid")
+                                .HasColumnName("tenant_id");
+
                             b1.Property<string>("To")
                                 .IsRequired()
                                 .HasMaxLength(16)
@@ -1288,6 +1292,9 @@ namespace Hishab.Infrastructure.Persistence.Migrations
                             b1.HasIndex("OrderId", "Sequence")
                                 .IsUnique()
                                 .HasDatabaseName("ix_order_status_changes_order_id_sequence");
+
+                            b1.HasIndex("TenantId", "To", "ChangedAt")
+                                .HasDatabaseName("ix_order_status_changes_tenant_id_to_changed_at");
 
                             b1.ToTable("order_status_changes", (string)null);
 
