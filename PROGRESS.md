@@ -2,10 +2,10 @@
 
 ## Current
 - Milestone: M4 Money & risk (M1-M3 complete)
-- Issue: none in progress (#31 in review, PR #81; #30 merged)
+- Issue: none in progress (#32 in review, PR #82; #31 merged)
 - Branch: none (start the next one from main)
-- Next step: #32 "Web: COD and payouts screens" (lowest open in M4), then #33 (dashboard with charts and
-  risk badges, uses /api/reports). Both are web issues; a "Download CSV" button can join one of them.
+- Next step: #33 (dashboard with charts and risk badges, uses /api/reports; lowest open in M4). A
+  "Download CSV" button (export, #31) can join it.
 
 ## Done
 - Product discovery: PRD written (docs/PRD.md); name chosen: Hishab
@@ -161,9 +161,17 @@
   AsAsyncEnumerable, CsvWriter (RFC 4180, UTF-8 BOM, CSV-injection neutralising for typed text, phones as
   01912-345678), list filters shared with the screens, EnumSchemaTransformer fix for nullable shared enums;
   655 .NET + 73 web tests; note 35
+- #32 Money screens (PR #82): /money (COD totals, per-courier ageing, payouts with "needs a look"),
+  payout form with statement paste (pure parseStatement, unreadable rows listed), payout detail with
+  mismatches first + re-match, Owner-only (queries disabled for others), afterPayoutChange fan-out;
+  86 web tests; note 36; screenshots
 - #24 Steadfast: paused and moved out of M3 (docs behind the merchant login, no sandbox; Syed's choice)
 
 ## Decisions waiting for Syed
+- Money UI (#32): PR is ~1,450 lines (tests + MSW fake ~560, strings ~180), more than my 1,000 estimate.
+  Paste expects the column order ID, collected, delivery fee, COD fee; real Pathao statement columns are
+  unknown (check with a real export; a column-mapping step could follow). No payout list paging yet (latest
+  20). Return-charge entry/receive-back still has no web button (#76 API only): add to #33 or a new issue?
 - Risk (#29): default thresholds are my guess (Risky = 2+ returns and 50%+; Watch = 30%+, a return in the
   last 90 days, or 3+ cancellations). Check them with a few sellers. Cancellations count all cancels,
   including the seller's own (e.g. out of stock); a cancel reason would let us count only buyer-side ones.
@@ -314,5 +322,6 @@
   re-match (Syed's choices); PR #79 open
 - 2026-11-24: #79 merged; #30 with delivery-day sales, unknowns as 0 + missing counts, tenant_id on status
   history (Syed's choices); PR #80 open
+- 2026-11-24: #81 merged; #32 with statement paste, one PR (Syed's choices); PR #82 open
 - 2026-11-24: #80 merged; #31 Owner-only export, one row per order (Syed's choices), hand-written CSV writer
   (no library); PR #81 open
