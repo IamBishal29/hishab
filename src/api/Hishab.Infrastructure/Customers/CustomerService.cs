@@ -12,18 +12,7 @@ internal sealed partial class CustomerService(HishabDbContext db, TimeProvider c
 {
     public async Task<CustomerPage> ListAsync(string? search, int page, int pageSize, CancellationToken cancellationToken)
     {
-        var query = db.Customers.AsNoTracking();
-        if (!string.IsNullOrWhiteSpace(search))
-        {
-            var text = search.Trim();
-            var digits = new string([.. text.Where(char.IsAsciiDigit)]);
-            var namePattern = $"%{EscapeLike(text)}%";
-            var phonePattern = $"%{digits}%";
-            query = digits.Length >= 3 // "0171" finds +8801712345678; short digit runs would match everyone
-                ? query.Where(c => EF.Functions.ILike(c.Name!, namePattern, @"\") || EF.Functions.Like(c.Phone, phonePattern))
-                : query.Where(c => EF.Functions.ILike(c.Name!, namePattern, @"\"));
-        }
-
+        var query = Search(db.Customers.AsNoTracking(), search);
         var total = await query.CountAsync(cancellationToken);
         var customers = await query
             .OrderByDescending(c => c.CreatedAt).ThenBy(c => c.Id)
@@ -32,6 +21,23 @@ internal sealed partial class CustomerService(HishabDbContext db, TimeProvider c
             .ToListAsync(cancellationToken);
 
         return new CustomerPage([.. customers.Select(ToDto)], page, pageSize, total);
+    }
+
+    /// <summary>The customer list's search, shared with the CSV export: part of a name, or 3+ phone digits.</summary>
+    internal static IQueryable<Customer> Search(IQueryable<Customer> query, string? search)
+    {
+        if (string.IsNullOrWhiteSpace(search))
+        {
+            return query;
+        }
+
+        var text = search.Trim();
+        var digits = new string([.. text.Where(char.IsAsciiDigit)]);
+        var namePattern = $"%{EscapeLike(text)}%";
+        var phonePattern = $"%{digits}%";
+        return digits.Length >= 3 // "0171" finds +8801712345678; short digit runs would match everyone
+            ? query.Where(c => EF.Functions.ILike(c.Name!, namePattern, @"\") || EF.Functions.Like(c.Phone, phonePattern))
+            : query.Where(c => EF.Functions.ILike(c.Name!, namePattern, @"\"));
     }
 
     public async Task<CustomerDto?> FindByPhoneAsync(string phone, CancellationToken cancellationToken)
