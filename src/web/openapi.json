@@ -1860,6 +1860,351 @@
         }
       }
     },
+    "/api/money/payouts": {
+      "post": {
+        "tags": [
+          "Money"
+        ],
+        "summary": "Records a courier payout from its statement and matches each line to a delivered parcel by\nconsignment ID. Matched orders become CodSettled (a short or over payment still settles, with the\ngap shown); lines that match nothing are kept with the reason. One payout per courier and reference.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecordPayoutRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecordPayoutRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecordPayoutRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Created",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PayoutResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PayoutResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PayoutResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Money"
+        ],
+        "summary": "Recorded payouts, newest paid first.",
+        "parameters": [
+          {
+            "name": "Courier",
+            "in": "query",
+            "description": "Only this courier's payouts.",
+            "schema": {
+              "$ref": "#/components/schemas/CourierProvider"
+            }
+          },
+          {
+            "name": "Page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "PageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PayoutListResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PayoutListResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PayoutListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/money/payouts/{id}": {
+      "get": {
+        "tags": [
+          "Money"
+        ],
+        "summary": "One payout with every statement line and what it matched.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PayoutResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PayoutResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PayoutResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/orders": {
       "post": {
         "tags": [
@@ -5560,6 +5905,7 @@
           "couriers",
           "expected",
           "collected",
+          "shortfall",
           "outstanding"
         ],
         "type": "object",
@@ -5578,12 +5924,16 @@
             "type": "number",
             "format": "double"
           },
+          "shortfall": {
+            "type": "number",
+            "format": "double"
+          },
           "outstanding": {
             "type": "number",
             "format": "double"
           }
         },
-        "description": "What every courier owes the shop, and the totals."
+        "description": "What every courier owes the shop, and the totals. Expected = collected + shortfall + outstanding."
       },
       "ConnectCourierRequest": {
         "type": "object",
@@ -5603,6 +5953,8 @@
           "deliveredParcels",
           "expected",
           "collected",
+          "shortfall",
+          "shortPaidParcels",
           "outstanding",
           "outstandingParcels",
           "oldestOutstandingDays",
@@ -5633,12 +5985,22 @@
           },
           "collected": {
             "type": "number",
-            "description": "Paid out to the shop (COD settled), in BDT.",
+            "description": "What payouts actually paid for settled parcels, in BDT.",
             "format": "double"
+          },
+          "shortfall": {
+            "type": "number",
+            "description": "Settled parcels' due minus what was paid (positive = short-paid), in BDT.",
+            "format": "double"
+          },
+          "shortPaidParcels": {
+            "type": "integer",
+            "description": "Settled parcels paid a different amount than due.",
+            "format": "int32"
           },
           "outstanding": {
             "type": "number",
-            "description": "Still with the courier, in BDT.",
+            "description": "Still with the courier (not paid out yet), in BDT.",
             "format": "double"
           },
           "outstandingParcels": {
@@ -6206,6 +6568,51 @@
           }
         }
       },
+      "HttpValidationProblemDetails": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "title": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "status": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "detail": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "instance": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "errors": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
       "InviteStaffRequest": {
         "required": [
           "phone",
@@ -6674,6 +7081,264 @@
           }
         }
       },
+      "PayoutLineDto": {
+        "required": [
+          "sequence",
+          "consignmentId",
+          "collected",
+          "deliveryFee",
+          "codFee",
+          "match",
+          "orderId",
+          "orderNumber",
+          "codDue",
+          "shortfall"
+        ],
+        "type": "object",
+        "properties": {
+          "sequence": {
+            "type": "integer",
+            "description": "Position on the statement, from 1.",
+            "format": "int32"
+          },
+          "consignmentId": {
+            "type": "string",
+            "description": "The courier's consignment ID."
+          },
+          "collected": {
+            "type": "number",
+            "description": "Cash collected for the parcel, in BDT.",
+            "format": "double"
+          },
+          "deliveryFee": {
+            "type": "number",
+            "description": "Delivery charge deducted, in BDT.",
+            "format": "double"
+          },
+          "codFee": {
+            "type": "number",
+            "description": "COD fee deducted, in BDT.",
+            "format": "double"
+          },
+          "match": {
+            "description": "Settled, AmountDiffers (settled; see shortfall), UnknownParcel, NotDelivered, AlreadyPaid or RepeatedInPayout.",
+            "$ref": "#/components/schemas/PayoutLineMatch"
+          },
+          "orderId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The parcel's order when the consignment was found.",
+            "format": "uuid"
+          },
+          "orderNumber": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "description": "That order's number.",
+            "format": "int32"
+          },
+          "codDue": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "What the order was due, in BDT, when found.",
+            "format": "double"
+          },
+          "shortfall": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "Due minus collected on a settled line (positive = short-paid); null when nothing was settled.",
+            "format": "double"
+          }
+        },
+        "description": "One statement line and what matching decided."
+      },
+      "PayoutLineMatch": {
+        "enum": [
+          "Settled",
+          "AmountDiffers",
+          "UnknownParcel",
+          "NotDelivered",
+          "AlreadyPaid",
+          "RepeatedInPayout"
+        ]
+      },
+      "PayoutLineRequest": {
+        "required": [
+          "consignmentId",
+          "collected",
+          "deliveryFee",
+          "codFee"
+        ],
+        "type": "object",
+        "properties": {
+          "consignmentId": {
+            "type": "string",
+            "description": "The courier's consignment ID, as on the statement."
+          },
+          "collected": {
+            "type": "number",
+            "description": "Cash the courier collected for this parcel, in BDT.",
+            "format": "double"
+          },
+          "deliveryFee": {
+            "type": "number",
+            "description": "Delivery charge the courier deducted, in BDT.",
+            "format": "double"
+          },
+          "codFee": {
+            "type": "number",
+            "description": "Cash-handling (COD) fee the courier deducted, in BDT.",
+            "format": "double"
+          }
+        },
+        "description": "One parcel on the courier's payout statement."
+      },
+      "PayoutListResponse": {
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "total"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PayoutSummaryDto"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "total": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "PayoutResponse": {
+        "required": [
+          "payout",
+          "lines"
+        ],
+        "type": "object",
+        "properties": {
+          "payout": {
+            "$ref": "#/components/schemas/PayoutSummaryDto"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PayoutLineDto"
+            }
+          }
+        }
+      },
+      "PayoutSummaryDto": {
+        "required": [
+          "id",
+          "courier",
+          "reference",
+          "paidOn",
+          "netAmount",
+          "collected",
+          "deliveryFees",
+          "codFees",
+          "statementNet",
+          "difference",
+          "settledParcels",
+          "mismatchedParcels",
+          "note",
+          "recordedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The payout's ID.",
+            "format": "uuid"
+          },
+          "courier": {
+            "description": "The courier that paid.",
+            "$ref": "#/components/schemas/CourierProvider"
+          },
+          "reference": {
+            "type": "string",
+            "description": "The courier's statement or transfer ID."
+          },
+          "paidOn": {
+            "type": "string",
+            "description": "The day the money arrived (Dhaka date).",
+            "format": "date"
+          },
+          "netAmount": {
+            "type": "number",
+            "description": "What arrived, in BDT.",
+            "format": "double"
+          },
+          "collected": {
+            "type": "number",
+            "description": "Sum of the lines' collected cash, in BDT.",
+            "format": "double"
+          },
+          "deliveryFees": {
+            "type": "number",
+            "description": "Sum of the lines' delivery charges, in BDT.",
+            "format": "double"
+          },
+          "codFees": {
+            "type": "number",
+            "description": "Sum of the lines' COD fees, in BDT.",
+            "format": "double"
+          },
+          "statementNet": {
+            "type": "number",
+            "description": "Collected minus delivery and COD fees, from the lines.",
+            "format": "double"
+          },
+          "difference": {
+            "type": "number",
+            "description": "NetAmount minus statementNet: negative = less arrived than the statement says.",
+            "format": "double"
+          },
+          "settledParcels": {
+            "type": "integer",
+            "description": "Lines that settled an order (Settled or AmountDiffers).",
+            "format": "int32"
+          },
+          "mismatchedParcels": {
+            "type": "integer",
+            "description": "Lines that need a look: amount differs, or nothing settled.",
+            "format": "int32"
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The shop's note."
+          },
+          "recordedAt": {
+            "type": "string",
+            "description": "When it was entered (UTC).",
+            "format": "date-time"
+          }
+        },
+        "description": "A recorded payout. NetAmount = statementNet + difference; a non-zero difference is money no line explains."
+      },
       "Plan": {
         "enum": [
           "Free",
@@ -6781,6 +7446,52 @@
             "format": "int32"
           }
         }
+      },
+      "RecordPayoutRequest": {
+        "required": [
+          "courier",
+          "reference",
+          "paidOn",
+          "netAmount",
+          "note",
+          "lines"
+        ],
+        "type": "object",
+        "properties": {
+          "courier": {
+            "description": "The courier that paid.",
+            "$ref": "#/components/schemas/CourierProvider"
+          },
+          "reference": {
+            "type": "string",
+            "description": "The courier's statement or transfer ID. <example>PTH-PAY-20261124</example>"
+          },
+          "paidOn": {
+            "type": "string",
+            "description": "The day the money arrived (Dhaka date). <example>2026-11-24</example>",
+            "format": "date"
+          },
+          "netAmount": {
+            "type": "number",
+            "description": "What arrived in the shop's account, in BDT. <example>4830.00</example>",
+            "format": "double"
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Optional note for the shop."
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PayoutLineRequest"
+            },
+            "description": "The parcels on the statement (1-500)."
+          }
+        },
+        "description": "A payout as it arrived: the transfer and the statement lines it pays for."
       },
       "RefreshTokenRequest": {
         "required": [

@@ -174,9 +174,13 @@ export interface CourierCodDto {
   deliveredParcels: number;
   /** COD due on every delivered parcel (order total minus advance), in BDT. */
   expected: number;
-  /** Paid out to the shop (COD settled), in BDT. */
+  /** What payouts actually paid for settled parcels, in BDT. */
   collected: number;
-  /** Still with the courier, in BDT. */
+  /** Settled parcels' due minus what was paid (positive = short-paid), in BDT. */
+  shortfall: number;
+  /** Settled parcels paid a different amount than due. */
+  shortPaidParcels: number;
+  /** Still with the courier (not paid out yet), in BDT. */
   outstanding: number;
   /** Parcels not paid out yet. */
   outstandingParcels: number;
@@ -190,12 +194,13 @@ export interface CourierCodDto {
 }
 
 /**
- * What every courier owes the shop, and the totals.
+ * What every courier owes the shop, and the totals. Expected = collected + shortfall + outstanding.
  */
 export interface CodSummaryResponse {
   couriers: CourierCodDto[];
   expected: number;
   collected: number;
+  shortfall: number;
   outstanding: number;
 }
 
@@ -391,6 +396,22 @@ export interface FindOrCreateCustomerRequest {
   address?: string | null;
 }
 
+export type HttpValidationProblemDetailsErrors = {[key: string]: string[]};
+
+export interface HttpValidationProblemDetails {
+  /** @nullable */
+  type?: string | null;
+  /** @nullable */
+  title?: string | null;
+  /** @nullable */
+  status?: number | null;
+  /** @nullable */
+  detail?: string | null;
+  /** @nullable */
+  instance?: string | null;
+  errors?: HttpValidationProblemDetailsErrors;
+}
+
 export interface InviteStaffRequest {
   /** Bangladeshi mobile number, any common spelling. */
   phone: string;
@@ -555,6 +576,119 @@ export interface OtpSent {
   resendAfterSeconds: number;
 }
 
+export type PayoutLineMatch = typeof PayoutLineMatch[keyof typeof PayoutLineMatch];
+
+
+export const PayoutLineMatch = {
+  Settled: 'Settled',
+  AmountDiffers: 'AmountDiffers',
+  UnknownParcel: 'UnknownParcel',
+  NotDelivered: 'NotDelivered',
+  AlreadyPaid: 'AlreadyPaid',
+  RepeatedInPayout: 'RepeatedInPayout',
+} as const;
+
+/**
+ * One statement line and what matching decided.
+ */
+export interface PayoutLineDto {
+  /** Position on the statement, from 1. */
+  sequence: number;
+  /** The courier's consignment ID. */
+  consignmentId: string;
+  /** Cash collected for the parcel, in BDT. */
+  collected: number;
+  /** Delivery charge deducted, in BDT. */
+  deliveryFee: number;
+  /** COD fee deducted, in BDT. */
+  codFee: number;
+  /** Settled, AmountDiffers (settled; see shortfall), UnknownParcel, NotDelivered, AlreadyPaid or RepeatedInPayout. */
+  match: PayoutLineMatch;
+  /**
+     * The parcel's order when the consignment was found.
+     * @nullable
+     */
+  orderId: string | null;
+  /**
+     * That order's number.
+     * @nullable
+     */
+  orderNumber: number | null;
+  /**
+     * What the order was due, in BDT, when found.
+     * @nullable
+     */
+  codDue: number | null;
+  /**
+     * Due minus collected on a settled line (positive = short-paid); null when nothing was settled.
+     * @nullable
+     */
+  shortfall: number | null;
+}
+
+/**
+ * One parcel on the courier's payout statement.
+ */
+export interface PayoutLineRequest {
+  /** The courier's consignment ID, as on the statement. */
+  consignmentId: string;
+  /** Cash the courier collected for this parcel, in BDT. */
+  collected: number;
+  /** Delivery charge the courier deducted, in BDT. */
+  deliveryFee: number;
+  /** Cash-handling (COD) fee the courier deducted, in BDT. */
+  codFee: number;
+}
+
+/**
+ * A recorded payout. NetAmount = statementNet + difference; a non-zero difference is money no line explains.
+ */
+export interface PayoutSummaryDto {
+  /** The payout's ID. */
+  id: string;
+  /** The courier that paid. */
+  courier: CourierProvider;
+  /** The courier's statement or transfer ID. */
+  reference: string;
+  /** The day the money arrived (Dhaka date). */
+  paidOn: string;
+  /** What arrived, in BDT. */
+  netAmount: number;
+  /** Sum of the lines' collected cash, in BDT. */
+  collected: number;
+  /** Sum of the lines' delivery charges, in BDT. */
+  deliveryFees: number;
+  /** Sum of the lines' COD fees, in BDT. */
+  codFees: number;
+  /** Collected minus delivery and COD fees, from the lines. */
+  statementNet: number;
+  /** NetAmount minus statementNet: negative = less arrived than the statement says. */
+  difference: number;
+  /** Lines that settled an order (Settled or AmountDiffers). */
+  settledParcels: number;
+  /** Lines that need a look: amount differs, or nothing settled. */
+  mismatchedParcels: number;
+  /**
+     * The shop's note.
+     * @nullable
+     */
+  note: string | null;
+  /** When it was entered (UTC). */
+  recordedAt: string;
+}
+
+export interface PayoutListResponse {
+  items: PayoutSummaryDto[];
+  page: number;
+  pageSize: number;
+  total: number;
+}
+
+export interface PayoutResponse {
+  payout: PayoutSummaryDto;
+  lines: PayoutLineDto[];
+}
+
 export type Plan = typeof Plan[keyof typeof Plan];
 
 
@@ -604,6 +738,27 @@ export interface ProductPage {
   page: number;
   pageSize: number;
   totalCount: number;
+}
+
+/**
+ * A payout as it arrived: the transfer and the statement lines it pays for.
+ */
+export interface RecordPayoutRequest {
+  /** The courier that paid. */
+  courier: CourierProvider;
+  /** The courier's statement or transfer ID. <example>PTH-PAY-20261124</example> */
+  reference: string;
+  /** The day the money arrived (Dhaka date). <example>2026-11-24</example> */
+  paidOn: string;
+  /** What arrived in the shop's account, in BDT. <example>4830.00</example> */
+  netAmount: number;
+  /**
+     * Optional note for the shop.
+     * @nullable
+     */
+  note: string | null;
+  /** The parcels on the statement (1-500). */
+  lines: PayoutLineRequest[];
 }
 
 /**
@@ -762,6 +917,13 @@ export type GetApiCouriersProviderLocationsParams = {
 export type GetApiCustomersParams = {
   /** Part of a name, or at least 3 digits of a phone number. */
   Search?: string;
+  Page?: number;
+  PageSize?: number;
+};
+
+export type GetApiMoneyPayoutsParams = {
+  /** Only this courier's payouts. */
+  Courier?: CourierProvider;
   Page?: number;
   PageSize?: number;
 };
@@ -2408,6 +2570,293 @@ export function useGetApiMoneyCodSummary<TData = Awaited<ReturnType<typeof getAp
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getGetApiMoneyCodSummaryQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getPostApiMoneyPayoutsUrl = () => {
+
+
+
+
+  return `/api/money/payouts`
+}
+
+/**
+ * @summary Records a courier payout from its statement and matches each line to a delivered parcel by
+consignment ID. Matched orders become CodSettled (a short or over payment still settles, with the
+gap shown); lines that match nothing are kept with the reason. One payout per courier and reference.
+ */
+export const postApiMoneyPayouts = async (recordPayoutRequest: RecordPayoutRequest, options?: Parameters<typeof apiFetch>[1]): Promise<PayoutResponse> => {
+
+  return apiFetch<PayoutResponse>(getPostApiMoneyPayoutsUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: getHeaders({ 'Content-Type': 'application/json' }, options?.headers),
+    body: JSON.stringify(recordPayoutRequest)
+  }
+);}
+
+
+
+
+
+export const getPostApiMoneyPayoutsMutationKey = () => ['postApiMoneyPayouts'] as const;
+
+export const getPostApiMoneyPayoutsMutationOptions = <TError = HttpValidationProblemDetails | ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiMoneyPayouts>>, TError,PostApiMoneyPayoutsMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiMoneyPayouts>>, TError,PostApiMoneyPayoutsMutationVariables, TContext> => {
+
+const mutationKey = getPostApiMoneyPayoutsMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiMoneyPayouts>>, PostApiMoneyPayoutsMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  postApiMoneyPayouts(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiMoneyPayoutsMutationResult = NonNullable<Awaited<ReturnType<typeof postApiMoneyPayouts>>>
+    export type PostApiMoneyPayoutsMutationBody = RecordPayoutRequest
+    export type PostApiMoneyPayoutsMutationError = HttpValidationProblemDetails | ProblemDetails
+    export type PostApiMoneyPayoutsMutationVariables = {data: RecordPayoutRequest}
+
+    /**
+ * @summary Records a courier payout from its statement and matches each line to a delivered parcel by
+consignment ID. Matched orders become CodSettled (a short or over payment still settles, with the
+gap shown); lines that match nothing are kept with the reason. One payout per courier and reference.
+ */
+export const usePostApiMoneyPayouts = <TError = HttpValidationProblemDetails | ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiMoneyPayouts>>, TError,PostApiMoneyPayoutsMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof postApiMoneyPayouts>>,
+        TError,
+        PostApiMoneyPayoutsMutationVariables,
+        TContext
+      > => {
+      return useMutation(getPostApiMoneyPayoutsMutationOptions(options), queryClient);
+    }
+
+export const getGetApiMoneyPayoutsUrl = (params?: GetApiMoneyPayoutsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/money/payouts?${stringifiedParams}` : `/api/money/payouts`
+}
+
+/**
+ * @summary Recorded payouts, newest paid first.
+ */
+export const getApiMoneyPayouts = async (params?: GetApiMoneyPayoutsParams, options?: Parameters<typeof apiFetch>[1]): Promise<PayoutListResponse> => {
+
+  return apiFetch<PayoutListResponse>(getGetApiMoneyPayoutsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetApiMoneyPayoutsQueryKey = (params?: GetApiMoneyPayoutsParams,) => {
+    return [
+    `/api/money/payouts`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetApiMoneyPayoutsQueryOptions = <TData = Awaited<ReturnType<typeof getApiMoneyPayouts>>, TError = HttpValidationProblemDetails | ProblemDetails>(params?: GetApiMoneyPayoutsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiMoneyPayouts>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiMoneyPayoutsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiMoneyPayouts>>> = ({ signal }) => getApiMoneyPayouts(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiMoneyPayouts>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetApiMoneyPayoutsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiMoneyPayouts>>>
+export type GetApiMoneyPayoutsQueryError = HttpValidationProblemDetails | ProblemDetails
+
+
+/** @summary Recorded payouts, newest paid first. */
+export function useGetApiMoneyPayouts<TData = Awaited<ReturnType<typeof getApiMoneyPayouts>>, TError = HttpValidationProblemDetails | ProblemDetails>(
+ params: undefined |  GetApiMoneyPayoutsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiMoneyPayouts>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getApiMoneyPayouts>>,
+          TError,
+          Awaited<ReturnType<typeof getApiMoneyPayouts>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/** @summary Recorded payouts, newest paid first. */
+export function useGetApiMoneyPayouts<TData = Awaited<ReturnType<typeof getApiMoneyPayouts>>, TError = HttpValidationProblemDetails | ProblemDetails>(
+ params?: GetApiMoneyPayoutsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiMoneyPayouts>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getApiMoneyPayouts>>,
+          TError,
+          Awaited<ReturnType<typeof getApiMoneyPayouts>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/** @summary Recorded payouts, newest paid first. */
+export function useGetApiMoneyPayouts<TData = Awaited<ReturnType<typeof getApiMoneyPayouts>>, TError = HttpValidationProblemDetails | ProblemDetails>(
+ params?: GetApiMoneyPayoutsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiMoneyPayouts>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/** @summary Recorded payouts, newest paid first. */
+export function useGetApiMoneyPayouts<TData = Awaited<ReturnType<typeof getApiMoneyPayouts>>, TError = HttpValidationProblemDetails | ProblemDetails>(
+ params?: GetApiMoneyPayoutsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiMoneyPayouts>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetApiMoneyPayoutsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetApiMoneyPayoutsIdUrl = (id: string,) => {
+
+
+
+
+  return `/api/money/payouts/${id}`
+}
+
+/**
+ * @summary One payout with every statement line and what it matched.
+ */
+export const getApiMoneyPayoutsId = async (id: string, options?: Parameters<typeof apiFetch>[1]): Promise<PayoutResponse> => {
+
+  return apiFetch<PayoutResponse>(getGetApiMoneyPayoutsIdUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetApiMoneyPayoutsIdQueryKey = (id: string,) => {
+    return [
+    `/api/money/payouts/${id}`
+    ] as const;
+    }
+
+
+export const getGetApiMoneyPayoutsIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiMoneyPayoutsId>>, TError = ProblemDetails>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiMoneyPayoutsId>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiMoneyPayoutsIdQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiMoneyPayoutsId>>> = ({ signal }) => getApiMoneyPayoutsId(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiMoneyPayoutsId>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetApiMoneyPayoutsIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiMoneyPayoutsId>>>
+export type GetApiMoneyPayoutsIdQueryError = ProblemDetails
+
+
+/** @summary One payout with every statement line and what it matched. */
+export function useGetApiMoneyPayoutsId<TData = Awaited<ReturnType<typeof getApiMoneyPayoutsId>>, TError = ProblemDetails>(
+ id: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiMoneyPayoutsId>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getApiMoneyPayoutsId>>,
+          TError,
+          Awaited<ReturnType<typeof getApiMoneyPayoutsId>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/** @summary One payout with every statement line and what it matched. */
+export function useGetApiMoneyPayoutsId<TData = Awaited<ReturnType<typeof getApiMoneyPayoutsId>>, TError = ProblemDetails>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiMoneyPayoutsId>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getApiMoneyPayoutsId>>,
+          TError,
+          Awaited<ReturnType<typeof getApiMoneyPayoutsId>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/** @summary One payout with every statement line and what it matched. */
+export function useGetApiMoneyPayoutsId<TData = Awaited<ReturnType<typeof getApiMoneyPayoutsId>>, TError = ProblemDetails>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiMoneyPayoutsId>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/** @summary One payout with every statement line and what it matched. */
+export function useGetApiMoneyPayoutsId<TData = Awaited<ReturnType<typeof getApiMoneyPayoutsId>>, TError = ProblemDetails>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiMoneyPayoutsId>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetApiMoneyPayoutsIdQueryOptions(id,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
