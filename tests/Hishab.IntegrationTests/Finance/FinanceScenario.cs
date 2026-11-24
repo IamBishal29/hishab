@@ -55,12 +55,12 @@ public sealed class FinanceScenario(HishabApiFactory factory)
     }
 
     /// <summary>A confirmed order: one line at <paramref name="price"/> (costing <paramref name="cost"/>, if any) + 60 delivery (inside Dhaka) - <paramref name="advance"/>.</summary>
-    public async Task<Guid> ConfirmedOrder(JsonElement owner, decimal price, decimal advance, decimal? cost = null)
+    public async Task<Guid> ConfirmedOrder(JsonElement owner, decimal price, decimal advance, decimal? cost = null, string phone = "01912345678")
     {
         var product = await Ok(HttpMethod.Post, "/api/products", owner, new { name = "Polo shirt", variants = new[] { new { sku = "POLO-" + Guid.NewGuid().ToString("N")[..6], price, costPrice = cost } } });
         var created = await Ok(HttpMethod.Post, "/api/orders", owner, new
         {
-            phone = "01912345678",
+            phone,
             customerName = "Rahima Begum",
             deliveryAddress = "House 4, Road 2, Mirpur",
             isInsideDhaka = true,

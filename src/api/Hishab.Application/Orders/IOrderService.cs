@@ -1,4 +1,5 @@
 using Hishab.Domain.Couriers;
+using Hishab.Domain.Customers;
 using Hishab.Domain.Orders;
 
 namespace Hishab.Application.Orders;
@@ -50,6 +51,7 @@ public sealed record OrderListFilter(
 public sealed record OrderListPage(IReadOnlyList<OrderListItem> Items, string? NextCursor);
 
 /// <summary>One row of the order list: enough to scan and act on without opening the order.</summary>
+/// <param name="CustomerRisk">The customer's risk badge from all their orders with this shop (the customer page's answer).</param>
 public sealed record OrderListItem(
     Guid Id,
     int Number,
@@ -62,7 +64,8 @@ public sealed record OrderListItem(
     int ItemCount,
     decimal Total,
     decimal CodAmount,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt,
+    RiskAssessment CustomerRisk);
 
 public sealed record BulkActionResult(int Succeeded, int Failed, IReadOnlyList<BulkItemResult> Results);
 
