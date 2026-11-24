@@ -12,7 +12,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Hishab.IntegrationTests.Finance;
 
-/// <summary>Real orders taken through the API to Delivered (booked with Fake, synced by the job), for the money tests.</summary>
+/// <summary>Real orders taken through the API to Delivered or Returned (booked with Fake, synced by the job).</summary>
 public sealed class FinanceScenario(HishabApiFactory factory)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
@@ -81,18 +81,31 @@ public sealed class FinanceScenario(HishabApiFactory factory)
         return (orderId, booked.GetProperty("shipment").GetProperty("consignmentId").GetString()!);
     }
 
+    /// <summary>Booked with the Fake courier, returned by the buyer (via the status sync job).</summary>
+    public async Task<Guid> ReturnedOrder(JsonElement owner, decimal price)
+    {
+        var (orderId, consignment) = await BookedOrder(owner, price);
+        await CourierReports(owner, consignment, ParcelStatus.Returned);
+        return orderId;
+    }
+
     /// <summary>Booked with the Fake courier, delivered via the status sync job, <paramref name="daysAgo"/> days before now.</summary>
     public async Task<(Guid OrderId, string Consignment)> DeliveredOrder(JsonElement owner, decimal price, decimal advance = 0m, int daysAgo = 0)
     {
         var (orderId, consignment) = await BookedOrder(owner, price, advance);
-        factory.Services.GetRequiredService<FakeCourierControl>().SetStatus(consignment, ParcelStatus.Delivered, factory.Clock.GetUtcNow());
-        await factory.Services.GetRequiredService<CourierStatusJobs>().SyncShopAsync(ShopId(owner), CourierProvider.Fake, Ct);
+        await CourierReports(owner, consignment, ParcelStatus.Delivered);
 
         // The sync stamps "now"; back-date the Delivered step to give the parcel its age.
         var deliveredAt = factory.Clock.GetUtcNow().AddDays(-daysAgo);
         await InShop(owner, db => db.Database.ExecuteSqlAsync(
             $"UPDATE order_status_changes SET changed_at = {deliveredAt} WHERE order_id = {orderId} AND \"to\" = 'Delivered'", Ct));
         return (orderId, consignment);
+    }
+
+    private async Task CourierReports(JsonElement owner, string consignment, ParcelStatus status)
+    {
+        factory.Services.GetRequiredService<FakeCourierControl>().SetStatus(consignment, status, factory.Clock.GetUtcNow());
+        await factory.Services.GetRequiredService<CourierStatusJobs>().SyncShopAsync(ShopId(owner), CourierProvider.Fake, Ct);
     }
 
     public async Task InShop(JsonElement owner, Func<HishabDbContext, Task<int>> action)

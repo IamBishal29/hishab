@@ -18,11 +18,22 @@ internal sealed class CustomerOrderHistoryQuery(HishabDbContext db) : ICustomerO
 
         int Count(params OrderStatus[] statuses) => statuses.Sum(s => byStatus.GetValueOrDefault(s));
 
+        // Recency for the risk rules: the latest Delivered and Returned steps in these orders' history.
+        var latest = await db.Orders.AsNoTracking()
+            .Where(o => o.CustomerId == customerId && o.Id != excludingOrderId)
+            .SelectMany(o => o.History)
+            .Where(h => h.To == OrderStatus.Delivered || h.To == OrderStatus.Returned)
+            .GroupBy(h => h.To)
+            .Select(g => new { Step = g.Key, At = g.Max(h => h.ChangedAt) })
+            .ToDictionaryAsync(x => x.Step, x => (DateTimeOffset?)x.At, cancellationToken);
+
         return new CustomerOrderHistory(
             PreviousOrders: byStatus.Values.Sum(),
             Delivered: Count(OrderStatus.Delivered, OrderStatus.CodSettled),
             Returned: Count(OrderStatus.Returned, OrderStatus.ReceivedBack),
-            Cancelled: Count(OrderStatus.Cancelled));
+            Cancelled: Count(OrderStatus.Cancelled),
+            LastDeliveredAt: latest.GetValueOrDefault(OrderStatus.Delivered),
+            LastReturnedAt: latest.GetValueOrDefault(OrderStatus.Returned));
     }
 
     // Order.Total is a domain rule (lines + delivery charge), not a column, so the delivered orders

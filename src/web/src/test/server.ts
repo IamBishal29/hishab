@@ -144,8 +144,16 @@ export function customerPage(overrides: Partial<CustomerDto> = {}): CustomerDeta
       createdAt: '2026-11-01T00:00:00Z',
       ...overrides,
     },
-    history: { previousOrders: 5, delivered: 2, returned: 1, cancelled: 1 },
+    history: {
+      previousOrders: 5,
+      delivered: 2,
+      returned: 1,
+      cancelled: 1,
+      lastDeliveredAt: '2026-11-10T00:00:00Z',
+      lastReturnedAt: '2026-11-05T00:00:00Z',
+    },
     deliveredValue: 1480,
+    risk: { level: 'Watch', reasons: ['ElevatedReturnRate'], returnRate: 0.33 },
   }
 }
 
@@ -220,6 +228,7 @@ export function detailsOf(item: OrderListItem): OrderDetails {
       delivered: 0,
       returned: 0,
       cancelled: 0,
+      risk: { level: 'New', reasons: ['NoHistory'], returnRate: null },
     },
     warnings: [],
     shipment: api.shipments[item.id] ?? null,

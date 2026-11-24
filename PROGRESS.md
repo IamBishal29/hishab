@@ -2,10 +2,10 @@
 
 ## Current
 - Milestone: M4 Money & risk (M1-M3 complete)
-- Issue: none in progress (#28 in review, PR #77)
+- Issue: none in progress (#29 in review, PR #78)
 - Branch: none (start the next one from main)
-- Next step: #29 "Customer risk score: Safe, Watch, Risky" (lowest open in M4). #76 (receive returned
-  parcels with return charges + payout re-match, split from #28) is also in M4.
+- Next step: #30 "Dashboard API: today's counts and real profit" (lowest open in M4). #76 (returns with
+  return charges + payout re-match) is also open; real profit needs return charges, so consider #76 first.
 
 ## Done
 - Product discovery: PRD written (docs/PRD.md); name chosen: Hishab
@@ -144,9 +144,18 @@
   short payments settle with a visible shortfall, mismatches saved with a reason, one statement per
   (courier, reference) and one settlement per parcel (unique indexes, race test), COD summary collected =
   paid amounts + shortfall; POST/GET /api/money/payouts; 589 .NET + 73 web tests; note 31. Returns -> #76.
+- #29 Risk score (PR #78): pure CustomerRisk.Assess with levels New/Safe/Watch/Risky and every reason
+  listed (blocked, high/elevated return rate, recent return forgiven by a later delivery, many
+  cancellations), thresholds from Risk:* options (ValidateOnStart), history gains last delivered/returned
+  dates, risk on lookup, customer page and order details (current order excluded); this shop only;
+  608 .NET + 73 web tests; note 32
 - #24 Steadfast: paused and moved out of M3 (docs behind the merchant login, no sandbox; Syed's choice)
 
 ## Decisions waiting for Syed
+- Risk (#29): default thresholds are my guess (Risky = 2+ returns and 50%+; Watch = 30%+, a return in the
+  last 90 days, or 3+ cancellations). Check them with a few sellers. Cancellations count all cancels,
+  including the seller's own (e.g. out of stock); a cancel reason would let us count only buyer-side ones.
+  Order list rows have no risk yet (#33 needs a batched per-page query).
 - **Docker (#28):** I started Docker Desktop and stopped (not removed) the 5 shopflow containers, as you
   chose. `docker start shopflow-control-plane shopflow-api-gateway shopflow-payment-service
   shopflow-order-service shopflow-notification-service` brings them back. Docker is still running.
@@ -280,3 +289,5 @@
 - 2026-11-22: #68 implemented (A5 default, CanPack, routine choices); PR #73 open
 - 2026-11-24: #75 merged; #28 with settle-and-flag short payments, mismatches saved, returns split to #76
   (Syed's choices); PR #77 open
+- 2026-11-24: #77 merged; #29 with a New level, risk on lookup/customer/order detail, server-wide
+  thresholds (Syed's choices); PR #78 open
