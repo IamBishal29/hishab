@@ -5344,6 +5344,186 @@
         }
       }
     },
+    "/api/reports/today": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "Today (Dhaka): orders taken, waiting to book, on the road, delivered and returned, and today's\nprofit.",
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TodayResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TodayResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TodayResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reports/profit": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "Real profit per Dhaka day and in total for a range (default: this month so far). Sales count\non the delivery day, returns on the return day. Unknown figures count 0 and are listed in\n`missing`.",
+        "parameters": [
+          {
+            "name": "From",
+            "in": "query",
+            "description": "First day (inclusive). <example>2026-11-01</example>",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "To",
+            "in": "query",
+            "description": "Last day (inclusive), at most 366 days after `from`. <example>2026-11-30</example>",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfitReportResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfitReportResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfitReportResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/shop/usage": {
       "get": {
         "tags": [
@@ -7950,6 +8130,147 @@
           }
         }
       },
+      "ProfitDayDto": {
+        "required": [
+          "day",
+          "figures"
+        ],
+        "type": "object",
+        "properties": {
+          "day": {
+            "type": "string",
+            "format": "date"
+          },
+          "figures": {
+            "$ref": "#/components/schemas/ProfitFiguresDto"
+          }
+        },
+        "description": "One Dhaka day."
+      },
+      "ProfitFiguresDto": {
+        "required": [
+          "delivered",
+          "returned",
+          "sales",
+          "productCost",
+          "deliveryFees",
+          "returnCharges",
+          "codFees",
+          "profit"
+        ],
+        "type": "object",
+        "properties": {
+          "delivered": {
+            "type": "integer",
+            "description": "Parcels delivered (sales count on the delivery day).",
+            "format": "int32"
+          },
+          "returned": {
+            "type": "integer",
+            "description": "Parcels returned (on the return day).",
+            "format": "int32"
+          },
+          "sales": {
+            "type": "number",
+            "description": "Order totals of delivered parcels: lines + delivery charge, advance included.",
+            "format": "double"
+          },
+          "productCost": {
+            "type": "number",
+            "description": "Cost price of the sold lines (lines without one count 0).",
+            "format": "double"
+          },
+          "deliveryFees": {
+            "type": "number",
+            "description": "The courier's delivery fees: from its payout when paid, else the booking quote.",
+            "format": "double"
+          },
+          "returnCharges": {
+            "type": "number",
+            "description": "The courier's charges for bringing returned parcels back.",
+            "format": "double"
+          },
+          "codFees": {
+            "type": "number",
+            "description": "The courier's cash-handling fees, known once a payout settles the parcel.",
+            "format": "double"
+          },
+          "profit": {
+            "type": "number",
+            "description": "What the shop keeps.",
+            "format": "double"
+          }
+        },
+        "description": "Real profit = sales - productCost - deliveryFees - returnCharges - codFees (all BDT)."
+      },
+      "ProfitMissing": {
+        "required": [
+          "linesWithoutCost",
+          "returnsWithoutCharge",
+          "parcelsWithoutDeliveryFee",
+          "parcelsAwaitingPayout"
+        ],
+        "type": "object",
+        "properties": {
+          "linesWithoutCost": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "returnsWithoutCharge": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "parcelsWithoutDeliveryFee": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "parcelsAwaitingPayout": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "any": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ProfitReportResponse": {
+        "required": [
+          "from",
+          "to",
+          "days",
+          "total",
+          "missing"
+        ],
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "description": "First day of the range (Dhaka).",
+            "format": "date"
+          },
+          "to": {
+            "type": "string",
+            "description": "Last day of the range (Dhaka), inclusive.",
+            "format": "date"
+          },
+          "days": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProfitDayDto"
+            },
+            "description": "Every day in the range, oldest first, including days with nothing."
+          },
+          "total": {
+            "description": "The whole range.",
+            "$ref": "#/components/schemas/ProfitFiguresDto"
+          },
+          "missing": {
+            "description": "Figures that were unknown and counted as 0: when `missing.any`, profit may be overstated.",
+            "$ref": "#/components/schemas/ProfitMissing"
+          }
+        },
+        "description": "Profit per Dhaka day and in total."
+      },
       "ReceiveBackRequest": {
         "type": "object",
         "properties": {
@@ -8351,6 +8672,62 @@
         "type": "string",
         "format": "binary"
       },
+      "TodayCounts": {
+        "required": [
+          "new",
+          "toBook",
+          "inTransit",
+          "delivered",
+          "returned"
+        ],
+        "type": "object",
+        "properties": {
+          "new": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "toBook": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "inTransit": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "delivered": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "returned": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "TodayResponse": {
+        "required": [
+          "day",
+          "counts",
+          "profit"
+        ],
+        "type": "object",
+        "properties": {
+          "day": {
+            "type": "string",
+            "description": "Today in Dhaka.",
+            "format": "date"
+          },
+          "counts": {
+            "description": "Today's pipeline.",
+            "$ref": "#/components/schemas/TodayCounts"
+          },
+          "profit": {
+            "description": "Today's profit.",
+            "$ref": "#/components/schemas/ProfitReportResponse"
+          }
+        },
+        "description": "The owner's home screen: today's pipeline and today's profit."
+      },
       "TokenDelivery": {
         "enum": [
           "Cookie",
@@ -8688,6 +9065,9 @@
     },
     {
       "name": "Products"
+    },
+    {
+      "name": "Reports"
     },
     {
       "name": "Shop"

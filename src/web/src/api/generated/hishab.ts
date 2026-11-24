@@ -783,6 +783,60 @@ export interface ProductPage {
 }
 
 /**
+ * Real profit = sales - productCost - deliveryFees - returnCharges - codFees (all BDT).
+ */
+export interface ProfitFiguresDto {
+  /** Parcels delivered (sales count on the delivery day). */
+  delivered: number;
+  /** Parcels returned (on the return day). */
+  returned: number;
+  /** Order totals of delivered parcels: lines + delivery charge, advance included. */
+  sales: number;
+  /** Cost price of the sold lines (lines without one count 0). */
+  productCost: number;
+  /** The courier's delivery fees: from its payout when paid, else the booking quote. */
+  deliveryFees: number;
+  /** The courier's charges for bringing returned parcels back. */
+  returnCharges: number;
+  /** The courier's cash-handling fees, known once a payout settles the parcel. */
+  codFees: number;
+  /** What the shop keeps. */
+  profit: number;
+}
+
+/**
+ * One Dhaka day.
+ */
+export interface ProfitDayDto {
+  day: string;
+  figures: ProfitFiguresDto;
+}
+
+export interface ProfitMissing {
+  linesWithoutCost: number;
+  returnsWithoutCharge: number;
+  parcelsWithoutDeliveryFee: number;
+  parcelsAwaitingPayout: number;
+  any?: boolean;
+}
+
+/**
+ * Profit per Dhaka day and in total.
+ */
+export interface ProfitReportResponse {
+  /** First day of the range (Dhaka). */
+  from: string;
+  /** Last day of the range (Dhaka), inclusive. */
+  to: string;
+  /** Every day in the range, oldest first, including days with nothing. */
+  days: ProfitDayDto[];
+  /** The whole range. */
+  total: ProfitFiguresDto;
+  /** Figures that were unknown and counted as 0: when `missing.any`, profit may be overstated. */
+  missing: ProfitMissing;
+}
+
+/**
  * A returned parcel is back at the shop.
  */
 export interface ReceiveBackRequest {
@@ -894,6 +948,26 @@ export interface StaffMember {
 }
 
 export type Stream = Blob;
+
+export interface TodayCounts {
+  new: number;
+  toBook: number;
+  inTransit: number;
+  delivered: number;
+  returned: number;
+}
+
+/**
+ * The owner's home screen: today's pipeline and today's profit.
+ */
+export interface TodayResponse {
+  /** Today in Dhaka. */
+  day: string;
+  /** Today's pipeline. */
+  counts: TodayCounts;
+  /** Today's profit. */
+  profit: ProfitReportResponse;
+}
 
 /**
  * Where the refresh token goes. Browsers use the HttpOnly cookie; other clients ask for the body.
@@ -1032,6 +1106,13 @@ export type GetApiProductsParams = {
   Search?: string;
   Page?: number;
   PageSize?: number;
+};
+
+export type GetApiReportsProfitParams = {
+  /** First day (inclusive). <example>2026-11-01</example> */
+  From?: string;
+  /** Last day (inclusive), at most 366 days after `from`. <example>2026-11-30</example> */
+  To?: string;
 };
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
@@ -4911,6 +4992,246 @@ export const useDeleteApiProductsIdVariantsVariantId = <TError = ProblemDetails,
       > => {
       return useMutation(getDeleteApiProductsIdVariantsVariantIdMutationOptions(options), queryClient);
     }
+
+export const getGetApiReportsTodayUrl = () => {
+
+
+
+
+  return `/api/reports/today`
+}
+
+/**
+ * @summary Today (Dhaka): orders taken, waiting to book, on the road, delivered and returned, and today's
+profit.
+ */
+export const getApiReportsToday = async ( options?: Parameters<typeof apiFetch>[1]): Promise<TodayResponse> => {
+
+  return apiFetch<TodayResponse>(getGetApiReportsTodayUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetApiReportsTodayQueryKey = () => {
+    return [
+    `/api/reports/today`
+    ] as const;
+    }
+
+
+export const getGetApiReportsTodayQueryOptions = <TData = Awaited<ReturnType<typeof getApiReportsToday>>, TError = ProblemDetails>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiReportsToday>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiReportsTodayQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiReportsToday>>> = ({ signal }) => getApiReportsToday({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiReportsToday>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetApiReportsTodayQueryResult = NonNullable<Awaited<ReturnType<typeof getApiReportsToday>>>
+export type GetApiReportsTodayQueryError = ProblemDetails
+
+
+/**
+ * @summary Today (Dhaka): orders taken, waiting to book, on the road, delivered and returned, and today's
+profit.
+ */
+export function useGetApiReportsToday<TData = Awaited<ReturnType<typeof getApiReportsToday>>, TError = ProblemDetails>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiReportsToday>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getApiReportsToday>>,
+          TError,
+          Awaited<ReturnType<typeof getApiReportsToday>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Today (Dhaka): orders taken, waiting to book, on the road, delivered and returned, and today's
+profit.
+ */
+export function useGetApiReportsToday<TData = Awaited<ReturnType<typeof getApiReportsToday>>, TError = ProblemDetails>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiReportsToday>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getApiReportsToday>>,
+          TError,
+          Awaited<ReturnType<typeof getApiReportsToday>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Today (Dhaka): orders taken, waiting to book, on the road, delivered and returned, and today's
+profit.
+ */
+export function useGetApiReportsToday<TData = Awaited<ReturnType<typeof getApiReportsToday>>, TError = ProblemDetails>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiReportsToday>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Today (Dhaka): orders taken, waiting to book, on the road, delivered and returned, and today's
+profit.
+ */
+export function useGetApiReportsToday<TData = Awaited<ReturnType<typeof getApiReportsToday>>, TError = ProblemDetails>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiReportsToday>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetApiReportsTodayQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetApiReportsProfitUrl = (params?: GetApiReportsProfitParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/reports/profit?${stringifiedParams}` : `/api/reports/profit`
+}
+
+/**
+ * @summary Real profit per Dhaka day and in total for a range (default: this month so far). Sales count
+on the delivery day, returns on the return day. Unknown figures count 0 and are listed in
+`missing`.
+ */
+export const getApiReportsProfit = async (params?: GetApiReportsProfitParams, options?: Parameters<typeof apiFetch>[1]): Promise<ProfitReportResponse> => {
+
+  return apiFetch<ProfitReportResponse>(getGetApiReportsProfitUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetApiReportsProfitQueryKey = (params?: GetApiReportsProfitParams,) => {
+    return [
+    `/api/reports/profit`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetApiReportsProfitQueryOptions = <TData = Awaited<ReturnType<typeof getApiReportsProfit>>, TError = HttpValidationProblemDetails | ProblemDetails>(params?: GetApiReportsProfitParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiReportsProfit>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiReportsProfitQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiReportsProfit>>> = ({ signal }) => getApiReportsProfit(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiReportsProfit>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetApiReportsProfitQueryResult = NonNullable<Awaited<ReturnType<typeof getApiReportsProfit>>>
+export type GetApiReportsProfitQueryError = HttpValidationProblemDetails | ProblemDetails
+
+
+/**
+ * @summary Real profit per Dhaka day and in total for a range (default: this month so far). Sales count
+on the delivery day, returns on the return day. Unknown figures count 0 and are listed in
+`missing`.
+ */
+export function useGetApiReportsProfit<TData = Awaited<ReturnType<typeof getApiReportsProfit>>, TError = HttpValidationProblemDetails | ProblemDetails>(
+ params: undefined |  GetApiReportsProfitParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiReportsProfit>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getApiReportsProfit>>,
+          TError,
+          Awaited<ReturnType<typeof getApiReportsProfit>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Real profit per Dhaka day and in total for a range (default: this month so far). Sales count
+on the delivery day, returns on the return day. Unknown figures count 0 and are listed in
+`missing`.
+ */
+export function useGetApiReportsProfit<TData = Awaited<ReturnType<typeof getApiReportsProfit>>, TError = HttpValidationProblemDetails | ProblemDetails>(
+ params?: GetApiReportsProfitParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiReportsProfit>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getApiReportsProfit>>,
+          TError,
+          Awaited<ReturnType<typeof getApiReportsProfit>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Real profit per Dhaka day and in total for a range (default: this month so far). Sales count
+on the delivery day, returns on the return day. Unknown figures count 0 and are listed in
+`missing`.
+ */
+export function useGetApiReportsProfit<TData = Awaited<ReturnType<typeof getApiReportsProfit>>, TError = HttpValidationProblemDetails | ProblemDetails>(
+ params?: GetApiReportsProfitParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiReportsProfit>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Real profit per Dhaka day and in total for a range (default: this month so far). Sales count
+on the delivery day, returns on the return day. Unknown figures count 0 and are listed in
+`missing`.
+ */
+export function useGetApiReportsProfit<TData = Awaited<ReturnType<typeof getApiReportsProfit>>, TError = HttpValidationProblemDetails | ProblemDetails>(
+ params?: GetApiReportsProfitParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiReportsProfit>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetApiReportsProfitQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getGetApiShopUsageUrl = () => {
 
