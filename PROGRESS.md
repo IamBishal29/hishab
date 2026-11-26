@@ -2,10 +2,10 @@
 
 ## Current
 - Milestone: M5 Showcase polish
-- Issue: #37 in review (PR #87); #36 done (PR #86 merged)
-- Branch: feat/37-demo-seed (pushed)
-- Next step: after #87 merges, #38 "Compose services for api and web, and Playwright e2e" (lowest open M5 issue), then
-  #39 (README). The e2e can sign in as the demo owner (01000000001) against a `Demo` environment.
+- Issue: #38 in review (PR #88); #37 done (PR #87 merged)
+- Branch: feat/38-compose-e2e (pushed)
+- Next step: check the new CI `e2e` job on PR #88; after it merges, #39 "README with screenshots and demo GIF" (last
+  M5 issue; the compose stack + Playwright can record the GIF).
 
 ## Done
 - Product discovery: PRD written (docs/PRD.md); name chosen: Hishab
@@ -188,9 +188,15 @@
   (shop, 3 staff, 6 products, 12 customers, 30 orders in every status, 3 weekly payouts), convergent `DemoSeeder` through
   the real services as the owner, `SeedClock` timeline, `Demo:Seed` (Development on) refused outside Development/Demo;
   707 .NET tests; note 41; README demo section
+- #38 Compose + e2e (PR #88): multi-stage Dockerfiles (api 1.48 GB with Chromium headless shell, web 83 MB nginx with
+  /api proxy), compose `app` profile (Demo env, health-gated), `scripts/demo-secrets.sh`, dev-only Fake courier endpoint
+  (Development/Demo, removed elsewhere), Playwright core flow (order -> book -> delivered -> COD settled), CI e2e job with
+  traces on failure; 711 .NET tests; note 42
 - #24 Steadfast: paused and moved out of M3 (docs behind the merchant login, no sandbox; Syed's choice)
 
 ## Decisions waiting for Syed
+- Compose (#38): please add `OTP_HASH_KEY`, `JWT_SIGNING_KEY`, `DATA_PROTECTION_CERT_BASE64` placeholders to `.env.example`
+  (I am blocked from editing it). The CI e2e job runs for the first time on PR #88: check it is green.
 - Demo seed (#37): the 010 demo block passes phone validation in production too (couriers would reject it); say if you
   want it accepted only outside Production (needs the environment in the domain rule). PR is ~980 lines (data table + tests).
   The dev startup itself was not run here (no `.env` / Database user-secrets on this machine); please run the API once.
@@ -375,3 +381,4 @@
 - 2026-11-26: #84 merged; #35 implemented (routine choices), PR #85 open
 - 2026-11-26: #85 merged; #36 implemented (@fontsource font, Bangla default: Syed's choices), PR #86 open
 - 2026-11-26: #86 merged; #37 implemented (010 demo block, startup flag: Syed's choices), PR #87 open
+- 2026-11-26: #87 merged; #38 implemented (dev-only Fake endpoint, Chromium in image: Syed's choices), PR #88 open
