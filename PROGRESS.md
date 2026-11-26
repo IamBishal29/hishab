@@ -2,10 +2,9 @@
 
 ## Current
 - Milestone: M5 Showcase polish
-- Issue: #39 in review (PR #89); #38 done (PR #88 merged, CI e2e green on first run)
-- Branch: docs/39-readme (pushed)
-- Next step: after #89 merges, M5 (and the planned MVP backlog) is complete. Only #24 Steadfast (paused, no
-  milestone) is open. Next: Syed picks V2 work from docs/PRD.md (new issues), or the follow-ups listed below.
+- Issue: none in progress; #39 done (PR #89 merged); #38 done (PR #88 merged, CI e2e green on first run)
+- Branch: none (chore/remove-getting-started open as a small PR)
+- Next step: M5 (and the planned MVP backlog) is complete. Only #24 Steadfast (paused, no milestone) is open. Next: Syed picks V2 work from docs/PRD.md (new issues), or the follow-ups listed below.
 
 ## Done
 - Product discovery: PRD written (docs/PRD.md); name chosen: Hishab
@@ -198,8 +197,7 @@
 - #24 Steadfast: paused and moved out of M3 (docs behind the merchant login, no sandbox; Syed's choice)
 
 ## Decisions waiting for Syed
-- README (#39): delete root `GETTING-STARTED.md` (it says "delete in your first PR")? Possible follow-ups: remember a
-  customer's delivery area in the quick order lookup (screenshot shows Khulna + "Inside Dhaka"); V2 planning.
+- README (#39): possible follow-ups: remember a customer's delivery area in the quick order lookup (screenshot shows Khulna + "Inside Dhaka"); V2 planning.
 - Compose (#38): please add `OTP_HASH_KEY`, `JWT_SIGNING_KEY`, `DATA_PROTECTION_CERT_BASE64` placeholders to `.env.example`
   (I am blocked from editing it). The CI e2e job runs for the first time on PR #88: check it is green.
 - Demo seed (#37): the 010 demo block passes phone validation in production too (couriers would reject it); say if you
@@ -283,8 +281,6 @@
   creates its own schema at startup (outside EF migrations). Fine for now; revisit before production.
 - Bulk booking (#21): synchronous request (max 100 orders, 4 courier calls in flight, both in
   config). A Hangfire job with progress polling is the path for thousands of orders; say if needed.
-- `GETTING-STARTED.md` says to delete it in the first PR; the permission check blocked
-  the deletion. Delete it, or say so and I'll do it in the next PR.
 - New: `Jwt:SigningKey` user-secret is required to run the API locally (README step 2).
 - Local setup: no `.env` yet, so `docker compose up -d` fails until you `cp .env.example .env`
   and set POSTGRES_PASSWORD (I used a throwaway container for the smoke test).
@@ -388,3 +384,4 @@
 - 2026-11-26: #86 merged; #37 implemented (010 demo block, startup flag: Syed's choices), PR #87 open
 - 2026-11-26: #87 merged; #38 implemented (dev-only Fake endpoint, Chromium in image: Syed's choices), PR #88 open
 - 2026-11-26: #88 merged (e2e green); #39 implemented (gifenc media script: Syed's choice), PR #89 open
+- 2026-11-26: #89 merged (M5 complete); GETTING-STARTED.md removed (Syed's request)
