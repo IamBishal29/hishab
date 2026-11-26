@@ -5,11 +5,15 @@
   "scripts": {
     "test": "playwright test",
     "report": "playwright show-report",
-    "typecheck": "tsc -p ."
+    "typecheck": "tsc -p .",
+    "readme:media": "playwright test -c playwright.media.config.ts"
   },
   "devDependencies": {
     "@playwright/test": "1.65.1",
     "@types/node": "^24.19.2",
+    "@types/pngjs": "^6.0.5",
+    "gifenc": "^1.0.3",
+    "pngjs": "^7.0.0",
     "typescript": "~6.0.0"
   }
 }
