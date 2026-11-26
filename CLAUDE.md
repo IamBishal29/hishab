@@ -351,6 +351,10 @@ Never read, print or commit `.env`, user-secrets, tokens or keys. Put placeholde
   not in `dirtyFields` or still holding the last suggestion; `isSuggested` = value === suggestion). Marks use
   `SuggestedBadge` (word + symbol) via `FormField`'s `badge`. MSW fake `src/test/chatDraftApi.ts`, registered before
   the generic handlers (`*/api/orders/:id/:action` would swallow it). New specific `/api/orders/<word>/...` fakes go first too.
+- i18n (#36): Bangla is the default (`i18n/index.ts`: saved choice in `hishab.language`, mirrored to `<html lang>`; tests
+  start in English). Numbers in messages use `{{x, number}}`; bare counts `formatNumber` (lib/numbers); IDs and phones
+  stay ASCII. Values from the API shown to users need a key (`roles.<Role>`, `status.<S>`). Guards: `i18n/locales.test.ts`
+  and `i18n/hardcodedText.test.ts` (no literal JSX text / text attributes, literal `t()` keys must exist).
 - OpenAPI: `EnumSchemaTransformer` strips `null` from shared enum schemas (an optional enum query
   parameter seen first would otherwise make the enum nullable for every client).
 - Screenshots for UI PRs live in `docs/screenshots/NN-*.png` (390 px wide, headless Chrome).
