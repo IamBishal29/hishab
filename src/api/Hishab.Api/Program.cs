@@ -25,6 +25,7 @@ builder.Services.AddControllers(options =>
     {
         options.Filters.Add<FluentValidationFilter>();
         options.Conventions.Add(new ApiRoutePrefixConvention()); // every controller under /api
+        options.Conventions.Add(new DevOnlyControllersConvention(builder.Environment.EnvironmentName)); // dev tools: Development/Demo only
     })
     .AddJsonOptions(o => ConfigureJson(o.JsonSerializerOptions));
 
