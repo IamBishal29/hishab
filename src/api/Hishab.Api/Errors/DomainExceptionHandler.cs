@@ -1,4 +1,5 @@
 using Hishab.Application.Orders;
+using Hishab.Application.Orders.Drafts;
 using Hishab.Domain.Common;
 using Hishab.Domain.Couriers;
 using Hishab.Domain.Shops;
@@ -34,6 +35,7 @@ public sealed partial class DomainExceptionHandler(
             PlanLimitExceededException => (StatusCodes.Status402PaymentRequired, "Plan limit reached"),
             CourierUnavailableException => (StatusCodes.Status503ServiceUnavailable, "Courier unavailable"),
             PdfRenderingException => (StatusCodes.Status503ServiceUnavailable, "PDF unavailable"),
+            ChatAssistantUnavailableException => (StatusCodes.Status503ServiceUnavailable, "Assistant unavailable"),
             _ => (StatusCodes.Status422UnprocessableEntity, "Business rule violated"),
         };
 

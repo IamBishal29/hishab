@@ -53,6 +53,11 @@ dotnet user-secrets set "DataProtection:CertificateBase64" "$(base64 -w0 dp.pfx)
 rm dp.key dp.crt dp.pfx   # keep a backup elsewhere in production: losing it means sellers reconnect couriers
 # PDF labels: headless Chromium (ADR 0008), once per machine after the first build (about 150 MB)
 dotnet build src/api && pwsh src/api/Hishab.Api/bin/Debug/net10.0/playwright.ps1 install chromium
+# Optional: draft orders from a pasted chat with Gemini (free-tier key from aistudio.google.com).
+# Without it the app runs normally and that one endpoint answers 503. Free-tier prompts may be
+# used by Google to improve its models: use a paid key before real customer chats go through it.
+dotnet user-secrets set "Ai:Provider" "Gemini" --project src/api/Hishab.Api
+dotnet user-secrets set "Ai:ApiKey" "<your Gemini API key>" --project src/api/Hishab.Api
 dotnet run --project src/api/Hishab.Api           # dev OTP codes appear in the console log
 
 # 3. Web  ->  http://localhost:5173 (proxies /api to the API, so run both)
