@@ -1,12 +1,11 @@
 # Progress
 
 ## Current
-- Milestone: M4 Money & risk (last issue #33 in review, PR #83); M5 Showcase polish next
-- Issue: none in progress (#33 in review, PR #83; #32 done)
-- Branch: none (start the next one from main)
-- Next step: after #83 merges, M5 starts with #34 "AI chat-to-order API with Gemini" (needs a Gemini
-  free-tier API key in user-secrets first, see below). If the key is not ready, #36 (full Bangla UI) or
-  #37 (demo seed data) need nothing external.
+- Milestone: M5 Showcase polish
+- Issue: #34 in review (PR #84)
+- Branch: feat/34-ai-chat-to-order (pushed)
+- Next step: after #84 merges, #35 "Web: paste chat to draft order" (the form half of #34; needs no key,
+  MSW fake for the draft endpoint). Then #36 (Bangla UI), #37 (demo seed), #38 (compose + e2e), #39 (README).
 
 ## Done
 - Product discovery: PRD written (docs/PRD.md); name chosen: Hishab
@@ -172,9 +171,20 @@
   per page, shared Build with the customer page), RiskBadge (word + icon shape + colour + reasons) on lookup,
   list, detail and customer page, Owner dashboard (today cards, lazy Recharts profit chart 30 days / 12 months,
   caption + table, missing-cost note); 656 .NET + 107 web tests; note 37; screenshots
+- #34 Chat-to-order API (PR #84): POST /api/orders/drafts/from-chat (CanEnterOrders, saves nothing), Gemini via
+  Google.GenAI behind IChatClient (Ai:Provider None by default -> 503), phones masked to [PHONE_n] before the model,
+  pure OrderDraftRules (real token or no phone, catalogue refs only, clamps, trims, warning codes), fenced chat,
+  JSON schema at temperature 0, timeout, per-shop rate limit (6/min), counts-only logs; 682 .NET + 107 web tests;
+  note 38
 - #24 Steadfast: paused and moved out of M3 (docs behind the merchant login, no sandbox; Syed's choice)
 
 ## Decisions waiting for Syed
+- Chat-to-order (#34): not live-tested (no key yet): set `Ai:Provider` = Gemini and `Ai:ApiKey` in user-secrets and
+  try a few real chats; Gemini's handling of the nullable JSON schema is the main unknown (fallback = notUnderstood).
+  Names/addresses still go to Google, and the free tier may use prompts for training: a paid key (costs money,
+  your call) before real customer chats. Several numbers in a chat -> the model picks one + `severalPhones`
+  warning. Rate limit 6 drafts/shop/minute is a guess. Microsoft.Extensions.AI pinned to 10.x (11.x clashes with
+  .NET 10's logging generator). PR is ~1,060 lines excl. generated (tests ~470).
 - Dashboard/risk (#33): list risk counts all of a customer's orders (order detail still excludes the shown one).
   ForManyAsync is not EXPLAIN-checked at volume and there is no SQL query-count test yet (a small EF
   command-counting interceptor in the test factory would let us assert "2 queries per page"). Loss bars are
@@ -340,3 +350,4 @@
   (no library); PR #81 open
 - 2026-11-24: #81 merged; #32 with statement paste, one PR (Syed's choices); PR #82 open
 - 2026-11-24: #82 merged (GitHub glitch, closed by hand); #33 as one PR, Owner-only dashboard (Syed's choices); PR #83 open
+- 2026-11-26: #83 merged; #34 built without a key, Google.GenAI official SDK (Syed's choices); PR #84 open
