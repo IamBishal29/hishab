@@ -1,112 +1,133 @@
 # Hishab
 
-**The back office for Facebook and Instagram sellers in Bangladesh:** take an order in
-20 seconds, book the courier in one click, and stop losing money on fake orders and
-unpaid cash on delivery (COD).
+[![CI](https://github.com/IamBishal29/hishab/actions/workflows/ci.yml/badge.svg)](https://github.com/IamBishal29/hishab/actions/workflows/ci.yml)
+[![Licence: MIT](https://img.shields.io/badge/licence-MIT-blue.svg)](LICENSE)
+![.NET 10](https://img.shields.io/badge/.NET-10-512BD4)
+![React + TypeScript](https://img.shields.io/badge/React-TypeScript-3178C6)
 
-> Status: early development. See the [PRD](docs/PRD.md) and the
-> [milestones](../../milestones).
+**The back office for Facebook and Instagram sellers in Bangladesh.** Take an order in 20 seconds, book the
+courier in one click, spot buyers who refuse parcels, and match every taka of cash on delivery (COD) the
+courier pays back.
+
+<p align="center">
+  <img src="docs/screenshots/readme/demo.gif" width="300"
+       alt="Demo: sign in, take an order, book the courier, the parcel is delivered, the courier's payout settles it">
+</p>
+
+## The 60-second tour
+
+Most small online shops in Bangladesh sell through Facebook pages and Messenger, ship with couriers such as
+Pathao or Steadfast, and get paid cash on delivery. They run on notebooks and spreadsheets, and lose money in
+three places. Hishab closes each one:
+
+| Where money leaks | What Hishab does |
+| --- | --- |
+| Slow order entry, mistyped phone numbers | A phone-first quick order form: a returning buyer's name, address and history fill in by themselves. Optionally, paste a Messenger chat and an AI fills the form, marking every suggestion until a person checks it. |
+| Buyers who refuse parcels (the seller pays delivery both ways) | A risk badge from the buyer's own history (Safe, Watch or Risky, with the reason), shown before the order is taken. |
+| COD the courier keeps or short-pays | Bookings through the courier's API, statuses synced in the background, and payout statements pasted in and matched parcel by parcel: settled, short-paid or flagged. |
+
+Also: an owner dashboard with real profit (product cost, delivery, return and COD fees), staff roles, printable
+labels and invoices, CSV export, and a full Bangla interface.
 
 ## Screenshots
 
-_Coming with the first UI milestone._
+| Quick order: a returning risky buyer | Orders with risk badges | Dashboard in Bangla |
+| --- | --- | --- |
+| <img src="docs/screenshots/readme/mobile-quick-order-risky.png" width="250" alt="Quick order form showing a Risky badge and the buyer's history"> | <img src="docs/screenshots/readme/mobile-orders.png" width="250" alt="Order list on a phone"> | <img src="docs/screenshots/readme/mobile-dashboard-bangla.png" width="250" alt="Owner dashboard in Bangla with a profit chart"> |
+
+| Owner dashboard | COD money: what couriers owe |
+| --- | --- |
+| <img src="docs/screenshots/readme/desktop-dashboard.png" alt="Dashboard with today's counts and a 30-day profit chart"> | <img src="docs/screenshots/readme/desktop-money.png" alt="COD summary by courier and age, short payments and payouts"> |
+| **Order detail with its full history** | **Order list** |
+| <img src="docs/screenshots/readme/desktop-order-detail.png" alt="A settled order with courier, items and status timeline"> | <img src="docs/screenshots/readme/desktop-orders.png" alt="Orders with status and risk"> |
+
+All data comes from the fictional demo shop; every phone number is in a block no operator has issued
+(`+880 10 0000 0xxx`). A script regenerates these images, so they always match the current UI.
 
 ## Architecture
 
-A modular monolith: ASP.NET Core Web API (.NET 10) with Clean Architecture, PostgreSQL,
-Hangfire and a React + TypeScript SPA. Multi-tenant (shared database, `TenantId` +
-EF Core global query filters). Couriers sit behind one `ICourierProvider` interface.
+A **modular monolith**: one ASP.NET Core API and one React SPA, with Clean Architecture layers inside and a
+feature folder per module (Shops, Orders, Customers, Couriers, Money, Products, Reports). One deployable is the
+right size for a product at this stage; the module seams keep a later split possible.
 
-- [Architecture overview with diagrams](docs/ARCHITECTURE.md)
-- [Architecture decision records](docs/decisions/)
-
-```text
-src/api    .NET solution (Domain, Application, Infrastructure, Api)
-src/web    React SPA (Vite, Tailwind, shadcn/ui, i18next en + bn)
-tests      Unit, integration (Testcontainers) and architecture tests
-docs       PRD, architecture, ADRs, learning notes
+```mermaid
+flowchart LR
+  spa[React SPA<br/>TanStack Query, RHF + Zod, i18n en/bn] -->|/api, JWT + refresh cookie| api
+  subgraph api[ASP.NET Core API, .NET 10]
+    direction TB
+    ctrl[Controllers + validation] --> app[Application services]
+    app --> dom[Domain<br/>order state machine, Money, risk rules]
+    infra[Infrastructure<br/>EF Core, Hangfire, courier adapters, AI] -.implements.-> app
+  end
+  api --> pg[(PostgreSQL<br/>shared DB, TenantId on every row)]
+  api --> jobs[Hangfire jobs<br/>courier status sync]
+  infra --> couriers[Courier APIs<br/>Fake, Pathao sandbox]
+  infra --> llm[Gemini via IChatClient<br/>optional]
 ```
 
-## Quick start
+- **Multi-tenant** in one database: every tenant-owned row carries `TenantId`, enforced by EF Core global query
+  filters and a cross-tenant test for every entity. Layer rules are enforced by architecture tests.
+- **Orders** move only through a state machine (New → Confirmed → Booked → In transit → Delivered → COD settled,
+  with cancel and return branches). Invalid moves are 409s; concurrent edits are caught by row versions.
+- **Couriers** sit behind one `ICourierProvider` interface. Bookings are idempotent, so a lost answer can be
+  retried without creating a second parcel.
 
-Requirements: .NET 10 SDK, Node.js LTS, Docker.
+More: [architecture overview with diagrams](docs/ARCHITECTURE.md) · [product requirements](docs/PRD.md)
 
-```bash
-# 1. Infrastructure (PostgreSQL + Seq)
-cp .env.example .env              # then set POSTGRES_PASSWORD
-docker compose up -d
+## Key decisions
 
-# 2. API  ->  http://localhost:5125/health, docs at /scalar
-dotnet user-secrets set "Database:ConnectionString" \
-  "Host=localhost;Port=5432;Database=hishab;Username=hishab;Password=<your password>" \
-  --project src/api/Hishab.Api
-# OTP hashing key: any random 32+ bytes, base64 (PowerShell: [Convert]::ToBase64String((1..32 | % { Get-Random -Max 256 })))
-dotnet user-secrets set "Otp:HashKey" "$(openssl rand -base64 32)" --project src/api/Hishab.Api
-# JWT signing key: another, different random 32+ bytes, base64
-dotnet user-secrets set "Jwt:SigningKey" "$(openssl rand -base64 32)" --project src/api/Hishab.Api
-# Data Protection certificate: wraps the key ring that encrypts courier API keys (ADR 0007).
-# Development only (self-signed). MSYS_NO_PATHCONV stops Git Bash on Windows rewriting "/CN=...".
-MSYS_NO_PATHCONV=1 openssl req -x509 -newkey rsa:2048 -nodes -days 730 \
-  -subj "/CN=Hishab dev Data Protection" -keyout dp.key -out dp.crt
-openssl pkcs12 -export -inkey dp.key -in dp.crt -out dp.pfx -passout pass:
-dotnet user-secrets set "DataProtection:CertificateBase64" "$(base64 -w0 dp.pfx)" --project src/api/Hishab.Api
-rm dp.key dp.crt dp.pfx   # keep a backup elsewhere in production: losing it means sellers reconnect couriers
-# PDF labels: headless Chromium (ADR 0008), once per machine after the first build (about 150 MB)
-dotnet build src/api && pwsh src/api/Hishab.Api/bin/Debug/net10.0/playwright.ps1 install chromium
-# Optional: draft orders from a pasted chat with Gemini (free-tier key from aistudio.google.com).
-# Without it the app runs normally and that one endpoint answers 503. Free-tier prompts may be
-# used by Google to improve its models: use a paid key before real customer chats go through it.
-dotnet user-secrets set "Ai:Provider" "Gemini" --project src/api/Hishab.Api
-dotnet user-secrets set "Ai:ApiKey" "<your Gemini API key>" --project src/api/Hishab.Api
-dotnet run --project src/api/Hishab.Api           # dev OTP codes appear in the console log
+| Decision | Why | Record |
+| --- | --- | --- |
+| Modular monolith, Clean Architecture | One deployable, clear module seams, rules testable without the web or the database | [ADR 0001](docs/decisions/0001-stack.md) |
+| Shared database with `TenantId` + global query filters | Cheapest to run for many small shops; isolation proven by tests, not by convention | [ADR 0002](docs/decisions/0002-multi-tenancy.md) |
+| A Fake courier first, then real sandboxes | The whole flow is testable offline; real adapters are contract-tested with WireMock | [ADR 0005](docs/decisions/0005-fake-courier-first.md) |
+| One shop per user | Simple tenant resolution from the token; staff are invited into a shop | [ADR 0006](docs/decisions/0006-one-shop-per-user.md) |
+| Courier API keys encrypted with Data Protection, key ring wrapped by a certificate | A database leak alone does not leak sellers' courier keys | [ADR 0007](docs/decisions/0007-courier-credentials-encryption.md) |
+| Labels and invoices rendered by headless Chromium | Bangla text shaping is only correct in a real browser engine | [ADR 0008](docs/decisions/0008-pdf-with-headless-chromium.md) |
+| AI output treated as untrusted input | Phones are masked before the model sees a chat; the server re-checks every value; a person confirms | [Note 38](docs/learning/38-llm-output-as-untrusted-data.md) |
 
-# 3. Web  ->  http://localhost:5173 (proxies /api to the API, so run both)
-cd src/web && npm ci && npm run dev
+All records: [docs/decisions](docs/decisions/) (also: controllers over minimal APIs, npm).
 
-# API contract changed? Refresh the snapshot, then regenerate the typed client
-cd src/api && HISHAB_UPDATE_OPENAPI=1 dotnet test --filter-class "*OpenApiSnapshotTests"
-cd src/web && npm run api:generate
-```
+## Run it
 
-### Run the whole product with Docker
-
-One command builds the images, migrates, seeds the demo shop and starts everything behind health checks:
+The whole product with one command (Docker); the API migrates and seeds a demo shop on startup:
 
 ```bash
 cp .env.example .env                 # set POSTGRES_PASSWORD
 scripts/demo-secrets.sh >> .env      # OTP, JWT and Data Protection secrets, generated locally
 docker compose --profile app up -d --build --wait
-# -> http://localhost:8080 (WEB_PORT=8090 if 8080 is taken); sign in as 01000000001
-docker compose logs api | grep OTP   # the sign-in code (no SMS gateway yet)
 ```
 
-End-to-end test against it (Playwright, the core flow: order -> book -> delivered -> COD settled):
+Open http://localhost:8080 and sign in as **01000000001**. There is no SMS gateway yet, so the one-time code is
+in the API log: `docker compose logs api | grep OTP`.
 
-```bash
-cd e2e && npm ci && npx playwright install chromium && npm test
-```
+Running from source, the demo shop, and every check CI runs: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
 
-### Demo shop
+## How it is tested
 
-In Development the API seeds a fictional shop at startup (`Demo:Seed`, on in `appsettings.Development.json`):
-"Nodi Boutique (Demo)" with staff, six products, twelve customers, 30 orders in every status over the last four
-weeks, Fake courier bookings and three weekly COD payouts. Sign in as the owner with **01000000001** (the OTP
-code is in the API log); staff are 01000000002 (Manager), …03 (Moderator), …04 (Packer).
+| Level | What it covers | Tools |
+| --- | --- | --- |
+| Unit | Domain rules: order state machine, money, risk score, payout matching, profit, AI output checks | xUnit, Shouldly, NSubstitute |
+| Integration | Every endpoint against real PostgreSQL: tenant isolation, idempotency, concurrency, permissions | WebApplicationFactory, Testcontainers |
+| Contract | Courier adapters against their API's behaviour; the OpenAPI document against a snapshot | WireMock.Net |
+| Architecture | Layer dependencies (the Domain depends on nothing) | NetArchTest |
+| Web | Components and flows against a fake API; untranslated text fails the build | Vitest, Testing Library, MSW |
+| End to end | One journey on the Docker build: order, book, delivered, COD settled | Playwright |
 
-- Every phone number is in the fictional block `+880 10 0000 0xxx`: 010 is not issued to any operator.
-- Re-running is safe: each step checks whether it already happened, so nothing is duplicated.
-- The API refuses to start if `Demo:Seed` is on in any environment other than Development or `Demo`.
+About 710 .NET tests and 130 web tests run on every pull request, plus the end-to-end journey against the built
+containers; a failed run uploads its Playwright trace.
 
-## Tests and checks
+## How this project is run
 
-```bash
-# API (needs Docker running for the integration tests, and Chromium installed for the PDF label tests)
-cd src/api && dotnet format --verify-no-changes && dotnet build && dotnet test
-
-# Web
-cd src/web && npm run format:check && npm run lint && npm run typecheck && npm test && npm run build
-```
+Like a team project: a [backlog of GitHub issues in milestones](../../milestones), one branch and one reviewed pull
+request per issue (around 600 lines, Conventional Commits), CI green before merge, and a decision record for
+anything architectural. Each issue ends with a one-page note on the engineering concept behind it, in
+[docs/learning](docs/learning/): for example
+[tenant isolation](docs/learning/01-tenant-isolation-with-ef-core.md),
+[idempotency across service boundaries](docs/learning/21-idempotency-across-service-boundaries.md),
+[payout reconciliation](docs/learning/31-payout-reconciliation.md) and
+[human-in-the-loop AI UX](docs/learning/39-human-in-the-loop-ux.md).
 
 ## Licence
 
-See [LICENSE](LICENSE).
+[MIT](LICENSE)
