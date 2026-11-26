@@ -53,7 +53,9 @@ export function HomePage(): ReactElement {
   return (
     <section className="mx-auto max-w-2xl">
       <h1 className="text-2xl font-bold">{t('home.title')}</h1>
-      <p className="text-muted-foreground">{t('home.signedInAs', { role: session?.role ?? '' })}</p>
+      <p className="text-muted-foreground">
+        {t('home.signedInAs', { role: session ? t(`roles.${session.role}`) : '' })}
+      </p>
       <div className="mt-4 flex flex-wrap gap-2">
         <Button asChild variant="outline">
           <Link to="/orders">{t('home.orders')}</Link>

@@ -17,6 +17,7 @@ import { ApiProblem } from '@/api/http'
 import { FormField } from '@/components/FormField'
 import { Button } from '@/components/ui/button'
 import { formatMoney } from '@/lib/money'
+import { formatNumber } from '@/lib/numbers'
 import { applyProblem } from '@/lib/problemErrors'
 import { orderListQuery } from '@/features/orders/orderQueries'
 import { OrderRow } from '@/features/orders/OrderRow'
@@ -69,10 +70,22 @@ function CustomerView({ details }: { details: CustomerDetails }): ReactElement {
       </header>
 
       <dl aria-label={t('customer.track')} className="grid grid-cols-3 gap-2 text-center text-sm">
-        <Tile label={t('customer.orders')} value={String(history.previousOrders)} />
-        <Tile label={t('customer.delivered')} value={String(history.delivered)} />
-        <Tile label={t('customer.returned')} value={String(history.returned)} />
-        <Tile label={t('customer.cancelled')} value={String(history.cancelled)} />
+        <Tile
+          label={t('customer.orders')}
+          value={formatNumber(history.previousOrders, i18n.language)}
+        />
+        <Tile
+          label={t('customer.delivered')}
+          value={formatNumber(history.delivered, i18n.language)}
+        />
+        <Tile
+          label={t('customer.returned')}
+          value={formatNumber(history.returned, i18n.language)}
+        />
+        <Tile
+          label={t('customer.cancelled')}
+          value={formatNumber(history.cancelled, i18n.language)}
+        />
         <Tile
           label={t('customer.deliveryRate')}
           value={rate === null ? '—' : t('customer.percent', { value: rate })}

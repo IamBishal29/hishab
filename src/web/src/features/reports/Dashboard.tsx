@@ -8,6 +8,7 @@ import {
 } from '@/api/generated/hishab'
 import { Button } from '@/components/ui/button'
 import { formatMoney } from '@/lib/money'
+import { formatNumber } from '@/lib/numbers'
 import { todayInDhaka } from '@/lib/dates'
 import { pointLabel, rangeFor, toPoints, type ProfitView } from './profitSeries'
 
@@ -67,6 +68,7 @@ function Card({
   value: number | string
   to?: string
 }): ReactElement {
+  const { i18n } = useTranslation()
   const body = (
     <>
       <dt className="text-xs text-muted-foreground">{label}</dt>
@@ -78,7 +80,7 @@ function Card({
             : 'text-sm font-semibold break-words sm:text-base'
         }
       >
-        {value}
+        {typeof value === 'number' ? formatNumber(value, i18n.language) : value}
       </dd>
     </>
   )

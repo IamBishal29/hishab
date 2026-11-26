@@ -15,6 +15,7 @@ import { canEnterOrders } from '@/features/auth/permissions'
 import { useSession } from '@/features/auth/useSession'
 import { formatDhakaDateTime } from '@/lib/dates'
 import { formatMoney } from '@/lib/money'
+import { formatNumber } from '@/lib/numbers'
 import { canCancel, canConfirm, invalidateOrders } from './orderQueries'
 import { ShipmentPanel } from './ShipmentPanel'
 import { StatusBadge } from './StatusBadge'
@@ -154,7 +155,7 @@ function OrderView({ details }: { details: OrderDetails }): ReactElement {
         {order.lines.map((line, index) => (
           <li key={index} className="flex justify-between gap-2">
             <span>
-              {line.quantity} × {line.productName}
+              {formatNumber(line.quantity, i18n.language)} × {line.productName}
               {line.variantLabel && ` (${line.variantLabel})`}
             </span>
             <span>{money(line.lineTotal)}</span>

@@ -57,11 +57,15 @@ export function ProductPicker({
         type="search"
         value={search}
         placeholder={t('order.findProductHint')}
+        aria-describedby={`${id}-enter`}
         onChange={(e) => {
           setSearch(e.target.value)
         }}
         onKeyDown={onKeyDown}
       />
+      <p id={`${id}-enter`} className="text-xs text-muted-foreground">
+        {t('order.findProductEnter')}
+      </p>
       <ul
         aria-label={t('order.productResults')}
         className="flex max-h-56 flex-col overflow-y-auto rounded-md border"

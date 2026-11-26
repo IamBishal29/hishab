@@ -12,8 +12,9 @@ if (!('createObjectURL' in URL)) {
 }
 
 // Any request without a handler fails the test: no silent calls to a real network.
-beforeAll(() => {
+beforeAll(async () => {
   server.listen({ onUnhandledFrame: 'error' })
+  await i18n.changeLanguage('en') // the app defaults to Bangla; tests read English unless they switch
 })
 
 afterEach(async () => {
@@ -24,6 +25,7 @@ afterEach(async () => {
   setAccessToken(null)
   queryClient.clear()
   await i18n.changeLanguage('en')
+  localStorage.clear()
 })
 
 afterAll(() => {

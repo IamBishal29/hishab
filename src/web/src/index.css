@@ -1,6 +1,7 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
+@import '@fontsource-variable/noto-sans-bengali';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -121,4 +122,10 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Bangla pages use Noto Sans Bengali for every glyph (Latin too), so mixed text has one look and
+   one line height. English pages never reference it, so they never download it. */
+html:lang(bn) {
+  font-family: 'Noto Sans Bengali Variable', ui-sans-serif, system-ui, sans-serif;
 }

@@ -98,7 +98,7 @@ export function LoginPage(): ReactElement {
             type="tel"
             inputMode="tel"
             autoComplete="tel"
-            placeholder="01XXXXXXXXX"
+            placeholder={t('login.phonePlaceholder')}
             error={phoneForm.formState.errors.phone?.message}
             {...phoneForm.register('phone')}
           />

@@ -2,10 +2,9 @@
 
 ## Current
 - Milestone: M5 Showcase polish
-- Issue: #35 in review (PR #85); #34 done (PR #84 merged)
-- Branch: feat/35-paste-chat-draft (pushed)
-- Next step: after #85 merges, #36 "Full Bangla UI and local formatting" (lowest open M5 issue), then #37 (demo
-  seed), #38 (compose + e2e), #39 (README).
+- Issue: #36 in review (PR #86); #35 done (PR #85 merged)
+- Branch: feat/36-bangla-ui (pushed)
+- Next step: after #86 merges, #37 "Demo seed data" (lowest open M5 issue), then #38 (compose + e2e), #39 (README).
 
 ## Done
 - Product discovery: PRD written (docs/PRD.md); name chosen: Hishab
@@ -179,10 +178,17 @@
 - #35 Paste chat UI (PR #85): ChatDraftPanel on the quick order form, word + symbol "Suggested" marks derived from
   value === suggestion (editing removes them), fills only untouched or still-suggested fields, matched lines added
   (draft lines now carry label + unitPrice), unmatched items + warnings in a live region, 503/429 messages, en + bn;
-  114 web tests; note 39; screenshot
+  114 web tests; note 39; screenshot (merged)
+- #36 Bangla UI (PR #86): Bangla default + saved choice (`hishab.language`, `<html lang>`), Noto Sans Bengali via
+  @fontsource only under `html:lang(bn)`, counts in local digits (`{{x, number}}`, `formatNumber`; IDs stay ASCII),
+  CI guard tests (locale parity/placeholders/plurals; TS-compiler scan for literal JSX text and unknown keys),
+  role names translated, product hint fixed at 360 px; 129 web tests; note 40; screenshot
 - #24 Steadfast: paused and moved out of M3 (docs behind the merchant login, no sandbox; Syed's choice)
 
 ## Decisions waiting for Syed
+- Bangla (#36): server error messages (ProblemDetails) are still English in both languages; translating them means
+  error codes from the API (separate issue?). Times show "AM/PM" in Bangla (CLDR default); say if you prefer 24 h.
+  Native date inputs follow the browser's locale.
 - Paste chat (#35): a chat's name/address replaces a customer's auto-filled saved name/address (auto-fill is not
   "typed"); say if saved data should win. No per-field confirm before Save (20-second goal); revisit if AI drafts
   cause wrong orders. Server messages in the panel are English (same as other API errors).
@@ -359,3 +365,4 @@
 - 2026-11-24: #82 merged (GitHub glitch, closed by hand); #33 as one PR, Owner-only dashboard (Syed's choices); PR #83 open
 - 2026-11-26: #83 merged; #34 built without a key, Google.GenAI official SDK (Syed's choices); PR #84 open
 - 2026-11-26: #84 merged; #35 implemented (routine choices), PR #85 open
+- 2026-11-26: #85 merged; #36 implemented (@fontsource font, Bangla default: Syed's choices), PR #86 open
