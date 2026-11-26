@@ -68,6 +68,17 @@ cd src/api && HISHAB_UPDATE_OPENAPI=1 dotnet test --filter-class "*OpenApiSnapsh
 cd src/web && npm run api:generate
 ```
 
+### Demo shop
+
+In Development the API seeds a fictional shop at startup (`Demo:Seed`, on in `appsettings.Development.json`):
+"Nodi Boutique (Demo)" with staff, six products, twelve customers, 30 orders in every status over the last four
+weeks, Fake courier bookings and three weekly COD payouts. Sign in as the owner with **01000000001** (the OTP
+code is in the API log); staff are 01000000002 (Manager), …03 (Moderator), …04 (Packer).
+
+- Every phone number is in the fictional block `+880 10 0000 0xxx`: 010 is not issued to any operator.
+- Re-running is safe: each step checks whether it already happened, so nothing is duplicated.
+- The API refuses to start if `Demo:Seed` is on in any environment other than Development or `Demo`.
+
 ## Tests and checks
 
 ```bash
