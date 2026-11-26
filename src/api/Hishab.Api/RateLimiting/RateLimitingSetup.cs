@@ -11,17 +11,22 @@ public sealed class RateLimitingOptions
 
     /// <summary>OTP requests (send + verify) allowed per client IP per minute.</summary>
     public int OtpPermitsPerMinute { get; set; } = 10;
+
+    /// <summary>Chat-to-order drafts allowed per shop per minute (shares one AI key across all shops).</summary>
+    public int ChatDraftPermitsPerMinute { get; set; } = 6;
 }
 
 public static class RateLimitingSetup
 {
     public const string OtpPolicy = "otp";
+    public const string ChatDraftPolicy = "chat-draft";
 
     public static IServiceCollection AddHishabRateLimiting(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddOptions<RateLimitingOptions>()
             .Bind(configuration.GetSection(RateLimitingOptions.SectionName))
             .Validate(o => o.OtpPermitsPerMinute > 0, "RateLimiting:OtpPermitsPerMinute must be positive.")
+            .Validate(o => o.ChatDraftPermitsPerMinute > 0, "RateLimiting:ChatDraftPermitsPerMinute must be positive.")
             .ValidateOnStart();
 
         var options = configuration.GetSection(RateLimitingOptions.SectionName).Get<RateLimitingOptions>()
@@ -36,6 +41,16 @@ public static class RateLimitingSetup
                 _ => new FixedWindowRateLimiterOptions
                 {
                     PermitLimit = options.OtpPermitsPerMinute,
+                    Window = TimeSpan.FromMinutes(1),
+                    QueueLimit = 0,
+                }));
+
+            // Per shop (the signed-in user's tenant claim): one busy shop cannot use up the AI quota of all others.
+            limiter.AddPolicy(ChatDraftPolicy, http => RateLimitPartition.GetFixedWindowLimiter(
+                http.User.FindFirst(Hishab.Application.Common.Security.HishabClaimTypes.TenantId)?.Value ?? "anonymous",
+                _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = options.ChatDraftPermitsPerMinute,
                     Window = TimeSpan.FromMinutes(1),
                     QueueLimit = 0,
                 }));
@@ -56,7 +71,9 @@ public static class RateLimitingSetup
                     {
                         Status = StatusCodes.Status429TooManyRequests,
                         Title = "Too many requests",
-                        Detail = "Too many attempts from this network. Please wait a minute and try again.",
+                        Detail = http.GetEndpoint()?.Metadata.GetMetadata<EnableRateLimitingAttribute>()?.PolicyName == ChatDraftPolicy
+                            ? "Your shop has drafted many orders this minute. Please wait a minute and try again."
+                            : "Too many attempts from this network. Please wait a minute and try again.",
                     },
                 });
             };

@@ -20,6 +20,7 @@ using Hishab.Infrastructure.Identity;
 using Hishab.Infrastructure.Jobs;
 using Hishab.Infrastructure.Labels;
 using Hishab.Infrastructure.Orders;
+using Hishab.Infrastructure.Orders.Drafts;
 using Hishab.Infrastructure.Persistence;
 using Hishab.Infrastructure.Persistence.Auditing;
 using Hishab.Infrastructure.Persistence.Tenancy;
@@ -85,6 +86,7 @@ public static class DependencyInjection
         services.AddSingleton<ChromiumPdfRenderer>(); // one browser per process (ADR 0008)
         services.AddScoped<ILabelService, LabelService>();
         services.AddScoped<IInvoiceService, InvoiceService>();
+        services.AddChatAssistant(configuration); // chat-to-order drafts (#34)
 
         // Same DbContext and connection string as the app, so "healthy" means the app can really reach its data.
         services.AddHealthChecks()

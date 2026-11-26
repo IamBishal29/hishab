@@ -428,6 +428,11 @@ export interface CustomerSummary {
   risk: RiskAssessment;
 }
 
+export interface DraftFromChatRequest {
+  /** The conversation with the buyer, pasted as text (Bangla, English or both). */
+  chat: string;
+}
+
 export interface FindOrCreateCustomerRequest {
   phone: string;
   /** @nullable */
@@ -589,6 +594,28 @@ export interface OrderDetails {
   customer: CustomerSummary;
   warnings: string[];
   shipment: null | ShipmentDto;
+}
+
+export interface OrderDraftLine {
+  /** @nullable */
+  variantId: string | null;
+  description: string;
+  quantity: number;
+}
+
+export interface OrderDraft {
+  /** @nullable */
+  phone: string | null;
+  /** @nullable */
+  customerName: string | null;
+  /** @nullable */
+  deliveryAddress: string | null;
+  /** @nullable */
+  isInsideDhaka: boolean | null;
+  lines: OrderDraftLine[];
+  /** @nullable */
+  note: string | null;
+  warnings: string[];
 }
 
 export interface OrderListItem {
@@ -3350,6 +3377,84 @@ export function useGetApiMoneyPayoutsId<TData = Awaited<ReturnType<typeof getApi
 
 
 
+
+export const getPostApiOrdersDraftsFromChatUrl = () => {
+
+
+
+
+  return `/api/orders/drafts/from-chat`
+}
+
+/**
+ * @summary Reads a pasted buyer chat and suggests the quick order form's fields. Nothing is saved: the person
+taking the order reviews every field and creates the order with POST /api/orders. The phone is always
+one found in the chat and every matched item is one of this shop's products; check the warnings.
+ */
+export const postApiOrdersDraftsFromChat = async (draftFromChatRequest: DraftFromChatRequest, options?: Parameters<typeof apiFetch>[1]): Promise<OrderDraft> => {
+
+  return apiFetch<OrderDraft>(getPostApiOrdersDraftsFromChatUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: getHeaders({ 'Content-Type': 'application/json' }, options?.headers),
+    body: JSON.stringify(draftFromChatRequest)
+  }
+);}
+
+
+
+
+
+export const getPostApiOrdersDraftsFromChatMutationKey = () => ['postApiOrdersDraftsFromChat'] as const;
+
+export const getPostApiOrdersDraftsFromChatMutationOptions = <TError = HttpValidationProblemDetails | ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiOrdersDraftsFromChat>>, TError,PostApiOrdersDraftsFromChatMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiOrdersDraftsFromChat>>, TError,PostApiOrdersDraftsFromChatMutationVariables, TContext> => {
+
+const mutationKey = getPostApiOrdersDraftsFromChatMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiOrdersDraftsFromChat>>, PostApiOrdersDraftsFromChatMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  postApiOrdersDraftsFromChat(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiOrdersDraftsFromChatMutationResult = NonNullable<Awaited<ReturnType<typeof postApiOrdersDraftsFromChat>>>
+    export type PostApiOrdersDraftsFromChatMutationBody = DraftFromChatRequest
+    export type PostApiOrdersDraftsFromChatMutationError = HttpValidationProblemDetails | ProblemDetails
+    export type PostApiOrdersDraftsFromChatMutationVariables = {data: DraftFromChatRequest}
+
+    /**
+ * @summary Reads a pasted buyer chat and suggests the quick order form's fields. Nothing is saved: the person
+taking the order reviews every field and creates the order with POST /api/orders. The phone is always
+one found in the chat and every matched item is one of this shop's products; check the warnings.
+ */
+export const usePostApiOrdersDraftsFromChat = <TError = HttpValidationProblemDetails | ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiOrdersDraftsFromChat>>, TError,PostApiOrdersDraftsFromChatMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof postApiOrdersDraftsFromChat>>,
+        TError,
+        PostApiOrdersDraftsFromChatMutationVariables,
+        TContext
+      > => {
+      return useMutation(getPostApiOrdersDraftsFromChatMutationOptions(options), queryClient);
+    }
 
 export const getPostApiOrdersUrl = () => {
 

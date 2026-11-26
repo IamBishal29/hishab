@@ -341,6 +341,12 @@ Never read, print or commit `.env`, user-secrets, tokens or keys. Put placeholde
   never `ToList`); `CsvWriter` (Infrastructure/Export): `Text` for typed text (neutralises = + - @ tab CR),
   `Raw`/`Number` for our own values; UTF-8 BOM; phones as `01912-345678`. List filters are shared:
   `OrderService.Filter(db, filter)` and `CustomerService.Search(query, search)`; change them there.
+- Chat-to-order (#34): `IOrderDraftService` (`POST /api/orders/drafts/from-chat`, `CanEnterOrders`, saves nothing).
+  `IChatClient` (Microsoft.Extensions.AI, keep it on 10.x while on .NET 10) chosen by `Ai:Provider` (None default ->
+  `ChatAssistantUnavailableException` 503; Gemini needs `Ai:ApiKey` from user-secrets). Phones are masked by
+  `ChatPhoneMasker` before any model call; model output goes through pure `OrderDraftRules` (tokens and catalogue refs
+  only). Never add logging middleware to the chat client. Rate limit policy `chat-draft` per tenant. Tests:
+  `ChatDraftApiFactory` + `ScriptedChatClient` (no real AI calls).
 - OpenAPI: `EnumSchemaTransformer` strips `null` from shared enum schemas (an optional enum query
   parameter seen first would otherwise make the enum nullable for every client).
 - Screenshots for UI PRs live in `docs/screenshots/NN-*.png` (390 px wide, headless Chrome).
