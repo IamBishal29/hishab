@@ -1,5 +1,9 @@
-/** Spellings the API accepts: 01712345678, +8801712345678, +880 1712-345678, 01712-345678 ... */
-export const bdMobilePattern = /^(?:\+?88)?[\s-]?0[\s-]?1[3-9](?:[\s-]?\d){8}$/
+/**
+ * Spellings the API accepts: 01712345678, +8801712345678, +880 1712-345678, 01712-345678 ...
+ * plus the fictional demo block 01000000xxx (010 is not issued to any operator; see Phone.DemoBlock).
+ */
+export const bdMobilePattern =
+  /^(?:\+?88)?[\s-]?0[\s-]?1(?:[3-9](?:[\s-]?\d){8}|0(?:[\s-]?0){5}(?:[\s-]?\d){3})$/
 
 /**
  * The local 11-digit form ("01712345678"), or null when it is not a Bangladeshi mobile number.

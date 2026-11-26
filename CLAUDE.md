@@ -355,6 +355,11 @@ Never read, print or commit `.env`, user-secrets, tokens or keys. Put placeholde
   start in English). Numbers in messages use `{{x, number}}`; bare counts `formatNumber` (lib/numbers); IDs and phones
   stay ASCII. Values from the API shown to users need a key (`roles.<Role>`, `status.<S>`). Guards: `i18n/locales.test.ts`
   and `i18n/hardcodedText.test.ts` (no literal JSX text / text attributes, literal `t()` keys must exist).
+- Demo seed (#37): `Infrastructure/Demo` — data in `DemoScript`, `DemoSeeder` acts as the owner by setting
+  `IHttpContextAccessor.HttpContext` (owner claims) and goes through services only; every step must stay convergent (check
+  before acting; orders use `demo-order-NN` idempotency keys). `SeedClock` wraps the clock only when `Demo:Seed` is on.
+  Startup hook `SeedDemoDataIfEnabledAsync` (allow-list Development/Demo). Demo phones: `Phone.Demo(n)` (+880 10 0000 0xxx);
+  owner 01000000001. The owner lookup by phone across shops is the 5th allowed cross-tenant query.
 - OpenAPI: `EnumSchemaTransformer` strips `null` from shared enum schemas (an optional enum query
   parameter seen first would otherwise make the enum nullable for every client).
 - Screenshots for UI PRs live in `docs/screenshots/NN-*.png` (390 px wide, headless Chrome).

@@ -12,6 +12,7 @@ using Hishab.Api.Routing;
 using Hishab.Api.Validation;
 using Hishab.Application.Common.Auditing;
 using Hishab.Infrastructure;
+using Hishab.Infrastructure.Demo;
 using Hishab.Infrastructure.Persistence;
 using Scalar.AspNetCore;
 using Serilog;
@@ -52,10 +53,17 @@ app.UseSerilogRequestLogging(options => options.Logger = app.Services.GetRequire
 app.UseExceptionHandler();
 app.UseStatusCodePages();
 
-if (app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment(DemoSeedSetup.DemoEnvironment))
 {
     // Other environments migrate as a separate deployment step (no startup races between instances).
     await app.Services.MigrateDatabaseAsync();
+}
+
+// Before the host serves requests or starts jobs; throws if Demo:Seed is on outside Development/Demo.
+await app.Services.SeedDemoDataIfEnabledAsync(app.Environment.EnvironmentName);
+
+if (app.Environment.IsDevelopment())
+{
     app.MapOpenApi();
     app.MapScalarApiReference();
 

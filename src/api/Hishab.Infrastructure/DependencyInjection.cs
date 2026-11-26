@@ -14,6 +14,7 @@ using Hishab.Infrastructure.Couriers;
 using Hishab.Infrastructure.Couriers.Fake;
 using Hishab.Infrastructure.Couriers.Pathao;
 using Hishab.Infrastructure.Customers;
+using Hishab.Infrastructure.Demo;
 using Hishab.Infrastructure.Export;
 using Hishab.Infrastructure.Finance;
 using Hishab.Infrastructure.Identity;
@@ -92,6 +93,7 @@ public static class DependencyInjection
         services.AddHealthChecks()
             .AddDbContextCheck<HishabDbContext>("postgres");
 
+        services.AddDemoSeed(configuration); // after the clock: it may wrap it
         return services;
     }
 

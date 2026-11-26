@@ -12,10 +12,21 @@ public sealed record Phone
 {
     public const string InvalidMessage = "Enter a Bangladeshi mobile number, for example 01712345678.";
 
+    /// <summary>
+    /// Fictional numbers for demo data: 010 is not issued to any operator, so +880 10 0000 0xxx can never
+    /// reach a real person (like the US 555-01xx range). Only these 1,000 numbers of 010 are accepted.
+    /// </summary>
+    public const string DemoBlock = "+8801000000";
+
+    private const string DemoLocalPrefix = "01000000";
+
     private Phone(string value) => Value = value;
 
     /// <summary>E.164 form, e.g. +8801712345678. Use for storage and SMS only, never for logs.</summary>
     public string Value { get; }
+
+    /// <summary>True for a fictional demo number (<see cref="DemoBlock"/>).</summary>
+    public bool IsDemo => Value.StartsWith(DemoBlock, StringComparison.Ordinal);
 
     /// <summary>Masked local form for logs and support screens, e.g. 01712****78.</summary>
     public string Masked => string.Concat(Value.AsSpan(3, 5), "****", Value.AsSpan(Value.Length - 2));
@@ -53,8 +64,9 @@ public sealed record Phone
             _ => null,
         };
 
-        // Mobile numbers: 01 followed by an operator digit 3-9 and 8 more digits.
-        if (local is null || !local.StartsWith("01", StringComparison.Ordinal) || local[2] is < '3' or > '9')
+        // Mobile numbers: 01 followed by an operator digit 3-9 and 8 more digits, or the demo block.
+        var isOperator = local is not null && local.StartsWith("01", StringComparison.Ordinal) && local[2] is >= '3' and <= '9';
+        if (local is null || !(isOperator || local.StartsWith(DemoLocalPrefix, StringComparison.Ordinal)))
         {
             return false;
         }
@@ -66,6 +78,14 @@ public sealed record Phone
     /// <exception cref="DomainValidationException">The input is not a Bangladeshi mobile number.</exception>
     public static Phone Parse(string? input, string field = "phone") =>
         TryParse(input, out var phone) ? phone : throw new DomainValidationException(field, InvalidMessage);
+
+    /// <summary>The <paramref name="index"/>-th demo number (0-999), e.g. 1 -> +8801000000001.</summary>
+    public static Phone Demo(int index)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(index);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(index, 999);
+        return Parse(DemoLocalPrefix + index.ToString("000", System.Globalization.CultureInfo.InvariantCulture));
+    }
 
     public override string ToString() => Masked;
 }

@@ -9,6 +9,11 @@ describe('normalizePhone', () => {
     },
   )
 
+  it('accepts the fictional demo block (010 0000 0xxx) and nothing else of 010', () => {
+    expect(normalizePhone('01000000123')).toBe('01000000123')
+    expect(normalizePhone('01012345678')).toBeNull()
+  })
+
   it.each(['', '12345', '0171234567', '01212345678', '+1 555 0100'])('rejects %s', (input) => {
     expect(normalizePhone(input)).toBeNull()
   })
