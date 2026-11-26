@@ -16,6 +16,26 @@ public class PhoneTests
         Phone.Parse(input).Value.ShouldBe("+8801712345678");
     }
 
+    [Theory]
+    [InlineData("01000000123")]
+    [InlineData("+880 10000 00123")]
+    public void The_fictional_demo_block_is_accepted_and_marked(string input)
+    {
+        var phone = Phone.Parse(input);
+
+        phone.Value.ShouldBe("+8801000000123");
+        phone.IsDemo.ShouldBeTrue();
+        Phone.Parse("01712345678").IsDemo.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Demo_numbers_are_built_from_an_index_inside_the_block()
+    {
+        Phone.Demo(7).Value.ShouldBe("+8801000000007");
+        Phone.Demo(999).IsDemo.ShouldBeTrue();
+        Should.Throw<ArgumentOutOfRangeException>(() => Phone.Demo(1000));
+    }
+
     [Fact]
     public void Two_spellings_of_the_same_number_are_equal()
     {
@@ -36,6 +56,8 @@ public class PhoneTests
     [InlineData("0171234567")] // 10 digits
     [InlineData("017123456789")] // 12 digits
     [InlineData("01212345678")] // 012 is not a mobile operator
+    [InlineData("01012345678")] // 010 outside the demo block
+    [InlineData("01000001234")] // one digit past the demo block's prefix
     [InlineData("02912345678")] // landline
     [InlineData("4401712345678")] // other country code
     [InlineData("0171234567a")]

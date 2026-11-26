@@ -22,7 +22,7 @@ public static partial class ChatPhoneMasker
     /// spaces or dashes allowed between digits (01712-345678, +880 1712 345678). Not inside a longer
     /// run of digits (an order ID, a bKash transaction number).
     /// </summary>
-    [GeneratedRegex(@"(?<![\d+])(?:\+?88[ -]?)?0[ -]?1[3-9](?:[ -]?\d){8}(?!\d)", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 200)]
+    [GeneratedRegex(@"(?<![\d+])(?:\+?88[ -]?)?0[ -]?1(?:[3-9](?:[ -]?\d){8}|0(?:[ -]?0){5}(?:[ -]?\d){3})(?!\d)", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 200)]
     private static partial Regex Candidate();
 
     public static MaskedChat Mask(string chat)

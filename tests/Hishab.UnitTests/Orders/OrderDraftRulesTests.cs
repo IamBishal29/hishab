@@ -21,6 +21,15 @@ public class ChatPhoneMaskerTests
     }
 
     [Fact]
+    public void A_demo_number_is_masked_like_a_real_one()
+    {
+        var masked = ChatPhoneMasker.Mask("call me 01000000123 please");
+
+        masked.Text.ShouldBe("call me [PHONE_1] please");
+        masked.Phones["PHONE_1"].IsDemo.ShouldBeTrue();
+    }
+
+    [Fact]
     public void The_same_number_twice_shares_a_token_and_a_second_number_gets_the_next()
     {
         var masked = ChatPhoneMasker.Mask("01712345678 / 01712-345678, bKash 01898765432");
