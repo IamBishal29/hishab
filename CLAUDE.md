@@ -329,6 +329,13 @@ Never read, print or commit `.env`, user-secrets, tokens or keys. Put placeholde
   re-match call `afterPayoutChange(queryClient, saved)` (payout, list, COD summary, reports, settled orders).
   Statement paste: pure `parseStatement` (tabs win over commas; unreadable rows reported, never dropped).
   MSW money fake lives in `src/test/moneyApi.ts` (`money` state, `recordedPayout()`).
+- Risk badges (#33): `features/customers/RiskBadge` (word + icon shape + colour + reasons; `compact` = first reason)
+  on quick order lookup, order rows, order detail and customer page. `OrderListItem.customerRisk` comes from
+  `ICustomerOrderHistory.ForManyAsync` (two grouped queries per page; same `Build` as `ForAsync`, all orders).
+- Dashboard (#33): Owner-only `features/reports/Dashboard` on Home (`/api/reports/today` + `/profit`); the
+  Recharts chart is lazy-loaded (`ProfitChart`, default export, own chunk; mocked in jsdom tests). Months = sum
+  of the server's days (`profitSeries.toPoints`). Charts: caption + table view, SVG aria-hidden, no animation.
+  MSW reports fake: `src/test/reportsApi.ts`.
 - Export (#31): `GET /api/export/orders.csv` (order list filters, no paging) and `customers.csv?search=`,
   `CanSeeProfit`, `Cache-Control: no-store`. `ExportService` streams (`AsAsyncEnumerable` -> `Response.Body`,
   never `ToList`); `CsvWriter` (Infrastructure/Export): `Text` for typed text (neutralises = + - @ tab CR),

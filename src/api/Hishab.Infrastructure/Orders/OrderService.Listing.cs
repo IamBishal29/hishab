@@ -37,7 +37,11 @@ internal sealed partial class OrderService
             .Take(limit + 1) // one extra row says whether a next page exists, without a COUNT
             .ToListAsync(cancellationToken);
 
-        var items = page.Take(limit).Select(r => new OrderListItem(
+        var rowsOnPage = page.Take(limit).ToList();
+        // Risk for the whole page in two grouped queries (not one per row: 50 rows would be 100 queries).
+        var records = await history.ForManyAsync([.. rowsOnPage.Select(r => r.Order.CustomerId)], cancellationToken);
+
+        var items = rowsOnPage.Select(r => new OrderListItem(
             r.Order.Id,
             r.Order.Number,
             r.Order.Status,
@@ -49,7 +53,8 @@ internal sealed partial class OrderService
             r.Order.Lines.Sum(l => l.Quantity),
             r.Order.Total.Amount,
             r.Order.CodAmount.Amount,
-            r.Order.CreatedAt)).ToList();
+            r.Order.CreatedAt,
+            risk.Assess(records[r.Order.CustomerId], r.IsBlocked))).ToList();
 
         var next = page.Count > limit ? new OrderCursor(items[^1].CreatedAt, items[^1].Number).Encode() : null;
         return new OrderListPage(items, next);
@@ -102,7 +107,7 @@ internal sealed partial class OrderService
             db.Customers.AsNoTracking(),
             o => o.CustomerId,
             c => c.Id,
-            (o, c) => new OrderWithCustomer { Order = o, Phone = c.Phone, Name = c.Name });
+            (o, c) => new OrderWithCustomer { Order = o, Phone = c.Phone, Name = c.Name, IsBlocked = c.IsBlocked });
 
         if (!string.IsNullOrWhiteSpace(filter.Search))
         {
@@ -138,4 +143,6 @@ internal sealed class OrderWithCustomer
     public required string Phone { get; init; }
 
     public string? Name { get; init; }
+
+    public bool IsBlocked { get; init; }
 }

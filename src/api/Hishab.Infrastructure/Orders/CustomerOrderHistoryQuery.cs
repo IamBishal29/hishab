@@ -16,8 +16,6 @@ internal sealed class CustomerOrderHistoryQuery(HishabDbContext db) : ICustomerO
             .Select(g => new { Status = g.Key, Count = g.Count() })
             .ToDictionaryAsync(x => x.Status, x => x.Count, cancellationToken);
 
-        int Count(params OrderStatus[] statuses) => statuses.Sum(s => byStatus.GetValueOrDefault(s));
-
         // Recency for the risk rules: the latest Delivered and Returned steps in these orders' history.
         var latest = await db.Orders.AsNoTracking()
             .Where(o => o.CustomerId == customerId && o.Id != excludingOrderId)
@@ -25,15 +23,54 @@ internal sealed class CustomerOrderHistoryQuery(HishabDbContext db) : ICustomerO
             .Where(h => h.To == OrderStatus.Delivered || h.To == OrderStatus.Returned)
             .GroupBy(h => h.To)
             .Select(g => new { Step = g.Key, At = g.Max(h => h.ChangedAt) })
-            .ToDictionaryAsync(x => x.Step, x => (DateTimeOffset?)x.At, cancellationToken);
+            .ToDictionaryAsync(x => x.Step, x => x.At, cancellationToken);
+
+        return Build(byStatus, latest);
+    }
+
+    public async Task<IReadOnlyDictionary<Guid, CustomerOrderHistory>> ForManyAsync(
+        IReadOnlyCollection<Guid> customerIds, CancellationToken cancellationToken)
+    {
+        if (customerIds.Count == 0)
+        {
+            return new Dictionary<Guid, CustomerOrderHistory>();
+        }
+
+        var ids = customerIds.Distinct().ToList();
+        var counts = await db.Orders.AsNoTracking()
+            .Where(o => ids.Contains(o.CustomerId))
+            .GroupBy(o => new { o.CustomerId, o.Status })
+            .Select(g => new { g.Key.CustomerId, g.Key.Status, Count = g.Count() })
+            .ToListAsync(cancellationToken);
+
+        var latest = await db.Orders.AsNoTracking()
+            .Where(o => ids.Contains(o.CustomerId))
+            .SelectMany(o => o.History, (o, h) => new { o.CustomerId, h.To, h.ChangedAt })
+            .Where(x => x.To == OrderStatus.Delivered || x.To == OrderStatus.Returned)
+            .GroupBy(x => new { x.CustomerId, x.To })
+            .Select(g => new { g.Key.CustomerId, g.Key.To, At = g.Max(x => x.ChangedAt) })
+            .ToListAsync(cancellationToken);
+
+        return ids.ToDictionary(
+            id => id,
+            id => Build(
+                counts.Where(c => c.CustomerId == id).ToDictionary(c => c.Status, c => c.Count),
+                latest.Where(l => l.CustomerId == id).ToDictionary(l => l.To, l => l.At)));
+    }
+
+    /// <summary>One rule for both shapes: which statuses count as delivered, returned and cancelled.</summary>
+    private static CustomerOrderHistory Build(Dictionary<OrderStatus, int> byStatus, Dictionary<OrderStatus, DateTimeOffset> latest)
+    {
+        int Count(params OrderStatus[] statuses) => statuses.Sum(s => byStatus.GetValueOrDefault(s));
+        DateTimeOffset? At(OrderStatus step) => latest.TryGetValue(step, out var at) ? at : null;
 
         return new CustomerOrderHistory(
             PreviousOrders: byStatus.Values.Sum(),
             Delivered: Count(OrderStatus.Delivered, OrderStatus.CodSettled),
             Returned: Count(OrderStatus.Returned, OrderStatus.ReceivedBack),
             Cancelled: Count(OrderStatus.Cancelled),
-            LastDeliveredAt: latest.GetValueOrDefault(OrderStatus.Delivered),
-            LastReturnedAt: latest.GetValueOrDefault(OrderStatus.Returned));
+            LastDeliveredAt: At(OrderStatus.Delivered),
+            LastReturnedAt: At(OrderStatus.Returned));
     }
 
     // Order.Total is a domain rule (lines + delivery charge), not a column, so the delivered orders

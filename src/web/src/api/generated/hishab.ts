@@ -605,6 +605,7 @@ export interface OrderListItem {
   total: number;
   codAmount: number;
   createdAt: string;
+  customerRisk: RiskAssessment;
 }
 
 export interface OrderListPage {

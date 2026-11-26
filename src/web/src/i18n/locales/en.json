@@ -321,5 +321,57 @@
     "lineAmounts": "Collected {{collected}}, fees {{fees}}",
     "due": "due {{amount}}",
     "lineShortfall": "short {{amount}}"
+  },
+  "risk": {
+    "label": "Customer risk",
+    "levels": {
+      "New": "New buyer",
+      "Safe": "Safe",
+      "Watch": "Watch",
+      "Risky": "Risky"
+    },
+    "reasons": {
+      "Blocked": "Blocked by your shop",
+      "HighReturnRate": "Returned {{rate}}% of parcels",
+      "ElevatedReturnRate": "Returned {{rate}}% of parcels",
+      "RecentReturn": "Returned a parcel recently",
+      "ManyCancellations": "Cancelled many orders",
+      "NoHistory": "No delivered or returned parcels yet"
+    }
+  },
+  "dashboard": {
+    "today": "Today",
+    "new": "New today",
+    "toBook": "To book",
+    "inTransit": "With courier",
+    "delivered": "Delivered today",
+    "returned": "Returned today",
+    "profitToday": "Profit today",
+    "profitTitle": "Profit",
+    "period": "Period",
+    "views": {
+      "days": "30 days",
+      "months": "12 months"
+    },
+    "summary_one": "Profit {{profit}} from {{sales}} sales ({{count}} parcel delivered).",
+    "summary_other": "Profit {{profit}} from {{sales}} sales ({{count}} parcels delivered).",
+    "showTable": "Show as a table",
+    "periodColumn": {
+      "days": "Day",
+      "months": "Month"
+    },
+    "sales": "Sales",
+    "profit": "Profit",
+    "missing": {
+      "title": "Some costs are not known yet and count as 0, so profit may be lower:",
+      "cost_one": "{{count}} sold item has no cost price",
+      "cost_other": "{{count}} sold items have no cost price",
+      "deliveryFee_one": "{{count}} parcel has no delivery fee",
+      "deliveryFee_other": "{{count}} parcels have no delivery fee",
+      "returnCharge_one": "{{count}} return has no return charge",
+      "returnCharge_other": "{{count}} returns have no return charge",
+      "payout_one": "{{count}} parcel awaits a payout (COD fee unknown)",
+      "payout_other": "{{count}} parcels await a payout (COD fee unknown)"
+    }
   }
 }

@@ -5,6 +5,7 @@ import type { BulkItemResult, OrderListItem } from '@/api/generated/hishab'
 import { formatDhakaDateTime } from '@/lib/dates'
 import { formatMoney } from '@/lib/money'
 import { StatusBadge } from './StatusBadge'
+import { RiskBadge } from '@/features/customers/RiskBadge'
 
 interface OrderRowProps {
   order: OrderListItem
@@ -55,6 +56,7 @@ export function OrderRow({
           </Link>
         )}
         {customer === 'text' && <p className="truncate text-sm">{who}</p>}
+        {customer !== 'hidden' && <RiskBadge risk={order.customerRisk} compact />}
         <p className="flex flex-wrap justify-between gap-x-3 text-sm text-muted-foreground">
           <span>
             {t('orders.items', { count: order.itemCount })} ·{' '}

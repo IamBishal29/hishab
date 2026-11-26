@@ -11,9 +11,11 @@ import type {
   OrderDetails,
   OrderListItem,
   OrderStatus,
+  RiskAssessment,
   ShipmentDto,
 } from '@/api/generated/hishab'
 import { moneyHandlers, resetMoney } from './moneyApi'
+import { reportsHandlers, resetReports } from './reportsApi'
 
 /** A fake Hishab API for component tests. `api` holds the state tests arrange and inspect. */
 export const api = {
@@ -173,6 +175,7 @@ export function listItem(number: number, overrides: Partial<OrderListItem> = {})
     total: 1360,
     codAmount: 1360,
     createdAt: '2026-11-20T04:30:00Z',
+    customerRisk: { level: 'Safe', reasons: [], returnRate: 0 },
     ...overrides,
   }
 }
@@ -325,6 +328,7 @@ export interface LookupResult {
     createdAt: string
   }
   history: { previousOrders: number; delivered: number; returned: number; cancelled: number }
+  risk: RiskAssessment
 }
 
 export const catalogue = [
@@ -625,7 +629,7 @@ export const handlers = [
   }),
 ]
 
-export const server = setupServer(...handlers, ...moneyHandlers)
+export const server = setupServer(...handlers, ...moneyHandlers, ...reportsHandlers)
 
 export function resetApi(): void {
   api.hasRefreshCookie = false
@@ -652,4 +656,5 @@ export function resetApi(): void {
   api.refusals = {}
   api.labelQueries = []
   resetMoney()
+  resetReports()
 }

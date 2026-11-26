@@ -321,5 +321,57 @@
     "lineAmounts": "আদায় {{collected}}, চার্জ {{fees}}",
     "due": "পাওনা {{amount}}",
     "lineShortfall": "কম {{amount}}"
+  },
+  "risk": {
+    "label": "ক্রেতার ঝুঁকি",
+    "levels": {
+      "New": "নতুন ক্রেতা",
+      "Safe": "নিরাপদ",
+      "Watch": "নজরে রাখুন",
+      "Risky": "ঝুঁকিপূর্ণ"
+    },
+    "reasons": {
+      "Blocked": "আপনার দোকান ব্লক করেছে",
+      "HighReturnRate": "{{rate}}% পার্সেল ফেরত দিয়েছেন",
+      "ElevatedReturnRate": "{{rate}}% পার্সেল ফেরত দিয়েছেন",
+      "RecentReturn": "সম্প্রতি একটি পার্সেল ফেরত দিয়েছেন",
+      "ManyCancellations": "অনেক অর্ডার বাতিল করেছেন",
+      "NoHistory": "এখনো কোনো পার্সেল ডেলিভারি বা ফেরত হয়নি"
+    }
+  },
+  "dashboard": {
+    "today": "আজ",
+    "new": "আজকের নতুন",
+    "toBook": "বুক করতে হবে",
+    "inTransit": "কুরিয়ারের কাছে",
+    "delivered": "আজ ডেলিভারি",
+    "returned": "আজ ফেরত",
+    "profitToday": "আজকের লাভ",
+    "profitTitle": "লাভ",
+    "period": "সময়কাল",
+    "views": {
+      "days": "৩০ দিন",
+      "months": "১২ মাস"
+    },
+    "summary_one": "{{sales}} বিক্রি থেকে লাভ {{profit}} ({{count}}টি পার্সেল ডেলিভারি)।",
+    "summary_other": "{{sales}} বিক্রি থেকে লাভ {{profit}} ({{count}}টি পার্সেল ডেলিভারি)।",
+    "showTable": "টেবিল হিসেবে দেখুন",
+    "periodColumn": {
+      "days": "দিন",
+      "months": "মাস"
+    },
+    "sales": "বিক্রি",
+    "profit": "লাভ",
+    "missing": {
+      "title": "কিছু খরচ এখনো জানা নেই, তাই ০ ধরা হয়েছে; আসল লাভ কম হতে পারে:",
+      "cost_one": "{{count}}টি বিক্রিত পণ্যের কেনা দাম নেই",
+      "cost_other": "{{count}}টি বিক্রিত পণ্যের কেনা দাম নেই",
+      "deliveryFee_one": "{{count}}টি পার্সেলের ডেলিভারি চার্জ নেই",
+      "deliveryFee_other": "{{count}}টি পার্সেলের ডেলিভারি চার্জ নেই",
+      "returnCharge_one": "{{count}}টি ফেরতের চার্জ নেই",
+      "returnCharge_other": "{{count}}টি ফেরতের চার্জ নেই",
+      "payout_one": "{{count}}টি পার্সেল পেআউটের অপেক্ষায় (COD চার্জ অজানা)",
+      "payout_other": "{{count}}টি পার্সেল পেআউটের অপেক্ষায় (COD চার্জ অজানা)"
+    }
   }
 }

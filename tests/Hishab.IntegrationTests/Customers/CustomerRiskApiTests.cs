@@ -81,4 +81,26 @@ public class CustomerRiskApiTests(HishabApiFactory factory) : IClassFixture<Hish
         Level((await Lookup(shopA)).GetProperty("risk")).ShouldBe("Risky");
         Risk((await Lookup(shopB)).GetProperty("risk")).ShouldBe("New: NoHistory");
     }
+
+    [Fact]
+    public async Task Each_order_list_row_carries_its_customers_risk_as_the_customer_page_shows_it()
+    {
+        var owner = await _shop.ShopWithFake();
+        await _shop.DeliveredOrder(owner, price: 500m);
+        await _shop.ReturnedOrder(owner, price: 500m);
+        await _shop.ReturnedOrder(owner, price: 500m);
+        await _shop.ConfirmedOrder(owner, price: 500m, advance: 0m, phone: "01812345678"); // a new buyer
+        var buyer = (await Lookup(owner)).GetProperty("customer").GetProperty("id").GetGuid();
+        var page = await _shop.Ok(HttpMethod.Get, $"/api/customers/{buyer}", owner);
+
+        var rows = (await _shop.Ok(HttpMethod.Get, "/api/orders", owner)).GetProperty("items").EnumerateArray().ToList();
+
+        rows.Count.ShouldBe(4);
+        var buyersRows = rows.Where(r => r.GetProperty("customerId").GetGuid() == buyer).ToList();
+        buyersRows.Count.ShouldBe(3);
+        buyersRows.ShouldAllBe(r => Risk(r.GetProperty("customerRisk")) == Risk(page.GetProperty("risk")));
+        Risk(page.GetProperty("risk")).ShouldStartWith("Risky");
+        Risk(rows.Single(r => r.GetProperty("customerId").GetGuid() != buyer).GetProperty("customerRisk"))
+            .ShouldBe("New: NoHistory");
+    }
 }

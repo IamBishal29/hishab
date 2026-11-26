@@ -6,6 +6,12 @@ public interface ICustomerOrderHistory
     /// <param name="excludingOrderId">Leave out this order (the one being shown), so it does not count itself.</param>
     Task<CustomerOrderHistory> ForAsync(Guid customerId, Guid? excludingOrderId, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Several customers' records at once (a page of the order list): two grouped queries whatever
+    /// the page size, never one per row. Every requested ID is in the result (no orders = all zeros).
+    /// </summary>
+    Task<IReadOnlyDictionary<Guid, CustomerOrderHistory>> ForManyAsync(IReadOnlyCollection<Guid> customerIds, CancellationToken cancellationToken);
+
     /// <summary>What the customer has paid for: the totals of their delivered (and COD settled) orders, in BDT.</summary>
     Task<decimal> DeliveredValueAsync(Guid customerId, CancellationToken cancellationToken);
 }
