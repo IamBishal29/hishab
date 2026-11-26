@@ -7,10 +7,13 @@ set -euo pipefail
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 
-# Data Protection key-ring certificate (ADR 0007): RSA, no password, base64 PFX.
-MSYS_NO_PATHCONV=1 openssl req -x509 -newkey rsa:2048 -nodes -days 730 \
-  -subj "/CN=hishab-demo-data-protection" -keyout "$tmp/dp.key" -out "$tmp/dp.crt" 2>/dev/null
-openssl pkcs12 -export -inkey "$tmp/dp.key" -in "$tmp/dp.crt" -out "$tmp/dp.pfx" -passout pass:
+# Data Protection key-ring certificate (ADR 0007): RSA, no password, base64 PFX. Relative file names
+# inside the temp folder: MSYS_NO_PATHCONV (Git Bash, for -subj) would otherwise break absolute paths.
+(
+  cd "$tmp"
+  MSYS_NO_PATHCONV=1 openssl req -x509 -newkey rsa:2048 -nodes -days 730     -subj "/CN=hishab-demo-data-protection" -keyout dp.key -out dp.crt 2>/dev/null
+  openssl pkcs12 -export -inkey dp.key -in dp.crt -out dp.pfx -passout pass:
+)
 
 echo "OTP_HASH_KEY=$(openssl rand -base64 32)"
 echo "JWT_SIGNING_KEY=$(openssl rand -base64 32)"
