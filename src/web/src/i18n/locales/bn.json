@@ -38,6 +38,12 @@
   "shell": {
     "logout": "লগআউট"
   },
+  "roles": {
+    "Owner": "মালিক",
+    "Manager": "ম্যানেজার",
+    "Moderator": "মডারেটর",
+    "Packer": "প্যাকার"
+  },
   "home": {
     "title": "হিসাবে স্বাগতম",
     "signedInAs": "{{role}} হিসেবে লগইন করা আছে।",
@@ -68,7 +74,8 @@
       "WalkIn": "সরাসরি দোকানে"
     },
     "findProduct": "পণ্য যোগ করুন",
-    "findProductHint": "নাম বা SKU দিয়ে খুঁজুন, Enter চাপলে প্রথমটি যোগ হবে",
+    "findProductHint": "নাম বা SKU",
+    "findProductEnter": "Enter চাপলে প্রথমটি যোগ হবে।",
     "productResults": "মিলে যাওয়া পণ্য",
     "noProducts": "কোনো পণ্য মেলেনি।",
     "items": "পণ্যসমূহ",

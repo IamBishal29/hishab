@@ -38,6 +38,12 @@
   "shell": {
     "logout": "Log out"
   },
+  "roles": {
+    "Owner": "Owner",
+    "Manager": "Manager",
+    "Moderator": "Moderator",
+    "Packer": "Packer"
+  },
   "home": {
     "title": "Welcome to Hishab",
     "signedInAs": "Signed in as {{role}}.",
@@ -68,7 +74,8 @@
       "WalkIn": "Walk-in"
     },
     "findProduct": "Add product",
-    "findProductHint": "Search by name or SKU, Enter adds the first",
+    "findProductHint": "Name or SKU",
+    "findProductEnter": "Enter adds the first match.",
     "productResults": "Matching products",
     "noProducts": "No matching products.",
     "items": "Items",
