@@ -68,6 +68,24 @@ cd src/api && HISHAB_UPDATE_OPENAPI=1 dotnet test --filter-class "*OpenApiSnapsh
 cd src/web && npm run api:generate
 ```
 
+### Run the whole product with Docker
+
+One command builds the images, migrates, seeds the demo shop and starts everything behind health checks:
+
+```bash
+cp .env.example .env                 # set POSTGRES_PASSWORD
+scripts/demo-secrets.sh >> .env      # OTP, JWT and Data Protection secrets, generated locally
+docker compose --profile app up -d --build --wait
+# -> http://localhost:8080 (WEB_PORT=8090 if 8080 is taken); sign in as 01000000001
+docker compose logs api | grep OTP   # the sign-in code (no SMS gateway yet)
+```
+
+End-to-end test against it (Playwright, the core flow: order -> book -> delivered -> COD settled):
+
+```bash
+cd e2e && npm ci && npx playwright install chromium && npm test
+```
+
 ### Demo shop
 
 In Development the API seeds a fictional shop at startup (`Demo:Seed`, on in `appsettings.Development.json`):

@@ -130,6 +130,7 @@ public static class DependencyInjection
         services.AddSingleton<CourierBatchSender>();
 
         services.AddSingleton<FakeCourierControl>();
+        services.AddScoped<FakeCourierSimulator>(); // dev-only endpoint (Development/Demo)
         services.AddSingleton<ICourierProvider, FakeCourierProvider>();
         PathaoSetup.AddPathao(services, configuration);
         services.AddSingleton<ICourierProviderRegistry, CourierProviderRegistry>();

@@ -1,4 +1,7 @@
-# Local infrastructure. The api and web services are added with their own issues.
+# Local infrastructure:            docker compose up -d                       (postgres, seq)
+# The whole product (demo data):  docker compose --profile app up -d --build --wait
+#   -> http://localhost:8080, sign in as 01000000001 (OTP: docker compose logs api | grep "OTP")
+#   Needs the secrets in .env first: scripts/demo-secrets.sh >> .env
 name: hishab
 
 services:
@@ -14,6 +17,44 @@ services:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U hishab -d hishab"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    profiles: [app]
+    build:
+      context: .
+      dockerfile: src/api/Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: Demo # migrates and seeds the demo shop at startup
+      Database__ConnectionString: Host=postgres;Database=hishab;Username=hishab;Password=${POSTGRES_PASSWORD}
+      Otp__Delivery: Log # codes are written to this container's log (no SMS gateway yet)
+      Otp__HashKey: ${OTP_HASH_KEY:?Run scripts/demo-secrets.sh >> .env}
+      Jwt__SigningKey: ${JWT_SIGNING_KEY:?Run scripts/demo-secrets.sh >> .env}
+      DataProtection__CertificateBase64: ${DATA_PROTECTION_CERT_BASE64:?Run scripts/demo-secrets.sh >> .env}
+      Demo__Seed: "true"
+      Observability__SeqUrl: http://seq
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 20s
+
+  web:
+    profiles: [app]
+    build: src/web
+    ports:
+      - "127.0.0.1:${WEB_PORT:-8080}:8080" # the product: SPA + /api proxy, localhost only
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/"]
       interval: 5s
       timeout: 3s
       retries: 10

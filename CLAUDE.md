@@ -360,6 +360,12 @@ Never read, print or commit `.env`, user-secrets, tokens or keys. Put placeholde
   before acting; orders use `demo-order-NN` idempotency keys). `SeedClock` wraps the clock only when `Demo:Seed` is on.
   Startup hook `SeedDemoDataIfEnabledAsync` (allow-list Development/Demo). Demo phones: `Phone.Demo(n)` (+880 10 0000 0xxx);
   owner 01000000001. The owner lookup by phone across shops is the 5th allowed cross-tenant query.
+- Docker / e2e (#38): `src/api/Dockerfile` (context repo root; runtime installs Chromium headless shell + libatomic1),
+  `src/web/Dockerfile` + `nginx.conf` (/api proxy). Compose services `api`/`web` under profile `app` (`ASPNETCORE_ENVIRONMENT=Demo`,
+  secrets from `.env` via `scripts/demo-secrets.sh`, host port `WEB_PORT` default 8080). Local runs: use `-p hishab-e2e` and a
+  scratchpad `--env-file` so the developer's volumes are never touched. Dev-only controllers: `[DevOnly]` (removed outside
+  Development/Demo by `DevOnlyControllersConvention`, `IgnoreApi`). E2E in `e2e/` (Playwright; OTP read from the API JSON log;
+  OTP limit 1 per 30 s / 3 per 15 min per phone). New UI labels used by `e2e/tests` must stay in step with en.json.
 - OpenAPI: `EnumSchemaTransformer` strips `null` from shared enum schemas (an optional enum query
   parameter seen first would otherwise make the enum nullable for every client).
 - Screenshots for UI PRs live in `docs/screenshots/NN-*.png` (390 px wide, headless Chrome).

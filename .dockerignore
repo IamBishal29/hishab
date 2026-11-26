@@ -1,0 +1,14 @@
+# Build context for src/api/Dockerfile (repo root): send only what the API build needs.
+**/bin/
+**/obj/
+**/node_modules/
+**/TestResults/
+.git/
+.vs/
+.idea/
+.env
+.env.*
+tests/
+docs/
+e2e/
+src/web/
