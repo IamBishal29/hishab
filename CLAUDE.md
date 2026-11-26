@@ -347,6 +347,10 @@ Never read, print or commit `.env`, user-secrets, tokens or keys. Put placeholde
   `ChatPhoneMasker` before any model call; model output goes through pure `OrderDraftRules` (tokens and catalogue refs
   only). Never add logging middleware to the chat client. Rate limit policy `chat-draft` per tenant. Tests:
   `ChatDraftApiFactory` + `ScriptedChatClient` (no real AI calls).
+- Paste chat UI (#35): `features/orders/ChatDraftPanel` + pure `chatDraft.ts` (`suggestionsToApply`: fill only fields
+  not in `dirtyFields` or still holding the last suggestion; `isSuggested` = value === suggestion). Marks use
+  `SuggestedBadge` (word + symbol) via `FormField`'s `badge`. MSW fake `src/test/chatDraftApi.ts`, registered before
+  the generic handlers (`*/api/orders/:id/:action` would swallow it). New specific `/api/orders/<word>/...` fakes go first too.
 - OpenAPI: `EnumSchemaTransformer` strips `null` from shared enum schemas (an optional enum query
   parameter seen first would otherwise make the enum nullable for every client).
 - Screenshots for UI PRs live in `docs/screenshots/NN-*.png` (390 px wide, headless Chrome).

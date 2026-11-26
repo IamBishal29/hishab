@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useId, useRef, useState, type ReactElement } from 'react'
+import { useEffect, useId, useRef, useState, type ReactElement, type ReactNode } from 'react'
 import { useFieldArray, useForm, useWatch, type UseFormReturn } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { z } from 'zod'
@@ -10,6 +10,7 @@ import {
   useGetApiShop,
   type CreateOrderRequest,
   type CustomerLookupResponse,
+  type OrderDraft,
   type ShopResponse,
 } from '@/api/generated/hishab'
 import { ApiProblem } from '@/api/http'
@@ -19,6 +20,15 @@ import { Input } from '@/components/ui/input'
 import { formatMoney } from '@/lib/money'
 import { bdMobilePattern } from '@/lib/phone'
 import { applyProblem } from '@/lib/problemErrors'
+import { ChatDraftPanel, SuggestedBadge } from './ChatDraftPanel'
+import {
+  draftSuggestions,
+  isSuggested,
+  suggestibleFields,
+  suggestionsToApply,
+  type SuggestibleField,
+  type Suggestions,
+} from './chatDraft'
 import { useIdempotencyKey } from './idempotencyKey'
 import { ProductPicker, type PickedVariant } from './ProductPicker'
 import { useCustomerLookup } from './useCustomerLookup'
@@ -119,6 +129,10 @@ function QuickOrderForm({ shop }: { shop: ShopResponse }): ReactElement {
   const queryClient = useQueryClient()
   const idempotencyKey = useIdempotencyKey()
   const [savedNumber, setSavedNumber] = useState<number | null>(null)
+  const [suggested, setSuggested] = useState<Suggestions>({})
+  /** Quantity the assistant suggested per variant; the mark stays while the quantity does. */
+  const [suggestedLines, setSuggestedLines] = useState<Record<string, number>>({})
+  const [resets, setResets] = useState(0) // a new order starts with an empty paste box
 
   const form = useForm<OrderForm>({
     resolver: zodResolver(orderSchema),
@@ -137,6 +151,48 @@ function QuickOrderForm({ shop }: { shop: ShopResponse }): ReactElement {
     mutationFn: ({ data, key }: { data: CreateOrderRequest; key: string }) =>
       postApiOrders(data, { headers: { 'Idempotency-Key': key } }),
   })
+
+  const watched = useWatch({ control: form.control, name: suggestibleFields })
+  // Read during render so React Hook Form tracks it: a field the seller typed in is dirty.
+  // Auto-fill and suggestions use setValue without shouldDirty, so they stay replaceable.
+  const { dirtyFields } = form.formState
+  const mark = (field: SuggestibleField) =>
+    isSuggested(suggested, field, watched[suggestibleFields.indexOf(field)] ?? '') ? (
+      <SuggestedBadge />
+    ) : null
+
+  const applyDraft = (draft: OrderDraft) => {
+    const current = form.getValues()
+    const apply = suggestionsToApply(
+      draftSuggestions(draft),
+      current,
+      (field) => dirtyFields[field] === true,
+      suggested,
+    )
+    for (const field of suggestibleFields) {
+      const value = apply[field]
+      if (value === undefined) continue
+      if (field === 'area') form.setValue('area', value === 'outside' ? 'outside' : 'inside')
+      else form.setValue(field, value)
+    }
+    setSuggested((previous) => ({ ...previous, ...apply }))
+
+    // Matched items join the list; one the seller already added keeps its quantity.
+    const added: Record<string, number> = {}
+    for (const line of draft.lines) {
+      if (line.variantId === null || line.label === null || line.unitPrice === null) continue
+      if (current.lines.some((l) => l.variantId === line.variantId)) continue
+      lines.append({
+        variantId: line.variantId,
+        label: line.label,
+        unitPrice: line.unitPrice,
+        quantity: line.quantity,
+      })
+      added[line.variantId] = line.quantity
+    }
+    setSuggestedLines((previous) => ({ ...previous, ...added }))
+    form.clearErrors()
+  }
 
   const addLine = (variant: PickedVariant) => {
     const current = form.getValues('lines')
@@ -162,6 +218,9 @@ function QuickOrderForm({ shop }: { shop: ShopResponse }): ReactElement {
       idempotencyKey.settle()
       setSavedNumber(details.order.number)
       form.reset(emptyOrder(values.source)) // keep the channel: a moderator usually works one inbox
+      setSuggested({})
+      setSuggestedLines({})
+      setResets((n) => n + 1)
       await queryClient.invalidateQueries({ queryKey: ['customers', 'lookup'] }) // their history changed
     } catch (error) {
       idempotencyKey.settle(error)
@@ -189,9 +248,11 @@ function QuickOrderForm({ shop }: { shop: ShopResponse }): ReactElement {
           {t(errors.root.message, { defaultValue: errors.root.message })}
         </p>
       )}
+      <ChatDraftPanel key={resets} onDraft={applyDraft} />
       <form onSubmit={(e) => void save(e)} noValidate className="flex flex-col gap-4">
         <FormField
           label={t('order.phone')}
+          badge={mark('phone')}
           type="tel"
           inputMode="tel"
           autoComplete="off"
@@ -202,15 +263,17 @@ function QuickOrderForm({ shop }: { shop: ShopResponse }): ReactElement {
         <CustomerPanel lookup={lookup} />
         <FormField
           label={t('order.name')}
+          badge={mark('customerName')}
           error={errors.customerName?.message}
           {...form.register('customerName')}
         />
         <FormField
           label={t('order.address')}
+          badge={mark('deliveryAddress')}
           error={errors.deliveryAddress?.message}
           {...form.register('deliveryAddress')}
         />
-        <AreaAndSource form={form} />
+        <AreaAndSource form={form} areaBadge={mark('area')} />
 
         <ProductPicker onPick={addLine} />
         <fieldset className="flex flex-col gap-2">
@@ -220,6 +283,7 @@ function QuickOrderForm({ shop }: { shop: ShopResponse }): ReactElement {
               key={line.key}
               form={form}
               index={index}
+              suggestedQuantity={suggestedLines[line.variantId]}
               onRemove={() => {
                 lines.remove(index)
               }}
@@ -251,6 +315,7 @@ function QuickOrderForm({ shop }: { shop: ShopResponse }): ReactElement {
         />
         <FormField
           label={t('order.note')}
+          badge={mark('note')}
           error={errors.note?.message}
           {...form.register('note')}
         />
@@ -330,13 +395,22 @@ function CustomerPanel({
   )
 }
 
-function AreaAndSource({ form }: { form: UseFormReturn<OrderForm> }): ReactElement {
+function AreaAndSource({
+  form,
+  areaBadge,
+}: {
+  form: UseFormReturn<OrderForm>
+  areaBadge: ReactNode
+}): ReactElement {
   const { t } = useTranslation()
   const sourceId = useId()
   return (
     <div className="flex flex-col gap-4">
       <fieldset className="flex flex-col gap-1.5">
-        <legend className="text-sm font-medium">{t('order.area')}</legend>
+        <legend className="text-sm font-medium">
+          {t('order.area')}
+          {areaBadge}
+        </legend>
         <div className="flex gap-4">
           <label className="flex items-center gap-2 text-sm">
             <input type="radio" value="inside" {...form.register('area')} />
@@ -371,10 +445,13 @@ function AreaAndSource({ form }: { form: UseFormReturn<OrderForm> }): ReactEleme
 function LineRow({
   form,
   index,
+  suggestedQuantity,
   onRemove,
 }: {
   form: UseFormReturn<OrderForm>
   index: number
+  /** Set when the assistant added this line; the mark goes once the quantity is changed. */
+  suggestedQuantity: number | undefined
   onRemove: () => void
 }): ReactElement {
   const { t, i18n } = useTranslation()
@@ -385,7 +462,12 @@ function LineRow({
   return (
     <div className="flex flex-col gap-1 rounded-md border p-2">
       <div className="flex items-center justify-between gap-2 text-sm">
-        <span>{line.label}</span>
+        <span>
+          {line.label}
+          {suggestedQuantity !== undefined && suggestedQuantity === line.quantity && (
+            <SuggestedBadge />
+          )}
+        </span>
         <span className="tabular-nums">
           {formatMoney(line.unitPrice * (line.quantity || 0), i18n.language)}
         </span>

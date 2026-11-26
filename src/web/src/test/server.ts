@@ -14,6 +14,7 @@ import type {
   RiskAssessment,
   ShipmentDto,
 } from '@/api/generated/hishab'
+import { chatDraftHandlers, resetChatDraft } from './chatDraftApi'
 import { moneyHandlers, resetMoney } from './moneyApi'
 import { reportsHandlers, resetReports } from './reportsApi'
 
@@ -629,7 +630,12 @@ export const handlers = [
   }),
 ]
 
-export const server = setupServer(...handlers, ...moneyHandlers, ...reportsHandlers)
+export const server = setupServer(
+  ...chatDraftHandlers, // before handlers: '*/api/orders/:id/:action' would also match /orders/drafts/from-chat
+  ...handlers,
+  ...moneyHandlers,
+  ...reportsHandlers,
+)
 
 export function resetApi(): void {
   api.hasRefreshCookie = false
@@ -657,4 +663,5 @@ export function resetApi(): void {
   api.labelQueries = []
   resetMoney()
   resetReports()
+  resetChatDraft()
 }

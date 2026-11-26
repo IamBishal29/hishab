@@ -87,24 +87,26 @@ internal sealed partial class OrderDraftService(
         text.Replace("<conversation>", "(conversation)", StringComparison.OrdinalIgnoreCase)
             .Replace("</conversation>", "(/conversation)", StringComparison.OrdinalIgnoreCase);
 
-    private async Task<(string Text, Dictionary<string, Guid> Refs, bool Truncated)> LoadCatalogueAsync(int max, CancellationToken cancellationToken)
+    private async Task<(string Text, Dictionary<string, DraftCatalogueItem> Refs, bool Truncated)> LoadCatalogueAsync(int max, CancellationToken cancellationToken)
     {
-        // Tenant and soft-delete filters apply to products and variants. Costs and prices are never sent.
+        // Tenant and soft-delete filters apply to products and variants. Costs and prices are never sent to the model;
+        // the price only comes back to the seller on a matched line.
         var rows = await (
                 from p in db.Products.AsNoTracking()
                 from v in p.Variants
                 orderby p.Name, v.Sku
-                select new { v.Id, Product = p.Name, v.Size, v.Colour, v.Sku })
+                select new { v.Id, Product = p.Name, v.Size, v.Colour, v.Sku, v.Price })
             .Take(max + 1)
             .ToListAsync(cancellationToken);
 
-        var refs = new Dictionary<string, Guid>(StringComparer.OrdinalIgnoreCase);
+        var refs = new Dictionary<string, DraftCatalogueItem>(StringComparer.OrdinalIgnoreCase);
         var text = new StringBuilder();
         foreach (var row in rows.Take(max))
         {
             var reference = "V" + (refs.Count + 1).ToString(CultureInfo.InvariantCulture);
-            refs[reference] = row.Id;
             var variantOptions = string.Join(" / ", new[] { row.Size, row.Colour }.Where(o => !string.IsNullOrWhiteSpace(o)));
+            var label = variantOptions.Length == 0 ? row.Product : $"{row.Product} · {variantOptions}"; // as the order form labels it
+            refs[reference] = new DraftCatalogueItem(row.Id, label, row.Price.Amount);
             text.Append(reference).Append(" | ").Append(OneLine(row.Product)).Append(" | ").Append(OneLine(variantOptions))
                 .Append(" | ").Append(OneLine(row.Sku)).Append('\n');
         }

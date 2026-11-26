@@ -124,6 +124,9 @@ public sealed class ChatDraftTests(ChatDraftApiFactory factory) : IClassFixture<
         var lines = draft.GetProperty("lines").EnumerateArray().ToList();
         lines[0].GetProperty("variantId").GetString().ShouldBe(poloL);
         lines[0].GetProperty("quantity").GetInt32().ShouldBe(2);
+        lines[0].GetProperty("label").GetString().ShouldBe("Polo shirt · L");
+        lines[0].GetProperty("unitPrice").GetDecimal().ShouldBe(700m);
+        lines[1].GetProperty("unitPrice").ValueKind.ShouldBe(JsonValueKind.Null);
         lines[1].GetProperty("variantId").ValueKind.ShouldBe(JsonValueKind.Null);
         draft.GetProperty("warnings").EnumerateArray().Select(w => w.GetString()).ShouldBe(["unmatchedItem"]);
 

@@ -89,7 +89,27 @@
     "save": "Save order",
     "saving": "Saving…",
     "saved": "Order #{{number}} saved. Ready for the next one.",
-    "possibleDuplicate": "An earlier attempt may already have saved this order. Check the order list before saving again."
+    "possibleDuplicate": "An earlier attempt may already have saved this order. Check the order list before saving again.",
+    "draft": {
+      "open": "Paste a chat to fill the form",
+      "chatLabel": "Conversation with the buyer",
+      "hint": "{{count}} / {{max}} characters. An AI service reads the chat; phone numbers are hidden from it.",
+      "fill": "Fill the form",
+      "reading": "Reading the chat…",
+      "suggested": "Suggested",
+      "filled": "Filled from the chat. Check every field marked Suggested before saving.",
+      "unmatched": "Not found in your products, add them with Add product:",
+      "unmatchedLine": "“{{description}}” × {{quantity}}",
+      "warnings": {
+        "phoneNotFound": "No mobile number in the chat: enter it by hand.",
+        "severalPhones": "The chat has more than one number: check that the buyer's is picked.",
+        "noItems": "No items found in the chat.",
+        "quantityAdjusted": "A quantity was missing or too large: check the quantities.",
+        "notUnderstood": "The assistant could not read this chat; only the phone number was taken.",
+        "catalogueTruncated": "Your catalogue is large, so some products could not be matched.",
+        "other": "Check the suggested fields."
+      }
+    }
   },
   "status": {
     "New": "New",
