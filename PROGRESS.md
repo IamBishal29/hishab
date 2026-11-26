@@ -2,9 +2,10 @@
 
 ## Current
 - Milestone: M5 Showcase polish
-- Issue: #36 in review (PR #86); #35 done (PR #85 merged)
-- Branch: feat/36-bangla-ui (pushed)
-- Next step: after #86 merges, #37 "Demo seed data" (lowest open M5 issue), then #38 (compose + e2e), #39 (README).
+- Issue: #37 in review (PR #87); #36 done (PR #86 merged)
+- Branch: feat/37-demo-seed (pushed)
+- Next step: after #87 merges, #38 "Compose services for api and web, and Playwright e2e" (lowest open M5 issue), then
+  #39 (README). The e2e can sign in as the demo owner (01000000001) against a `Demo` environment.
 
 ## Done
 - Product discovery: PRD written (docs/PRD.md); name chosen: Hishab
@@ -183,9 +184,16 @@
   @fontsource only under `html:lang(bn)`, counts in local digits (`{{x, number}}`, `formatNumber`; IDs stay ASCII),
   CI guard tests (locale parity/placeholders/plurals; TS-compiler scan for literal JSX text and unknown keys),
   role names translated, product hint fixed at 360 px; 129 web tests; note 40; screenshot
+- #37 Demo seed (PR #87): fictional demo phone block +880 10 0000 0xxx (`Phone.IsDemo`, masker + web rule), `DemoScript`
+  (shop, 3 staff, 6 products, 12 customers, 30 orders in every status, 3 weekly payouts), convergent `DemoSeeder` through
+  the real services as the owner, `SeedClock` timeline, `Demo:Seed` (Development on) refused outside Development/Demo;
+  707 .NET tests; note 41; README demo section
 - #24 Steadfast: paused and moved out of M3 (docs behind the merchant login, no sandbox; Syed's choice)
 
 ## Decisions waiting for Syed
+- Demo seed (#37): the 010 demo block passes phone validation in production too (couriers would reject it); say if you
+  want it accepted only outside Production (needs the environment in the domain rule). PR is ~980 lines (data table + tests).
+  The dev startup itself was not run here (no `.env` / Database user-secrets on this machine); please run the API once.
 - Bangla (#36): server error messages (ProblemDetails) are still English in both languages; translating them means
   error codes from the API (separate issue?). Times show "AM/PM" in Bangla (CLDR default); say if you prefer 24 h.
   Native date inputs follow the browser's locale.
@@ -366,3 +374,4 @@
 - 2026-11-26: #83 merged; #34 built without a key, Google.GenAI official SDK (Syed's choices); PR #84 open
 - 2026-11-26: #84 merged; #35 implemented (routine choices), PR #85 open
 - 2026-11-26: #85 merged; #36 implemented (@fontsource font, Bangla default: Syed's choices), PR #86 open
+- 2026-11-26: #86 merged; #37 implemented (010 demo block, startup flag: Syed's choices), PR #87 open
