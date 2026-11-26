@@ -7890,7 +7890,9 @@
         "required": [
           "variantId",
           "description",
-          "quantity"
+          "quantity",
+          "label",
+          "unitPrice"
         ],
         "type": "object",
         "properties": {
@@ -7907,6 +7909,19 @@
           "quantity": {
             "type": "integer",
             "format": "int32"
+          },
+          "label": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "unitPrice": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
           }
         }
       },

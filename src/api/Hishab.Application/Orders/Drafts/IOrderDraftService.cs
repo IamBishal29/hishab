@@ -30,7 +30,9 @@ public sealed record OrderDraft(
 
 /// <param name="VariantId">The matched catalogue variant; null when the item is not in the catalogue (pick it by hand).</param>
 /// <param name="Description">The item as the buyer described it.</param>
-public sealed record OrderDraftLine(Guid? VariantId, string Description, int Quantity);
+/// <param name="Label">The matched variant as the order form shows it ("Polo shirt · L / Red"); null when unmatched.</param>
+/// <param name="UnitPrice">The matched variant's catalogue price (BDT) for the form's preview; null when unmatched.</param>
+public sealed record OrderDraftLine(Guid? VariantId, string Description, int Quantity, string? Label, decimal? UnitPrice);
 
 /// <summary>Stable warning codes; the web app translates them.</summary>
 public static class DraftWarnings

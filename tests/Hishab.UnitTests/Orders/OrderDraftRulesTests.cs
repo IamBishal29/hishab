@@ -55,7 +55,11 @@ public class OrderDraftRulesTests
 {
     private static readonly Guid _shirt = Guid.NewGuid();
     private static readonly Guid _saree = Guid.NewGuid();
-    private static readonly Dictionary<string, Guid> _catalogue = new(StringComparer.OrdinalIgnoreCase) { ["V1"] = _shirt, ["V2"] = _saree };
+    private static readonly Dictionary<string, DraftCatalogueItem> _catalogue = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["V1"] = new(_shirt, "Shirt · L", 650m),
+        ["V2"] = new(_saree, "Saree", 1_200m),
+    };
 
     private static OrderDraft Build(ChatExtraction? extraction, string chat = "01712345678", bool truncated = false) =>
         OrderDraftRules.Build(extraction, ChatPhoneMasker.Mask(chat), _catalogue, truncated);
@@ -103,8 +107,8 @@ public class OrderDraftRulesTests
         });
 
         draft.Lines.Count.ShouldBe(2);
-        draft.Lines[0].ShouldBe(new OrderDraftLine(_shirt, "shirt", 2));
-        draft.Lines[1].ShouldBe(new OrderDraftLine(null, "scarf", 1));
+        draft.Lines[0].ShouldBe(new OrderDraftLine(_shirt, "shirt", 2, "Shirt · L", 650m));
+        draft.Lines[1].ShouldBe(new OrderDraftLine(null, "scarf", 1, null, null));
         draft.Warnings.ShouldContain(DraftWarnings.UnmatchedItem);
     }
 

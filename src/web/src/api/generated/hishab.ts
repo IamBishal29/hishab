@@ -601,6 +601,10 @@ export interface OrderDraftLine {
   variantId: string | null;
   description: string;
   quantity: number;
+  /** @nullable */
+  label: string | null;
+  /** @nullable */
+  unitPrice: number | null;
 }
 
 export interface OrderDraft {

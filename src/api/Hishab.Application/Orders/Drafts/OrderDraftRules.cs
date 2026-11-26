@@ -42,6 +42,9 @@ public sealed class ChatExtractionItem
     public int? Quantity { get; init; }
 }
 
+/// <summary>A catalogue variant as listed to the model (without the price) and returned on a matched draft line.</summary>
+public sealed record DraftCatalogueItem(Guid VariantId, string Label, decimal UnitPrice);
+
 /// <summary>
 /// Turns the model's answer into a draft the seller can trust the shape of. The model's output is data,
 /// never instructions: a phone can only be one found in the chat, an item can only be one of this shop's
@@ -53,12 +56,12 @@ public static class OrderDraftRules
     public const int DescriptionMaxLength = 200;
 
     /// <param name="extraction">The model's answer; null when it could not be read.</param>
-    /// <param name="catalogue">Catalogue ref (V1, V2, ...) to variant ID, exactly as shown to the model.</param>
+    /// <param name="catalogue">Catalogue ref (V1, V2, ...) to variant, exactly as shown to the model.</param>
     /// <param name="catalogueTruncated">The model was shown only part of the catalogue.</param>
     public static OrderDraft Build(
         ChatExtraction? extraction,
         MaskedChat chat,
-        IReadOnlyDictionary<string, Guid> catalogue,
+        IReadOnlyDictionary<string, DraftCatalogueItem> catalogue,
         bool catalogueTruncated)
     {
         var warnings = new List<string>();
@@ -105,14 +108,15 @@ public static class OrderDraftRules
     private static List<OrderDraftLine> BuildLines(
         IReadOnlyList<ChatExtractionItem>? items,
         MaskedChat chat,
-        IReadOnlyDictionary<string, Guid> catalogue,
+        IReadOnlyDictionary<string, DraftCatalogueItem> catalogue,
         List<string> warnings)
     {
         var lines = new List<OrderDraftLine>();
         foreach (var item in (items ?? []).Take(MaxLines))
         {
             var description = CleanText(item.Description, chat, DescriptionMaxLength);
-            Guid? variantId = item.CatalogueRef?.Trim() is { } reference && catalogue.TryGetValue(reference, out var id) ? id : null;
+            var match = item.CatalogueRef?.Trim() is { } reference && catalogue.TryGetValue(reference, out var found) ? found : null;
+            var variantId = match?.VariantId;
             if (description is null && variantId is null)
             {
                 continue; // nothing to show
@@ -139,7 +143,7 @@ public static class OrderDraftRules
                 continue;
             }
 
-            lines.Add(new OrderDraftLine(variantId, description ?? string.Empty, quantity));
+            lines.Add(new OrderDraftLine(variantId, description ?? match!.Label, quantity, match?.Label, match?.UnitPrice));
         }
 
         if (lines.Count == 0)
