@@ -366,6 +366,9 @@ Never read, print or commit `.env`, user-secrets, tokens or keys. Put placeholde
   scratchpad `--env-file` so the developer's volumes are never touched. Dev-only controllers: `[DevOnly]` (removed outside
   Development/Demo by `DevOnlyControllersConvention`, `IgnoreApi`). E2E in `e2e/` (Playwright; OTP read from the API JSON log;
   OTP limit 1 per 30 s / 3 per 15 min per phone). New UI labels used by `e2e/tests` must stay in step with en.json.
+- README media (#39): `e2e/media/readme.media.ts` (`npm run readme:media`, own config) regenerates
+  `docs/screenshots/readme/*` and `demo.gif`; run it on a separate compose project (`-p hishab-media`) with fresh data.
+  Setup docs live in `docs/DEVELOPMENT.md`; keep README claims in step with the code (test counts, features).
 - OpenAPI: `EnumSchemaTransformer` strips `null` from shared enum schemas (an optional enum query
   parameter seen first would otherwise make the enum nullable for every client).
 - Screenshots for UI PRs live in `docs/screenshots/NN-*.png` (390 px wide, headless Chrome).

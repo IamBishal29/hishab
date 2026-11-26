@@ -1,63 +1,13 @@
-import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
-import { nextOtp, otpCodes } from '../support/otp'
+import { expect, test } from '@playwright/test'
+import { courierMoves, newCustomerPhone, signIn } from '../support/demo'
 
-/** The seeded demo owner (Demo environment, #37). */
-const ownerPhone = '01000000001'
-
-/** A fresh fictional customer per run (demo block, outside the seeded staff and customers). */
-const customerPhone = `01000000${String(500 + Math.floor(Math.random() * 400))}`
+/** A fresh fictional customer per run. */
+const customerPhone = newCustomerPhone()
 
 test.beforeEach(async ({ context }) => {
   // The app opens in Bangla for first visits; this journey reads English labels.
   await context.addInitScript(() => localStorage.setItem('hishab.language', 'en'))
 })
-
-/**
- * Signs in by OTP. The API allows one code per phone every 30 s and 3 per 15 min (OtpSendPolicy): a CI retry
- * right after a failure waits out the Retry-After the API sends instead of failing for an unrelated reason.
- */
-async function signIn(page: Page): Promise<void> {
-  await page.goto('/login')
-  const seen = otpCodes(ownerPhone).length
-  await page.getByLabel('Mobile number').fill(ownerPhone)
-  for (let attempt = 1; ; attempt++) {
-    const sent = page.waitForResponse(
-      (r) => r.url().endsWith('/api/auth/otp') && r.request().method() === 'POST',
-    )
-    await page.getByRole('button', { name: 'Send code' }).click()
-    const response = await sent
-    if (response.status() !== 429) break
-    const wait = Number(response.headers()['retry-after'] ?? '30')
-    if (attempt > 1 || wait > 60) {
-      throw new Error(
-        `OTP limit for the demo owner: retry in ${String(wait)} s (3 codes per 15 min per phone)`,
-      )
-    }
-    await page.waitForTimeout((wait + 1) * 1000) // the API said exactly how long; not a guess
-  }
-  await page.getByLabel('6-digit code').fill(await nextOtp(ownerPhone, seen))
-  await page.getByRole('button', { name: 'Sign in' }).click()
-  await expect(page.getByRole('heading', { name: /Welcome/ })).toBeVisible()
-}
-
-/**
- * Plays the Fake courier through the dev-only endpoint (Demo environment). The access token lives only in
- * the page's memory, so this asks /api/auth/refresh with the shared cookie, as the app itself would.
- */
-async function courierMoves(request: APIRequestContext, orderId: string, status: string) {
-  const refreshed = await request.post('/api/auth/refresh')
-  expect(refreshed.ok()).toBeTruthy()
-  const { accessToken } = (await refreshed.json()) as { accessToken: string }
-  const moved = await request.post(`/api/dev/fake-courier/orders/${orderId}/status`, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-    data: { status },
-  })
-  expect(moved.ok()).toBeTruthy()
-  return (await moved.json()) as {
-    order: { status: string; codAmount: number }
-    shipment: { consignmentId: string; deliveryFee: number }
-  }
-}
 
 test('an order goes from entry to booked, delivered and COD settled', async ({ page }) => {
   await signIn(page)

@@ -2,10 +2,10 @@
 
 ## Current
 - Milestone: M5 Showcase polish
-- Issue: #38 in review (PR #88); #37 done (PR #87 merged)
-- Branch: feat/38-compose-e2e (pushed)
-- Next step: check the new CI `e2e` job on PR #88; after it merges, #39 "README with screenshots and demo GIF" (last
-  M5 issue; the compose stack + Playwright can record the GIF).
+- Issue: #39 in review (PR #89); #38 done (PR #88 merged, CI e2e green on first run)
+- Branch: docs/39-readme (pushed)
+- Next step: after #89 merges, M5 (and the planned MVP backlog) is complete. Only #24 Steadfast (paused, no
+  milestone) is open. Next: Syed picks V2 work from docs/PRD.md (new issues), or the follow-ups listed below.
 
 ## Done
 - Product discovery: PRD written (docs/PRD.md); name chosen: Hishab
@@ -192,9 +192,14 @@
   /api proxy), compose `app` profile (Demo env, health-gated), `scripts/demo-secrets.sh`, dev-only Fake courier endpoint
   (Development/Demo, removed elsewhere), Playwright core flow (order -> book -> delivered -> COD settled), CI e2e job with
   traces on failure; 711 .NET tests; note 42
+- #39 README (PR #89): README rewrite (badges, demo GIF, three money leaks, mobile/desktop/Bangla screenshots, Mermaid
+  architecture, key decisions with ADR links, test strategy), setup moved to docs/DEVELOPMENT.md, `npm run readme:media`
+  (Playwright + gifenc) regenerates all media from the demo shop; note 43
 - #24 Steadfast: paused and moved out of M3 (docs behind the merchant login, no sandbox; Syed's choice)
 
 ## Decisions waiting for Syed
+- README (#39): delete root `GETTING-STARTED.md` (it says "delete in your first PR")? Possible follow-ups: remember a
+  customer's delivery area in the quick order lookup (screenshot shows Khulna + "Inside Dhaka"); V2 planning.
 - Compose (#38): please add `OTP_HASH_KEY`, `JWT_SIGNING_KEY`, `DATA_PROTECTION_CERT_BASE64` placeholders to `.env.example`
   (I am blocked from editing it). The CI e2e job runs for the first time on PR #88: check it is green.
 - Demo seed (#37): the 010 demo block passes phone validation in production too (couriers would reject it); say if you
@@ -382,3 +387,4 @@
 - 2026-11-26: #85 merged; #36 implemented (@fontsource font, Bangla default: Syed's choices), PR #86 open
 - 2026-11-26: #86 merged; #37 implemented (010 demo block, startup flag: Syed's choices), PR #87 open
 - 2026-11-26: #87 merged; #38 implemented (dev-only Fake endpoint, Chromium in image: Syed's choices), PR #88 open
+- 2026-11-26: #88 merged (e2e green); #39 implemented (gifenc media script: Syed's choice), PR #89 open
