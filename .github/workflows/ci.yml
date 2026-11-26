@@ -78,3 +78,60 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+
+  e2e:
+    name: e2e (compose + Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      # Fresh secrets for this run only: generated on the runner, never printed, gone with it.
+      - name: Generate run secrets
+        run: |
+          echo "POSTGRES_PASSWORD=$(openssl rand -hex 16)" >> .env
+          scripts/demo-secrets.sh >> .env
+
+      # The product as a user gets it: images built from the Dockerfiles, demo data seeded,
+      # health checks gate the start order (postgres -> api -> web).
+      - name: Start the product
+        run: docker compose --profile app up -d --build --wait --wait-timeout 420
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+          cache: npm
+          cache-dependency-path: e2e/package-lock.json
+
+      - name: Install Playwright
+        working-directory: e2e
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Typecheck
+        working-directory: e2e
+        run: npm run typecheck
+
+      - name: Run e2e
+        working-directory: e2e
+        run: npm test
+
+      - name: Save the API log
+        if: failure()
+        run: docker compose --profile app logs --no-color > e2e/compose.log
+
+      - name: Upload traces and logs
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: e2e-traces
+          path: |
+            e2e/test-results/
+            e2e/playwright-report/
+            e2e/compose.log
+          retention-days: 7
+
+      - name: Stop the product
+        if: always()
+        run: docker compose --profile app down -v
