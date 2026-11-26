@@ -2,10 +2,10 @@
 
 ## Current
 - Milestone: M5 Showcase polish
-- Issue: #34 in review (PR #84)
-- Branch: feat/34-ai-chat-to-order (pushed)
-- Next step: after #84 merges, #35 "Web: paste chat to draft order" (the form half of #34; needs no key,
-  MSW fake for the draft endpoint). Then #36 (Bangla UI), #37 (demo seed), #38 (compose + e2e), #39 (README).
+- Issue: #35 in review (PR #85); #34 done (PR #84 merged)
+- Branch: feat/35-paste-chat-draft (pushed)
+- Next step: after #85 merges, #36 "Full Bangla UI and local formatting" (lowest open M5 issue), then #37 (demo
+  seed), #38 (compose + e2e), #39 (README).
 
 ## Done
 - Product discovery: PRD written (docs/PRD.md); name chosen: Hishab
@@ -176,9 +176,16 @@
   pure OrderDraftRules (real token or no phone, catalogue refs only, clamps, trims, warning codes), fenced chat,
   JSON schema at temperature 0, timeout, per-shop rate limit (6/min), counts-only logs; 682 .NET + 107 web tests;
   note 38
+- #35 Paste chat UI (PR #85): ChatDraftPanel on the quick order form, word + symbol "Suggested" marks derived from
+  value === suggestion (editing removes them), fills only untouched or still-suggested fields, matched lines added
+  (draft lines now carry label + unitPrice), unmatched items + warnings in a live region, 503/429 messages, en + bn;
+  114 web tests; note 39; screenshot
 - #24 Steadfast: paused and moved out of M3 (docs behind the merchant login, no sandbox; Syed's choice)
 
 ## Decisions waiting for Syed
+- Paste chat (#35): a chat's name/address replaces a customer's auto-filled saved name/address (auto-fill is not
+  "typed"); say if saved data should win. No per-field confirm before Save (20-second goal); revisit if AI drafts
+  cause wrong orders. Server messages in the panel are English (same as other API errors).
 - Chat-to-order (#34): not live-tested (no key yet): set `Ai:Provider` = Gemini and `Ai:ApiKey` in user-secrets and
   try a few real chats; Gemini's handling of the nullable JSON schema is the main unknown (fallback = notUnderstood).
   Names/addresses still go to Google, and the free tier may use prompts for training: a paid key (costs money,
@@ -351,3 +358,4 @@
 - 2026-11-24: #81 merged; #32 with statement paste, one PR (Syed's choices); PR #82 open
 - 2026-11-24: #82 merged (GitHub glitch, closed by hand); #33 as one PR, Owner-only dashboard (Syed's choices); PR #83 open
 - 2026-11-26: #83 merged; #34 built without a key, Google.GenAI official SDK (Syed's choices); PR #84 open
+- 2026-11-26: #84 merged; #35 implemented (routine choices), PR #85 open
