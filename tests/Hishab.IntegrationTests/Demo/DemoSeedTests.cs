@@ -61,6 +61,38 @@ public class DemoSeedTests(DemoSeedApiFactory factory) : IClassFixture<DemoSeedA
     }
 
     [Fact]
+    public async Task Reset_empties_every_app_table_and_the_seeder_builds_the_shop_again()
+    {
+        var seeder = factory.Services.GetRequiredService<DemoSeeder>();
+        await seeder.SeedAsync(Ct);
+
+        await factory.Services.GetRequiredService<DemoReset>().ResetAsync(Ct);
+
+        // Every table in the real schema, not the model's list: a table added by a later migration is covered too.
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<HishabDbContext>();
+            var tables = await db.Database
+                .SqlQueryRaw<string>("SELECT tablename AS \"Value\" FROM pg_tables WHERE schemaname = 'public'")
+                .ToListAsync(Ct);
+            tables.ShouldContain("orders");
+            foreach (var table in tables)
+            {
+                var count = "SELECT count(*) AS \"Value\" FROM \"" + table + "\""; // names read from pg_tables
+                var rows = await db.Database.SqlQueryRaw<long>(count).SingleAsync(Ct);
+                var kept = table is "__EFMigrationsHistory" or "data_protection_keys";
+                (kept ? rows > 0 : rows == 0).ShouldBeTrue($"{table}: {rows} rows");
+            }
+        }
+
+        var again = await seeder.SeedAsync(Ct);
+        again.StepsApplied.ShouldBeGreaterThan(30); // built from nothing, not a no-op
+        using var check = factory.Services.CreateScope();
+        check.ServiceProvider.GetRequiredService<ITenantContext>().SetTenant(again.ShopId);
+        (await check.ServiceProvider.GetRequiredService<HishabDbContext>().Orders.CountAsync(Ct)).ShouldBe(30);
+    }
+
+    [Fact]
     public async Task Every_phone_number_in_the_demo_shop_is_fictional()
     {
         var shop = await factory.Services.GetRequiredService<DemoSeeder>().SeedAsync(Ct);

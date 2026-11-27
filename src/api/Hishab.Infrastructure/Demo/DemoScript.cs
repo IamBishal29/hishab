@@ -27,6 +27,9 @@ internal static class DemoScript
         (Phone.Demo(4), ShopRole.Packer),
     ];
 
+    /// <summary>Who the one-click demo sign-in can be: the owner and each seeded staff member.</summary>
+    public static IReadOnlyList<(Phone Phone, ShopRole Role)> People { get; } = [(OwnerPhone, ShopRole.Owner), .. Staff];
+
     public static IReadOnlyList<ProductInput> Products { get; } =
     [
         new("Polo shirt", "Cotton pique, regular fit",

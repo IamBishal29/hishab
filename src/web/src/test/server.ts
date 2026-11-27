@@ -31,6 +31,8 @@ export const api = {
   orderRequests: [] as { key: string | null; body: Record<string, unknown> }[],
   /** The next POST /api/orders fails like this instead of succeeding. */
   nextOrderFailure: null as null | 'network' | Record<string, string[]>,
+  /** Whether the API runs as the hosted demo (GET/POST /api/auth/demo answer instead of 404). */
+  demo: false,
   /** The signed-in user's role (GET /api/auth/me). */
   role: 'Owner',
   /** Orders served by GET /api/orders (newest first) and changed by confirm/cancel. */
@@ -387,6 +389,26 @@ export const handlers = [
     })
   }),
 
+  http.get('*/api/auth/demo', () =>
+    api.demo
+      ? HttpResponse.json({ roles: ['Owner', 'Manager', 'Moderator', 'Packer'] })
+      : problem(404),
+  ),
+
+  http.post('*/api/auth/demo', async ({ request }) => {
+    if (!api.demo) return problem(404)
+    api.role = ((await request.json()) as { role: string }).role
+    api.hasRefreshCookie = true
+    return HttpResponse.json({
+      ...me(),
+      isNewShop: false,
+      accessToken: 'access-demo',
+      accessTokenExpiresAt: '2026-11-20T10:15:00Z',
+      refreshToken: null,
+      refreshTokenExpiresAt: '2026-12-20T10:00:00Z',
+    })
+  }),
+
   http.post('*/api/auth/refresh', () => {
     api.refreshCalls++
     if (!api.hasRefreshCookie)
@@ -640,6 +662,7 @@ export const server = setupServer(
 export function resetApi(): void {
   api.hasRefreshCookie = false
   api.isNewShop = true
+  api.demo = false
   api.refreshCalls = 0
   api.shopName = 'My shop'
   api.customers = {}

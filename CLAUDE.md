@@ -360,6 +360,12 @@ Never read, print or commit `.env`, user-secrets, tokens or keys. Put placeholde
   before acting; orders use `demo-order-NN` idempotency keys). `SeedClock` wraps the clock only when `Demo:Seed` is on.
   Startup hook `SeedDemoDataIfEnabledAsync` (allow-list Development/Demo). Demo phones: `Phone.Demo(n)` (+880 10 0000 0xxx);
   owner 01000000001. The owner lookup by phone across shops is the 5th allowed cross-tenant query.
+- Demo sign-in + reset (#91): `Demo:Login` -> `DemoAuthController` (`GET/POST /api/auth/demo`, `[DevOnly]`, 404 while off,
+  only `DemoScript.People`, cookie only; `DemoLoginService` lookup = 6th allowed cross-tenant query). `Demo:ResetOnStartup`
+  -> `DemoReset` (TRUNCATE every EF model table except migrations history and Data Protection keys) before seeding;
+  Demo environment only and needs `Demo:Seed`. All combinations are checked by `DemoSeedSetup.EnsureAllowed` at startup.
+  Never reseed at runtime (the seed clock is process-wide). Web: `features/auth/demo.ts` (hand-written calls, 404 = no demo
+  UI), `DemoPanel` on login, `DemoBanner` in `AppShell`; MSW `api.demo`.
 - Docker / e2e (#38): `src/api/Dockerfile` (context repo root; runtime installs Chromium headless shell + libatomic1),
   `src/web/Dockerfile` + `nginx.conf` (/api proxy). Compose services `api`/`web` under profile `app` (`ASPNETCORE_ENVIRONMENT=Demo`,
   secrets from `.env` via `scripts/demo-secrets.sh`, host port `WEB_PORT` default 8080). Local runs: use `-p hishab-e2e` and a

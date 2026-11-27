@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Link, Navigate, Outlet, useLocation, useNavigate } from 'react-router'
 import { Button } from '@/components/ui/button'
 import { canEnterOrders, canManageShop, canSeeProfit } from '@/features/auth/permissions'
+import { DemoBanner } from '@/features/auth/DemoPanel'
 import { endSession, useSession } from '@/features/auth/useSession'
 import { Dashboard } from '@/features/reports/Dashboard'
 
@@ -25,6 +26,7 @@ export function AppShell(): ReactElement {
 
   return (
     <div className="flex min-h-svh flex-col">
+      <DemoBanner />
       <header className="flex items-center justify-between gap-2 border-b px-4 py-2">
         <span className="text-lg font-bold">{t('app.name')}</span>
         <nav className="flex items-center gap-1">

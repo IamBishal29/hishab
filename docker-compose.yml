@@ -34,6 +34,7 @@ services:
       Jwt__SigningKey: ${JWT_SIGNING_KEY:?Run scripts/demo-secrets.sh >> .env}
       DataProtection__CertificateBase64: ${DATA_PROTECTION_CERT_BASE64:?Run scripts/demo-secrets.sh >> .env}
       Demo__Seed: "true"
+      Demo__Login: "true" # the "Try the demo" button on the login page (Demo environment only)
       Observability__SeqUrl: http://seq
     depends_on:
       postgres:

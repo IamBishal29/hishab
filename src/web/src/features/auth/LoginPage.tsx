@@ -9,6 +9,7 @@ import { FormField } from '@/components/FormField'
 import { Button } from '@/components/ui/button'
 import { bdMobilePattern } from '@/lib/phone'
 import { applyProblem } from '@/lib/problemErrors'
+import { DemoPanel } from './DemoPanel'
 import { startSession, useSession } from './useSession'
 
 const phoneSchema = z.object({
@@ -90,6 +91,8 @@ export function LoginPage(): ReactElement {
           {t(rootError, { defaultValue: rootError })}
         </p>
       )}
+
+      {phone === null && <DemoPanel />}
 
       {phone === null ? (
         <form onSubmit={(e) => void sendCode(e)} noValidate className="flex flex-col gap-4">
