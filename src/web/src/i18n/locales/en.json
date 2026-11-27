@@ -25,6 +25,14 @@
     "verify": "Sign in",
     "changePhone": "Use another number"
   },
+  "demo": {
+    "title": "Try the demo",
+    "hint": "Open a sample shop with a month of orders. No phone number needed.",
+    "signInAs": "Sign in as {{role}}",
+    "otherRoles": "Or see it as:",
+    "failed": "The demo could not be opened. Please try again in a minute.",
+    "banner": "Demo shop with sample data. Your changes are wiped when the demo restarts."
+  },
   "setup": {
     "title": "Set up your shop",
     "subtitle": "You can change these later in settings.",

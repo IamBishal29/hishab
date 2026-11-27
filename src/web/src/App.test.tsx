@@ -74,6 +74,36 @@ describe('App', () => {
     expect(api.hasRefreshCookie).toBe(false)
   })
 
+  it('signs a visitor in to the hosted demo with one click and marks every page as demo', async () => {
+    api.demo = true
+    renderAt('/login')
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Sign in as Owner' }))
+
+    expect(await screen.findByRole('heading', { name: 'Welcome to Hishab' })).toBeInTheDocument()
+    expect(screen.getByRole('note')).toHaveTextContent('Demo shop with sample data')
+    expect(api.hasRefreshCookie).toBe(true)
+  })
+
+  it('lets a demo visitor try a staff role', async () => {
+    api.demo = true
+    renderAt('/login')
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Packer' }))
+
+    expect(await screen.findByRole('heading', { name: 'Welcome to Hishab' })).toBeInTheDocument()
+    expect(api.role).toBe('Packer')
+  })
+
+  it('shows no demo sign-in or banner outside the hosted demo', async () => {
+    api.hasRefreshCookie = true
+    renderAt('/')
+
+    expect(await screen.findByRole('heading', { name: 'Welcome to Hishab' })).toBeInTheDocument()
+    expect(screen.queryByRole('note')).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Try the demo' })).not.toBeInTheDocument()
+  })
+
   it('switches the login page to Bangla', async () => {
     renderAt('/login')
 
