@@ -2,13 +2,15 @@
 
 ## Current
 - Milestone: M5 Showcase polish
-- Issue: #91 demo sign-in + reset (PR open, waiting for Syed's review)
-- Branch: feat/91-demo-sign-in (chore/remove-getting-started also open as a small PR)
-- Next step: M5 (and the planned MVP backlog) is complete. Only #24 Steadfast (paused, no milestone) is open. Next: Syed picks V2 work from docs/PRD.md (new issues), or the follow-ups listed below.
-- Demo hosting (2026-11-27): Syed chose Render (API Docker + static web) + Neon Postgres, no card, and a 'Try the demo' one-click sign-in with a nightly reset. Issues #91 (demo sign-in + reset, do first) and #92 (Render + Neon deploy, ADR 0009). Syed creates the Render/Neon accounts himself.
-- Next step: after #91 merges, #92 (Render + Neon). #92 must add ForwardedHeaders (Render proxy) so the per-IP rate limit on /api/auth/demo and OTP sees real client IPs, and set Demo__Seed/Login/ResetOnStartup=true.
+- Issue: #92 free demo on Render + Neon (PR open: blueprint, ADR 0009, docs/DEPLOY.md, forwarded headers, PDF limit, Docker Playwright permission fix)
+- Branch: feat/92-render-demo
+- Next step: Syed reviews/merges, then follows docs/DEPLOY.md (Neon + Render accounts, ~30 min). Then: send me the web URL -> add the README "Live demo" link (+ note about the ~1 min wake-up) and close #92; run the DEPLOY.md step 6 check of ForwardLimit=2 on the real proxy chain.
+- Follow-ups to consider: e2e step that prints a label (would have caught the Docker permission bug); API memory is ~407 MiB of 512 after Chromium starts (fine for a demo, watch Render's metrics).
+- Only #24 Steadfast (paused, no milestone) open besides #92.
 
 ## Done
+- #92 (PR): render.yaml (API Docker free/Singapore + static site rewriting /api/*), ADR 0009, docs/DEPLOY.md, ForwardedHeaders (count-based trust, tests), Pdf:MaxConcurrentRenders, Dockerfile fix (PDFs were 500 in containers since #38); verified under a 512 MB limit locally; 731 .NET tests; learning note 45
+- #91 merged (PR #93)
 - #91 Demo sign-in + reset on startup: Demo:Login (GET/POST /api/auth/demo, dev-only route, 404 while off, demo phones only), Demo:ResetOnStartup (TRUNCATE every EF model table, Demo env only), EnsureAllowed fail-closed startup check; web DemoPanel + DemoBanner; 729 .NET + 133 web tests; learning note 44
 - Product discovery: PRD written (docs/PRD.md); name chosen: Hishab
 - Stack agreed: .NET 10 modular monolith + React, PostgreSQL, free tools only
