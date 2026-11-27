@@ -366,6 +366,10 @@ Never read, print or commit `.env`, user-secrets, tokens or keys. Put placeholde
   Demo environment only and needs `Demo:Seed`. All combinations are checked by `DemoSeedSetup.EnsureAllowed` at startup.
   Never reseed at runtime (the seed clock is process-wide). Web: `features/auth/demo.ts` (hand-written calls, 404 = no demo
   UI), `DemoPanel` on login, `DemoBanner` in `AppShell`; MSW `api.demo`.
+- Hosting (#92, ADR 0009): `render.yaml` (API Docker free plan in Singapore + static site rewriting `/api/*` to it) and
+  Neon (direct endpoint, `SSL Mode=Require`); steps in `docs/DEPLOY.md`. Behind proxies: `ForwardedHeaders:Enabled` +
+  `ForwardLimit` (count of trusted proxies from the right; off by default). `Pdf:MaxConcurrentRenders` (1 on 512 MB).
+  New env-only settings belong in `render.yaml` too; secrets only as `generateValue` or `sync: false`.
 - Docker / e2e (#38): `src/api/Dockerfile` (context repo root; runtime installs Chromium headless shell + libatomic1),
   `src/web/Dockerfile` + `nginx.conf` (/api proxy). Compose services `api`/`web` under profile `app` (`ASPNETCORE_ENVIRONMENT=Demo`,
   secrets from `.env` via `scripts/demo-secrets.sh`, host port `WEB_PORT` default 8080). Local runs: use `-p hishab-e2e` and a
