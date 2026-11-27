@@ -2,11 +2,14 @@
 
 ## Current
 - Milestone: M5 Showcase polish
-- Issue: none in progress; #39 done (PR #89 merged); #38 done (PR #88 merged, CI e2e green on first run)
-- Branch: none (chore/remove-getting-started open as a small PR)
+- Issue: #91 demo sign-in + reset (PR open, waiting for Syed's review)
+- Branch: feat/91-demo-sign-in (chore/remove-getting-started also open as a small PR)
 - Next step: M5 (and the planned MVP backlog) is complete. Only #24 Steadfast (paused, no milestone) is open. Next: Syed picks V2 work from docs/PRD.md (new issues), or the follow-ups listed below.
+- Demo hosting (2026-11-27): Syed chose Render (API Docker + static web) + Neon Postgres, no card, and a 'Try the demo' one-click sign-in with a nightly reset. Issues #91 (demo sign-in + reset, do first) and #92 (Render + Neon deploy, ADR 0009). Syed creates the Render/Neon accounts himself.
+- Next step: after #91 merges, #92 (Render + Neon). #92 must add ForwardedHeaders (Render proxy) so the per-IP rate limit on /api/auth/demo and OTP sees real client IPs, and set Demo__Seed/Login/ResetOnStartup=true.
 
 ## Done
+- #91 Demo sign-in + reset on startup: Demo:Login (GET/POST /api/auth/demo, dev-only route, 404 while off, demo phones only), Demo:ResetOnStartup (TRUNCATE every EF model table, Demo env only), EnsureAllowed fail-closed startup check; web DemoPanel + DemoBanner; 729 .NET + 133 web tests; learning note 44
 - Product discovery: PRD written (docs/PRD.md); name chosen: Hishab
 - Stack agreed: .NET 10 modular monolith + React, PostgreSQL, free tools only
 - Agent kit added (CLAUDE.md, skills, settings)
