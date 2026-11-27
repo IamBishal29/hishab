@@ -26,11 +26,12 @@ ENV ASPNETCORE_HTTP_PORTS=8080 \
 COPY --from=build /app .
 
 # Chromium's headless shell (all the PDF renderer launches; the full browser is ~400 MB more) and its Linux libraries via the Playwright driver that ships with the app (same version as
-# the package; its node needs libatomic1), and curl for the container health check. Installed as root, then dropped.
+# the package; its node needs libatomic1), and curl for the container health check. Installed as root, then dropped:
+# a+rX lets the app user run the driver's node and the browser (only files already executable by their owner).
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl libatomic1 \
     && ./.playwright/node/*/node ./.playwright/package/cli.js install --with-deps --only-shell chromium \
-    && chmod -R a+rX /ms-playwright \
+    && chmod -R a+rX /ms-playwright /app/.playwright \
     && rm -rf /var/lib/apt/lists/*
 
 USER $APP_UID

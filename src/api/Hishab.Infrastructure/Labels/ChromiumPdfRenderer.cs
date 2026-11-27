@@ -1,5 +1,6 @@
 using Hishab.Application.Orders;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Microsoft.Playwright;
 
 namespace Hishab.Infrastructure.Labels;
@@ -9,13 +10,11 @@ namespace Hishab.Infrastructure.Labels;
 /// page sizes. One browser per process, started on first use and restarted if it dies; each
 /// document gets its own throw-away context with JavaScript off and every request blocked, so a
 /// template can neither run script nor reach the network (no SSRF through an address field).
-/// At most <see cref="MaxConcurrentRenders"/> documents print at once: Chromium is memory-hungry.
+/// At most <see cref="PdfOptions.MaxConcurrentRenders"/> documents print at once: Chromium is memory-hungry.
 /// </summary>
-internal sealed partial class ChromiumPdfRenderer(ILogger<ChromiumPdfRenderer> logger) : IAsyncDisposable
+internal sealed partial class ChromiumPdfRenderer(ILogger<ChromiumPdfRenderer> logger, IOptions<PdfOptions> options) : IAsyncDisposable
 {
-    public const int MaxConcurrentRenders = 2;
-
-    private readonly SemaphoreSlim _gate = new(MaxConcurrentRenders);
+    private readonly SemaphoreSlim _gate = new(options.Value.MaxConcurrentRenders);
     private readonly SemaphoreSlim _startLock = new(1);
     private IPlaywright? _playwright;
     private IBrowser? _browser;
@@ -86,4 +85,13 @@ internal sealed partial class ChromiumPdfRenderer(ILogger<ChromiumPdfRenderer> l
 
     [LoggerMessage(Level = LogLevel.Error, Message = "PDF rendering failed with {ExceptionType} (is Chromium installed? see README)")]
     private static partial void LogRenderFailed(ILogger logger, string exceptionType);
+}
+
+/// <summary>Section "Pdf". Checked at startup.</summary>
+public sealed class PdfOptions
+{
+    public const string SectionName = "Pdf";
+
+    /// <summary>Documents printed at once; each holds a Chromium page in memory. 1 on a 512 MB host.</summary>
+    public int MaxConcurrentRenders { get; set; } = 2;
 }

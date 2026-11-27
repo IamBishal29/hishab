@@ -98,10 +98,11 @@ scripts/demo-secrets.sh >> .env      # OTP, JWT and Data Protection secrets, gen
 docker compose --profile app up -d --build --wait
 ```
 
-Open http://localhost:8080 and sign in as **01000000001**. There is no SMS gateway yet, so the one-time code is
-in the API log: `docker compose logs api | grep OTP`.
+Open http://localhost:8080 and press **Sign in as Owner** (or sign in as **01000000001**: there is no SMS
+gateway yet, so the one-time code is in the API log: `docker compose logs api | grep OTP`).
 
 Running from source, the demo shop, and every check CI runs: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
+Hosting the same demo for free on Render + Neon (`render.yaml`): [docs/DEPLOY.md](docs/DEPLOY.md).
 
 ## How it is tested
 

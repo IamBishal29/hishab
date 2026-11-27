@@ -34,8 +34,8 @@ public static class RateLimitingSetup
 
         services.AddRateLimiter(limiter =>
         {
-            // Per client IP. Behind a reverse proxy this needs ForwardedHeaders first, or
-            // every request shares the proxy's address (deployment issue, not MVP).
+            // Per client IP. Behind a reverse proxy turn on ForwardedHeaders (ForwardedHeadersSetup),
+            // or every request shares the proxy's address.
             limiter.AddPolicy(OtpPolicy, http => RateLimitPartition.GetFixedWindowLimiter(
                 http.Connection.RemoteIpAddress?.ToString() ?? "unknown",
                 _ => new FixedWindowRateLimiterOptions

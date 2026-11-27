@@ -84,6 +84,10 @@ public static class DependencyInjection
         services.AddScoped<IPayoutService, PayoutService>();
         AddCouriers(services, configuration);
         JobsSetup.AddJobs(services, configuration);
+        services.AddOptions<PdfOptions>()
+            .Bind(configuration.GetSection(PdfOptions.SectionName))
+            .Validate(o => o.MaxConcurrentRenders is >= 1 and <= 8, "Pdf:MaxConcurrentRenders must be 1 to 8.")
+            .ValidateOnStart();
         services.AddSingleton<ChromiumPdfRenderer>(); // one browser per process (ADR 0008)
         services.AddScoped<ILabelService, LabelService>();
         services.AddScoped<IInvoiceService, InvoiceService>();

@@ -6,6 +6,7 @@ using Hishab.Api.Auth;
 using Hishab.Api.Errors;
 using Hishab.Api.Logging;
 using Hishab.Api.Middleware;
+using Hishab.Api.Networking;
 using Hishab.Api.OpenApi;
 using Hishab.Api.RateLimiting;
 using Hishab.Api.Routing;
@@ -32,6 +33,7 @@ builder.Services.AddControllers(options =>
 // The OpenAPI generator reads these (HTTP) options, not MVC's: both must match, or the
 // documented contract (and the generated web client) differs from what the API really sends.
 builder.Services.ConfigureHttpJsonOptions(o => ConfigureJson(o.SerializerOptions));
+builder.Services.AddHishabForwardedHeaders(builder.Configuration);
 builder.Services.AddHishabRateLimiting(builder.Configuration);
 builder.Services.AddOpenApi(o => o.AddSchemaTransformer<EnumSchemaTransformer>());
 builder.Services.AddHishabJwtAuthentication();
@@ -45,6 +47,8 @@ builder.Services.AddProblemDetails(options => options.CustomizeProblemDetails = 
 builder.Services.AddInfrastructure(builder.Configuration);
 
 var app = builder.Build();
+
+app.UseHishabForwardedHeaders(); // behind a platform proxy: the client's address, before anything reads it
 
 // Order matters: correlation ID outermost, so every log line and error response carries it.
 app.UseMiddleware<CorrelationIdMiddleware>();
